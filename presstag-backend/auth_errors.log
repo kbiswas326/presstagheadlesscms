@@ -142,3 +142,62 @@
 2026-01-16T21:21:23.170Z - TokenExpiredError: jwt expired
 2026-01-16T21:22:24.167Z - TokenExpiredError: jwt expired
 2026-01-16T21:23:25.165Z - TokenExpiredError: jwt expired
+2026-01-16T21:24:26.187Z - TokenExpiredError: jwt expired
+2026-01-16T21:25:27.174Z - TokenExpiredError: jwt expired
+2026-01-16T21:26:28.172Z - TokenExpiredError: jwt expired
+2026-01-16T21:27:29.170Z - TokenExpiredError: jwt expired
+2026-01-16T21:28:30.167Z - TokenExpiredError: jwt expired
+2026-01-16T21:29:31.167Z - TokenExpiredError: jwt expired
+2026-01-16T21:30:32.169Z - TokenExpiredError: jwt expired
+2026-01-16T21:31:33.174Z - TokenExpiredError: jwt expired
+2026-01-16T21:32:34.174Z - TokenExpiredError: jwt expired
+2026-01-16T21:33:35.166Z - TokenExpiredError: jwt expired
+2026-01-16T21:34:36.164Z - TokenExpiredError: jwt expired
+2026-01-16T21:35:37.166Z - TokenExpiredError: jwt expired
+2026-01-16T21:36:41.029Z - TokenExpiredError: jwt expired
+2026-01-16T21:36:45.907Z - TokenExpiredError: jwt expired
+2026-01-16T21:36:45.909Z - TokenExpiredError: jwt expired
+2026-01-16T21:36:51.110Z - TokenExpiredError: jwt expired
+2026-01-16T21:36:51.113Z - TokenExpiredError: jwt expired
+2026-01-16T21:37:06.835Z - TokenExpiredError: jwt expired
+2026-01-16T21:38:07.165Z - TokenExpiredError: jwt expired
+2026-01-16T21:39:08.165Z - TokenExpiredError: jwt expired
+2026-01-16T21:39:39.448Z - TokenExpiredError: jwt expired
+2026-01-16T21:39:39.450Z - TokenExpiredError: jwt expired
+2026-01-16T21:39:52.975Z - TokenExpiredError: jwt expired
+2026-01-16T21:41:10.376Z - TokenExpiredError: jwt expired
+2026-01-16T21:41:11.122Z - TokenExpiredError: jwt expired
+2026-01-16T21:41:11.125Z - TokenExpiredError: jwt expired
+2026-01-16T21:41:14.667Z - TokenExpiredError: jwt expired
+2026-01-16T21:41:14.670Z - TokenExpiredError: jwt expired
+2026-01-16T21:41:32.754Z - TokenExpiredError: jwt expired
+2026-01-16T21:41:36.246Z - TokenExpiredError: jwt expired
+2026-01-16T21:41:36.249Z - TokenExpiredError: jwt expired
+2026-01-16T21:45:13.581Z - TokenExpiredError: jwt expired
+2026-01-16T21:45:13.586Z - TokenExpiredError: jwt expired
+2026-01-16T21:45:27.684Z - TokenExpiredError: jwt expired
+2026-01-16T21:45:27.687Z - TokenExpiredError: jwt expired
+2026-01-16T21:45:35.849Z - TokenExpiredError: jwt expired
+2026-01-16T21:50:30.390Z - TokenExpiredError: jwt expired
+2026-01-16T21:50:31.108Z - TokenExpiredError: jwt expired
+2026-01-16T21:50:31.111Z - TokenExpiredError: jwt expired
+2026-01-16T21:50:35.143Z - TokenExpiredError: jwt expired
+2026-01-16T21:50:35.147Z - TokenExpiredError: jwt expired
+2026-01-16T21:50:53.615Z - No token provided in header
+2026-01-16T21:51:54.166Z - No token provided in header
+2026-01-16T21:54:04.167Z - No token provided in header
+2026-01-16T21:54:06.891Z - No token provided in header
+2026-01-16T21:55:20.165Z - No token provided in header
+2026-01-16T21:56:21.169Z - No token provided in header
+2026-01-16T21:57:17.777Z - No token provided in header
+2026-01-16T21:57:34.069Z - No token provided in header
+2026-01-16T21:58:34.165Z - No token provided in header
+2026-01-16T21:58:47.330Z - No token provided in header
+2026-01-16T21:59:38.288Z - No token provided in header
+2026-01-16T22:00:03.581Z - No token provided in header
+2026-01-16T22:00:03.585Z - Invalid token string: 'null'
+2026-01-16T22:00:03.586Z - Error: Token is empty or invalid string
+2026-01-16T22:01:15.643Z - No token provided in header
+2026-01-16T22:01:36.911Z - No token provided in header
+2026-01-16T22:01:44.390Z - No token provided in header
+2026-01-16T22:02:47.802Z - No token provided in header
