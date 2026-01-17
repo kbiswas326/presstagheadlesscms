@@ -1,32 +1,23 @@
 ﻿'use client';
 
 import { useEffect } from 'react';
-import Script from 'next/script';
 
 export default function EmbedScripts() {
   useEffect(() => {
-    // Twitter/X
-    if (document.querySelector('.twitter-tweet')) {
-      const script = document.createElement('script');
-      script.src = "https://platform.twitter.com/widgets.js";
-      script.async = true;
-      script.charset = "utf-8";
-      document.body.appendChild(script);
-    }
+    // Ensure embeds are processed when the component mounts
+    const processEmbeds = () => {
+      if (window.twttr?.widgets?.load) {
+        window.twttr.widgets.load();
+      }
+      if (window.instgrm?.Embeds?.process) {
+        window.instgrm.Embeds.process();
+      }
+    };
 
-    // Instagram
-    if (document.querySelector('.instagram-media')) {
-        const script = document.createElement('script');
-        script.src = "//www.instagram.com/embed.js";
-        script.async = true;
-        document.body.appendChild(script);
-    }
+    // Call after a delay to ensure scripts are loaded
+    const timer = setTimeout(processEmbeds, 1000);
+    return () => clearTimeout(timer);
   }, []);
 
-  return (
-    <>
-      <Script src="https://platform.twitter.com/widgets.js" strategy="lazyOnload" />
-      <Script src="//www.instagram.com/embed.js" strategy="lazyOnload" />
-    </>
-  );
+  return null;
 }

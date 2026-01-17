@@ -67,6 +67,18 @@ export default async function RootLayout({ children }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <GoogleAnalytics />
+        {/* Load embed scripts early with inline initialization */}
+        <Script 
+          src="https://platform.twitter.com/widgets.js" 
+          strategy="afterInteractive"
+          async
+          charset="utf-8"
+        />
+        <Script 
+          src="https://www.instagram.com/embed.js" 
+          strategy="afterInteractive"
+          async
+        />
       </head>
       <body className="flex flex-col min-h-screen">
         <ScrollToTop />
