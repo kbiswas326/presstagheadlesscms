@@ -1,11 +1,17 @@
 'use client';
 import { useAds } from '../context/AdContext';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 export default function AdSpot({ position, className = '', index }) {
   const ads = useAds();
   const pathname = usePathname();
+  const [isClient, setIsClient] = useState(false);
+
+  // Mark when we're on client to prevent hydration mismatch
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Helper to check page type
   const isPageMatch = (ad) => {
@@ -41,10 +47,7 @@ export default function AdSpot({ position, className = '', index }) {
       if (param) {
           return parseInt(param) === index;
       }
-      // If ad has no param but we are in a position that usually requires one (handled by position check),
-      // we might default to showing it everywhere or nowhere. 
-      // Let's assume if no param is set in DB, it shows everywhere (or maybe 1?).
-      // Better: if position is paragraph/image, param is required.
+      // If ad has no param but we are in a position that usually requires one
       if (position === 'article_paragraph' || position === 'article_image') {
           return false; // Don't show if no param set for these positions
       }
@@ -95,7 +98,8 @@ export default function AdSpot({ position, className = '', index }) {
     }
   }, [filteredAds]);
 
-  if (filteredAds.length === 0) return null;
+  // Don't render ads on server to avoid hydration mismatch
+  if (!isClient || filteredAds.length === 0) return null;
 
   return (
     <div ref={containerRef} className={`ad-spot ad-${position} ${className} flex flex-col gap-4 items-center justify-center my-4`}>

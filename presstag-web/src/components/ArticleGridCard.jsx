@@ -69,7 +69,7 @@ const imageUrl = getImageUrl(post.featuredImage?.url || post.featuredImage || po
         </h3>
         <div className="mt-auto flex items-center justify-between">
           <span className="text-[10px] text-gray-500">
-            {formatDate(post.published_at_datetime || post.createdAt || post.updatedAt)}
+            {formatDate(post.publishedAt || post.publishDate || post.createdAt || post.updatedAt)}
           </span>
         </div>
       </div>

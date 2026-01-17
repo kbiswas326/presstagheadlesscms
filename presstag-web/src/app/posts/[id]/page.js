@@ -42,7 +42,8 @@ export async function generateMetadata({ params }) {
 
 export default async function PostPage({ params }) {
   const resolvedParams = await params;
-  const post = await getPostById(resolvedParams.id);
+  // Don't cache post pages - always fetch fresh to get latest publish time
+  const post = await getPostById(resolvedParams.id, { cache: 'no-store' });
   if (post) post.gallery = post.gallery || post.images;
 
   if (!post) {

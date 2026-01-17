@@ -36,7 +36,7 @@ const imageUrl = getImageUrl(post.featuredImage?.url || post.featuredImage || po
   ];
   const uniqueRenderingCategories = renderingCategories.filter((v,i,a)=>a.findIndex(t=>(t._id === v._id))===i);
 
-  const displayDate = post.published_at_datetime || post.createdAt || post.updatedAt;
+  const displayDate = post.publishedAt || post.publishDate || post.createdAt || post.updatedAt;
 
   return (
     <Link

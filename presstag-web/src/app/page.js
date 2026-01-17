@@ -6,6 +6,9 @@ import ArticleGridCard from "../components/ArticleGridCard";
 import Sidebar from "../components/Sidebar";
 import ResponsivePostGrid from "../components/ResponsivePostGrid";
 
+// Force dynamic rendering - don't cache this page
+export const dynamic = 'force-dynamic';
+
 async function getLayoutConfig() {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/layout-config`, { cache: 'no-store' });
@@ -16,7 +19,7 @@ async function getLayoutConfig() {
 
 async function getPosts(params = {}) {
     const { type = 'latest', value, limit = 10 } = params;
-    let url = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/api/posts?limit=' + limit;
+    let url = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/api/posts?status=published&limit=' + limit;
     
     if (type === 'category' && value) {
         url += '&category=' + value;
