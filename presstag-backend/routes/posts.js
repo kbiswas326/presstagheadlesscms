@@ -327,6 +327,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       status: req.body.status,
       publishDate: req.body.publishDate,
       publishTime: req.body.publishTime,
+      publishedAt: req.body.publishedAt,
     });
 
     let targetId = req.params.id;
@@ -350,6 +351,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const enrichedPost = await populatePost(post, db);
 
     console.log('✅ Post updated successfully');
+    console.log('📤 Returning updated post with publishedAt:', enrichedPost?.publishedAt);
     res.json(enrichedPost || post);
   } catch (error) {
     console.error('PUT /posts/:id error:', error);

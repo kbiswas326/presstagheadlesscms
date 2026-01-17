@@ -135,19 +135,28 @@ class Post {
 
     // Logic to sync publishedAt with publishDate and publishTime
     if (updateData.status === 'published' || (updateData.publishDate && updateData.publishTime)) {
-        // If we have explicit date and time (either new or existing in updateData)
-        if (updateData.publishDate && updateData.publishTime) {
+        // If we have explicit publishedAt from frontend, use it (highest priority)
+        if (updateData.publishedAt) {
+            updateData.publishedAt = new Date(updateData.publishedAt);
+            console.log('✅ Using publishedAt from frontend:', updateData.publishedAt);
+        }
+        // Otherwise, if we have explicit date and time, construct publishedAt from them
+        else if (updateData.publishDate && updateData.publishTime) {
             // Assume IST (+05:30)
             const dateTimeString = `${updateData.publishDate}T${updateData.publishTime}:00+05:30`;
             updateData.publishedAt = new Date(dateTimeString);
-        } else if (updateData.status === 'published' && !updateData.publishedAt) {
-             // If becoming published but no specific date provided, default to NOW
+            console.log('✅ Constructed publishedAt from date/time:', updateData.publishedAt);
+        }
+        // If becoming published but no specific date provided, default to NOW
+        else if (updateData.status === 'published' && !updateData.publishedAt) {
              updateData.publishedAt = new Date();
+             console.log('✅ Set publishedAt to NOW:', updateData.publishedAt);
         }
     }
-
-    if (updateData.publishedAt) {
+    // If publishedAt is set but status isn't 'published', still respect it
+    else if (updateData.publishedAt) {
       updateData.publishedAt = new Date(updateData.publishedAt);
+      console.log('✅ Set publishedAt:', updateData.publishedAt);
     }
 
     // ---------- Author update ----------

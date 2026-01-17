@@ -148,7 +148,7 @@ export default async function Page() {
                     </div>
                     
                     {/* SIDEBAR */}
-                    <div className="lg:col-span-4">
+                    <div className="lg:col-span-4 lg:sticky lg:top-0">
                         <Sidebar />
                     </div>
                 </div>

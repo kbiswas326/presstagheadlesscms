@@ -54,14 +54,14 @@ const Sidebar = ({ currentPostId, categorySlug }) => {
   }, []);
 
   if (loading) {
-      return <div className="sticky top-24 space-y-8 animate-pulse">
+      return <div className="space-y-8 animate-pulse">
           <div className="h-64 bg-gray-100 rounded-lg"></div>
           <div className="h-48 bg-gray-100 rounded-lg"></div>
       </div>;
   }
 
   return (
-    <div className="sticky top-24 space-y-8">
+    <div className="space-y-8">
         <AdSpot position="sidebar_top" />
         {widgets.map((widget, i) => (
             <SidebarWidget 

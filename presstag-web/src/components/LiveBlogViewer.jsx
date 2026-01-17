@@ -277,7 +277,7 @@ const LiveBlogViewer = ({ post }) => {
                     </main>
 
                     {/* Sidebar */}
-                    <aside className="w-full lg:w-[28%] space-y-8">
+                    <aside className="w-full lg:w-[28%] space-y-8 lg:sticky lg:top-0">
                         <Sidebar />
                     </aside>
                 </div>
