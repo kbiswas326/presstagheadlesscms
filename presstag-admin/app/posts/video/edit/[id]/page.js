@@ -768,6 +768,20 @@ export default function VideoEditorPage() {
       setError(null);
       setSuccess(null);
 
+      // Get the current post to preserve publishedAt
+      let preservedPublishedAt = undefined;
+      if (postId && postId !== 'new') {
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}`);
+          if (response.ok) {
+            const currentPost = await response.json();
+            preservedPublishedAt = currentPost.publishedAt;
+          }
+        } catch (e) {
+          console.warn('Could not fetch current post to preserve publishedAt');
+        }
+      }
+
       const postData = {
         title,
         slug,
@@ -788,6 +802,8 @@ export default function VideoEditorPage() {
         },
         publishDate,
         publishTime,
+        // IMPORTANT: Preserve original publishedAt if it exists (don't change publish date on update)
+        ...(preservedPublishedAt && { publishedAt: preservedPublishedAt }),
         seo: {
           metaTitle: metaTitle || title,
           metaDescription,

@@ -749,6 +749,20 @@ export default function ArticleEditorPage() {
       setError(null);
       setSuccess(null);
 
+      // Get the current post to preserve publishedAt if it's already published
+      let preservedPublishedAt = undefined;
+      if (postId && postId !== 'new') {
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}`);
+          if (response.ok) {
+            const currentPost = await response.json();
+            preservedPublishedAt = currentPost.publishedAt;
+          }
+        } catch (e) {
+          console.warn('Could not fetch current post to preserve publishedAt');
+        }
+      }
+
       const postData = {
         title,
         slug,
@@ -763,6 +777,8 @@ export default function ArticleEditorPage() {
         featuredImage,
         publishDate,
         publishTime,
+        // IMPORTANT: Only include publishedAt if it existed before (preserve original publish date)
+        ...(preservedPublishedAt && { publishedAt: preservedPublishedAt }),
         seo: {
           metaTitle: metaTitle || title,
           metaDescription,

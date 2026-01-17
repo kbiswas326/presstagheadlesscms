@@ -372,8 +372,8 @@ const getSelectedTagsText = () =>
     }
   }, [title, postStatus]);
 
-  const buildGalleryPayload = (status) => {
-  return {
+  const buildGalleryPayload = (status, publishedAtOverride = null) => {
+  const payload = {
     type: 'photo-gallery',
 
     title,
@@ -411,6 +411,13 @@ const getSelectedTagsText = () =>
     
     status, // 'draft' | 'pending' | 'published'
   };
+
+  // Add publishedAt if provided (for publish operation)
+  if (publishedAtOverride) {
+    payload.publishedAt = publishedAtOverride;
+  }
+
+  return payload;
 };
 
 
@@ -538,7 +545,24 @@ const getSelectedTagsText = () =>
                   return;
                 }
 
+                // Get the current post to preserve publishedAt
+                let preservedPublishedAt = undefined;
+                try {
+                  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}`);
+                  if (response.ok) {
+                    const currentPost = await response.json();
+                    preservedPublishedAt = currentPost.publishedAt;
+                  }
+                } catch (e) {
+                  console.warn('Could not fetch current post to preserve publishedAt');
+                }
+
                 const payload = buildGalleryPayload('published');
+                
+                // IMPORTANT: Preserve original publishedAt if it exists (don't change publish date on update)
+                if (preservedPublishedAt) {
+                  payload.publishedAt = preservedPublishedAt;
+                }
 
                 await posts.update(postId, payload);
                 alert('Gallery updated');
@@ -563,11 +587,7 @@ const getSelectedTagsText = () =>
                 setPublishDate(currentDate);
                 setPublishTime(currentTime);
 
-                const payload = buildGalleryPayload('published');
-                // Explicitly override date/time in payload
-                payload.publishDate = currentDate;
-                payload.publishTime = currentTime;
-                payload.publishedAt = now.toISOString();
+                const payload = buildGalleryPayload('published', now.toISOString());
 
                 if (postId) {
                   await posts.update(postId, payload);

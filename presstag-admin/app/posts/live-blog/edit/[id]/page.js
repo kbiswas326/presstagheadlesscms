@@ -565,7 +565,6 @@ const handlePublish = async () => {
     setPublishTime(currentTime);
 
     const payload = buildPayload("published");
-    // Explicitly override date/time in payload
     payload.publishDate = currentDate;
     payload.publishTime = currentTime;
     payload.publishedAt = now.toISOString();
@@ -573,18 +572,11 @@ const handlePublish = async () => {
     if (isEditMode) {
       await posts.update(postId, payload);
     } else {
-      const createdPost = await posts.create(payload);
-      // optional: if you later stay on page, youâ€™ll have the ID
-      // postId = createdPost._id;
+      await posts.create(payload);
     }
 
-    // âœ… unlock live features immediately
     setHasEverBeenPublished(true);
-
-    setSuccess("Live blog published successfully!");
-    setTimeout(() => {
-        router.push("/posts/published");
-    }, 2000);
+    router.push("/posts/live-blog");
   } catch (err) {
     console.error("Failed to publish live blog", err);
     setError("Failed to publish live blog: " + err.message);
@@ -1513,7 +1505,6 @@ const sortedUpdates = [...updates].sort(
     </div>
   );
 }
-
 
 
 
