@@ -1,0 +1,20 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - curl -fsSL https://bun.sh/install | bash  # Install Bun
+        - export BUN_INSTALL="$HOME/.bun"
+        - export PATH="$BUN_INSTALL/bin:$PATH"
+        - bun install  # Allow lockfile updates
+    build:
+      commands:
+        - NODE_ENV=production bun run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .next/cache/**/*
+      - node_modules/**/*  # Changed from .npm to node_modules since Bun uses different caching

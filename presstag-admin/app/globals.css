@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.table-cell-hover {
+  transition: all 0.1s ease-in-out;
+}
+
+.table-cell-hover:hover {
+  transform: scale(1.1);
+}
+
+/* TinyMCE Custom Styles */
+.tox-menubar {
+  background-color: #f8f9fa !important;
+  border-bottom: 1px solid #e9ecef !important;
+  padding: 4px 8px !important;
+}
+
+.tox-toolbar__primary {
+  background-color: #f8f9fa !important;
+  border-bottom: 1px solid #e9ecef !important;
+  padding: 4px 8px !important;
+}
+
+.tox-toolbar__group {
+  padding: 0 4px !important;
+}
+
+.tox-tbtn {
+  border-radius: 4px !important;
+}
+
+.tox-tbtn:hover {
+  background-color: #e9ecef !important;
+}
+
+.tox-menu {
+  border-radius: 4px !important;
+}
+
+.tox-collection__item {
+  padding: 6px 14px !important;
+}
+
+.tox-collection__item:hover {
+  background-color: #e9ecef !important;
+}
+
+/* Blue Toast Styles */
+.blue-toast {
+  background-color: #007bff !important; /* Blue background */
+  color: #fff !important; /* White text */
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 8px;
+}
+
+.blue-toast-body {
+  font-size: 14px;
+  color: #f0f0f0;
+}

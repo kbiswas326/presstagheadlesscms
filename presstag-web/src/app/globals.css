@@ -1,0 +1,242 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/aspect-ratio";
+
+@theme {
+  --font-roboto: 'Roboto', sans-serif;
+  --font-pt-serif: 'PT Serif', serif;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+  --font-roboto: 'Roboto', sans-serif;
+  --font-pt-serif: 'PT Serif', serif;
+}
+
+body {
+  font-family: var(--font-roboto), sans-serif;
+  background: #f8f9fa;
+  color: var(--foreground);
+}
+
+/* Article titles and main headlines */
+.article-title {
+  font-family: var(--font-pt-serif), serif;
+  font-weight: 700;
+}
+
+/* Section headings use Roboto */
+.section-heading {
+  font-family: var(--font-roboto), sans-serif;
+  font-weight: 500;
+}
+
+* {
+  overflow-wrap: break-word;
+  white-space: normal;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Base responsive typography */
+.blog-content {
+  @apply prose max-w-none leading-relaxed font-sans;
+}
+
+@media (min-width: 768px) {
+  .blog-content {
+    font-size: 1.125rem; /* text-lg */
+    line-height: 1.75rem;
+  }
+}
+
+/* Blog post link styling */
+.blog-content a {
+  color: #006356;
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+  transition: color 0.2s ease;
+}
+
+.blog-content a:hover {
+  color: #004d42;
+}
+
+/* Responsive spacing and images */
+.blog-content img,
+.blog-content .image-figure {
+  width: 98%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+  .blog-content img,
+  .blog-content .image-figure {
+    width: 95%;
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+/* Responsive headings */
+.blog-content h1 {
+  font-size: 1.5rem; /* text-2xl */
+  line-height: 2rem;
+  font-weight: 700;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-family: var(--font-roboto), sans-serif;
+}
+
+@media (min-width: 768px) {
+  .blog-content h1 {
+    font-size: 1.875rem; /* text-3xl */
+    line-height: 2.25rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+}
+
+.blog-content h2 {
+  font-size: 1.25rem; /* text-xl */
+  line-height: 1.75rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-family: var(--font-roboto), sans-serif;
+}
+
+@media (min-width: 768px) {
+  .blog-content h2 {
+    font-size: 1.5rem; /* text-2xl */
+    line-height: 2rem;
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+}
+
+.blog-content h3 {
+  font-size: 1.125rem; /* text-lg */
+  line-height: 1.75rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-family: var(--font-roboto), sans-serif;
+}
+
+@media (min-width: 768px) {
+  .blog-content h3 {
+    font-size: 1.25rem; /* text-xl */
+    line-height: 1.75rem;
+  }
+}
+
+/* Responsive embeds */
+.youtube-embed-container,
+.twitter-embed-container {
+  position: relative;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  max-width: min(100%, 550px);
+}
+
+@media (min-width: 768px) {
+  .youtube-embed-container,
+  .twitter-embed-container {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.youtube-embed-container {
+  aspect-ratio: 16 / 9;
+}
+
+.embed-wrapper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.embed-wrapper iframe {
+  width: 100%;
+  height: 100%;
+}
+
+/* Responsive tables */
+.blog-content table {
+  width: 100%;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  border-collapse: collapse;
+  overflow-x: auto;
+  display: block;
+  font-size: 0.875rem; /* text-sm */
+}
+
+@media (min-width: 768px) {
+  .blog-content table {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: table;
+    font-size: 1rem; /* text-base */
+  }
+}
+
+/* Fix for embeds showing as quotes */
+.prose blockquote.twitter-tweet,
+.prose blockquote.instagram-media {
+  border-left: none !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  font-style: normal !important;
+  border-radius: 0 !important;
+  color: inherit !important;
+}
+
+.prose blockquote.twitter-tweet p,
+.prose blockquote.instagram-media p {
+  display: none;
+}
+
+/* Content Image Captions - Matching Featured Image Style */
+.prose figure {
+  position: relative;
+  overflow: hidden; /* Ensure caption stays within rounded corners if any */
+  border-radius: 0.75rem; /* rounded-xl to match prose-img */
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); /* shadow-lg */
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.prose figure img {
+  margin-bottom: 0 !important; /* Remove bottom margin to prevent gap */
+  border-radius: 0.75rem; /* Ensure image is rounded */
+  display: block; /* Remove inline gap */
+  width: 100%;
+  box-shadow: none !important; /* Remove img shadow in favor of figure shadow */
+}
+
+.prose figcaption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: black;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  text-align: center;
+  backdrop-filter: blur(4px);
+  margin-top: 0 !important;
+  border-bottom-left-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+}
