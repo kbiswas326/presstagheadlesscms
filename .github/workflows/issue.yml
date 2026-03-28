@@ -1,0 +1,22 @@
+name: Issue Notifications to Discord
+on:
+  issues:
+    types: [opened, closed]
+jobs:
+  notify-discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Issue Created Notification
+        if: github.event.action == 'opened'
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+          -d '{
+                "content": "🆕 A new issue has been opened in the repository: **${{ github.repository }}**\n\n🔗 [Issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }})\n📄 Title: **${{ github.event.issue.title }}**\n👤 Opened by: **${{ github.event.issue.user.login }}**\n💬 Description:\n${{ github.event.issue.body }}"
+              }' ${{ secrets.DISCORD_WEBHOOK }}
+      - name: Send Issue Closed Notification
+        if: github.event.action == 'closed'
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+          -d '{
+                "content": "✅ An issue has been closed in the repository: **${{ github.repository }}**\n\n🔗 [Issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }})\n📄 Title: **${{ github.event.issue.title }}**\n👤 Closed by: **${{ github.event.sender.login }}**"
+              }' ${{ secrets.DISCORD_WEBHOOK }}

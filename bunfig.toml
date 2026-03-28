@@ -1,0 +1,16 @@
+[install]
+# Use the latest versions of packages when installing
+registry = "https://registry.npmjs.org"
+# Cache packages for faster installation
+cache = true
+
+[dev]
+# Enable hot reloading
+hot = true
+# Set the port (matches Next.js default)
+port = 3000
+
+[build]
+# Optimize for production builds
+minify = true
+sourcemap = true
