@@ -15,7 +15,7 @@ import {
   Search,
 } from "lucide-react";
 import { uploadMedia, getMediaLibrary } from "../../../lib/api";
-import { useTheme } from "../../context/ThemeContext";
+import { useTheme } from "context/ThemeContext";
 
 export default function MediaImagesPage() {
   const { isDark } = useTheme();

@@ -11,7 +11,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import ActionMenu from "../components/ActionMenu";
 import { RxUpdate } from "react-icons/rx";
 import Cookies from "js-cookie";
-import { useTheme } from "../context/ThemeContext";
+import { useTheme } from "context/ThemeContext";
 
 export default function Table({ posts, type, onStatusChange, status }) {
   const {

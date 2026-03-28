@@ -5,8 +5,8 @@ import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, ChevronDown, CheckCircle2, XCircle, AlertCircle, X, Wand2, Upload } from 'lucide-react';
 import { posts } from '../../../../../lib/api';
-import { useUser } from '../../../../context/UserContext';
-import { useTheme } from '../../../../context/ThemeContext';
+import { useUser } from 'context/UserContext';
+import { useTheme } from 'context/ThemeContext';
 import MediaImagesSelector from '../../../../media/MediaImagesSelector'; // Ensure this is imported if not already
 
 // Load TinyMCE dynamically

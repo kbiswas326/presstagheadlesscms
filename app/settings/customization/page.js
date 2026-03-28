@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Plus, Trash2, X, Upload, Eye, EyeOff, Save, RotateCcw, Check, Layout, Menu, Globe, columns, Columns, Link as LinkIcon, Info, Mail, Edit2, GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from 'context/ThemeContext';
 import { toast } from 'react-hot-toast';
 
 const navbarItems = ['Home', 'About', 'Blog', 'News', 'Events', 'Contact', 'Gallery', 'Services'];

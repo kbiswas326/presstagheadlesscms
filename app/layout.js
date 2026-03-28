@@ -1,6 +1,6 @@
 import "./globals.css";
-import { UserProvider } from "../context/UserContext";
-import { ThemeProvider } from "../context/ThemeContext";
+import { UserProvider } from "context/UserContext";
+import { ThemeProvider } from "context/ThemeContext";
 import LayoutContent from "./LayoutContent";
 
 export const metadata = {

@@ -2,7 +2,7 @@
 'use client';
 
 import { useRouter, useParams } from 'next/navigation';
-import { useTheme } from '../../../../context/ThemeContext';
+import { useTheme } from 'context/ThemeContext';
 import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, ChevronDown, Upload, CheckCircle2, XCircle, AlertCircle, X, Image as ImageIcon } from 'lucide-react';
 import MediaImagesSelector from '../../../../media/MediaImagesSelector';

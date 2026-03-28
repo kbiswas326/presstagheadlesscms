@@ -4,7 +4,7 @@ import useAllPostDataStore from '../../../store/useAllPostDataStore';
 import Table from '../../../components/Table';
 import TableHeader from '../../../components/TableHeader';
 import React, { useEffect, useState } from 'react';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from 'context/ThemeContext';
 
 const Page = () => {
   const { fetchAllPostedData, allPosts, totalPages, loading } = useAllPostDataStore();

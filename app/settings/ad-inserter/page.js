@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Save, X, Code, Layout, Check } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from 'context/ThemeContext';
 import { toast } from 'react-hot-toast';
 
 export default function AdInserterPage() {

@@ -2,7 +2,7 @@
 import React from 'react';
 import Pagination from './Pagination';
 import useAllPostDataStore from '../store/useAllPostDataStore';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from 'context/ThemeContext';
 
 const TableHeader = ({ totalPages, currentPage, onPageChange, type, loading, status }) => {
   const { totalPostCount, pendingApprovalCount } = useAllPostDataStore();

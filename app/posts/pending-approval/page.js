@@ -5,7 +5,7 @@ import { MoreVertical, Clock, Eye, Loader, CheckCircle, BarChart3, Film, Image a
 import { posts as postsAPI } from "../../../lib/api";
 import { useRouter } from 'next/navigation';
 import { getEditPath } from '@/utils/getEditPath';
-import { useTheme } from "../../context/ThemeContext";
+import { useTheme } from "context/ThemeContext";
 
 export default function PendingPosts() {
   const router = useRouter();

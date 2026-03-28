@@ -3,7 +3,7 @@
 import MediaImagesSelector from "../media/MediaImagesSelector";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useTheme } from "../context/ThemeContext";
+import { useTheme } from "context/ThemeContext";
 import {
   Plus,
   Search,

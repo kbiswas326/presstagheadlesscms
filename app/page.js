@@ -24,7 +24,7 @@ import { posts as postsAPI, auth as authAPI } from "../lib/api";
 import { useRouter } from "next/navigation";
 import { getEditPath } from '@/utils/getEditPath';
 import useDropDownDataStore from "@/store/dropDownDataStore";
-import { useTheme } from "../context/ThemeContext";
+import { useTheme } from "context/ThemeContext";
 
 export default function HomePage() {
   const router = useRouter();

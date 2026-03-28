@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useTheme } from "../context/ThemeContext";
+import { useTheme } from "context/ThemeContext";
 import MediaImagesSelector from "../media/MediaImagesSelector";
 import { Image as ImageIcon } from "lucide-react";
 import {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { MoreVertical, Play, Square } from "lucide-react";
 import { posts, getUsers } from "@/lib/api";
-import { useTheme } from "../../context/ThemeContext";
+import { useTheme } from "context/ThemeContext";
 
 export default function LiveBlogs() {
   const { isDark } = useTheme();

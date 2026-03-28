@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as LucideIcons from "lucide-react";
-import { useTheme } from "../context/ThemeContext";
+import { useTheme } from "context/ThemeContext";
 
 const {
   Menu,

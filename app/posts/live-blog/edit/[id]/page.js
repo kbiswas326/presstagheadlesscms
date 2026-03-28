@@ -23,7 +23,7 @@ import MediaImagesSelector from '../../../../media/MediaImagesSelector';
 import { posts } from '../../../../../lib/api';
 import { useParams } from "next/navigation";
 import { getUsers, getCategories, getTags } from '../../../../../lib/api';
-import { useTheme } from '../../../../context/ThemeContext';
+import { useTheme } from 'context/ThemeContext';
 
 
 // Load TinyMCE dynamically

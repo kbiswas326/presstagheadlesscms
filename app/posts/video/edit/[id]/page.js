@@ -6,8 +6,8 @@ import dynamic from 'next/dynamic';
 import MediaImagesSelector from '../../../../media/MediaImagesSelector';
 import { ArrowLeft, ChevronDown, CheckCircle2, XCircle, AlertCircle, X } from 'lucide-react';
 import { posts } from '../../../../../lib/api';
-import { useUser } from '../../../../context/UserContext';
-import { useTheme } from '../../../../context/ThemeContext';
+import { useUser } from 'context/UserContext';
+import { useTheme } from 'context/ThemeContext';
 
 // Load TinyMCE dynamically
 const Editor = dynamic(() => import('@tinymce/tinymce-react').then(mod => mod.Editor), {

@@ -5,7 +5,7 @@ import { MoreVertical, FileText, Eye, Loader, Edit3, BarChart3, Film, Image as I
 import { posts as postsAPI } from "../../../lib/api";
 import { useRouter } from 'next/navigation';
 import { getEditPath } from '@/utils/getEditPath';
-import { useTheme } from "../../context/ThemeContext";
+import { useTheme } from "context/ThemeContext";
 
 export default function DraftPosts() {
   const router = useRouter();

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useUser } from "../context/UserContext";
+import { useUser } from "context/UserContext";
 import { Lock, Mail, Eye, EyeOff } from "lucide-react";
 
 const Page = () => {
