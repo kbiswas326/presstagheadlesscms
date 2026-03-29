@@ -53,12 +53,15 @@ export default function CustomizationPage() {
       ]
     },
     seo: {
-      urlStructure: '/:slug',
-      categoryPrefix: 'category',
-      tagPrefix: 'tag',
-      metaTitleTemplate: '{title} | {site}',
-      metaDescriptionTemplate: 'Read {title} on {site}',
-          },
+  postUrlStructure: '/{category}/{slug}',   // for articles
+  pageUrlStructure: '/{slug}',              // for pages
+
+  categoryPrefix: 'category',
+  tagPrefix: 'tag',
+
+  metaTitleTemplate: '{title} | {site}',
+  metaDescriptionTemplate: 'Read {title} on {site}',
+},
     branding: {
       logo: '/images/logo.png',
       primaryColor: '#185EFD',
@@ -1008,95 +1011,87 @@ export default function CustomizationPage() {
               </div>
             </div>
           )}
-          {/* SEO & URL Section */}
-{activeTab === 'seo' && (
+          {/* ================= SEO & URL Configuration ================= */}
+          {activeTab === 'seo' && (
   <div className={`${panel} p-6`}>
     <h2 className={sectionTitle}>
       <Globe size={20} /> SEO & URL Configuration
     </h2>
 
-    <div className="space-y-6">
+    <div className="space-y-8">
 
-      {/* URL Structure */}
+      {/* ================= POSTS ================= */}
       <div>
-        <label className={label}>URL Structure</label>
-        <select
-          value={settings.seo.urlStructure}
+        <h3 className="text-md font-semibold mb-3">Post URL Structure</h3>
+
+        <input
+          type="text"
+          placeholder="/{category}/{slug}"
+          value={settings.seo.postUrlStructure}
           onChange={(e) =>
             setSettings(prev => ({
               ...prev,
-              seo: { ...prev.seo, urlStructure: e.target.value }
+              seo: { ...prev.seo, postUrlStructure: e.target.value }
             }))
           }
-          className={selectClass}
-        >
-          <option value="/:slug">/post-title</option>
-          <option value="/:category/:slug">/category/post-title</option>
-          <option value="/:year/:month/:slug">/2025/03/post-title</option>
-          <option value="/custom">Custom</option>
-        </select>
-      </div>
+          className={inputClass}
+        />
 
-      {/* Custom URL */}
-      {settings.seo.urlStructure === '/custom' && (
-        <div>
-          <label className={label}>Custom URL Pattern</label>
-          <input
-            type="text"
-            placeholder="/:category/:slug"
-            value={settings.seo.customPattern || ''}
-            onChange={(e) =>
-              setSettings(prev => ({
-                ...prev,
-                seo: { ...prev.seo, customPattern: e.target.value }
-              }))
-            }
-            className={inputClass}
-          />
+        <p className="text-xs mt-2 text-gray-400">
+          Available: {'{slug}'}, {'{category}'}, {'{author}'}, {'{year}'}, {'{month}'}
+        </p>
+
+        {/* Preview */}
+        <div className="mt-2 text-sm text-blue-500">
+          Preview: {
+            settings.seo.postUrlStructure
+              .replace('{slug}', 'sample-article')
+              .replace('{category}', 'cricket')
+              .replace('{author}', 'john-doe')
+              .replace('{year}', '2025')
+              .replace('{month}', '03')
+          }
         </div>
-      )}
+      </div>
 
-      {/* Category Prefix */}
+      {/* ================= PAGES ================= */}
       <div>
-        <label className={label}>Category URL Prefix</label>
+        <h3 className="text-md font-semibold mb-3">Page URL Structure</h3>
+
         <input
           type="text"
-          value={settings.seo.categoryPrefix}
+          placeholder="/{slug}"
+          value={settings.seo.pageUrlStructure}
           onChange={(e) =>
             setSettings(prev => ({
               ...prev,
-              seo: { ...prev.seo, categoryPrefix: e.target.value }
+              seo: { ...prev.seo, pageUrlStructure: e.target.value }
             }))
           }
           className={inputClass}
-          placeholder="category"
         />
-      </div>
 
-      {/* Tag Prefix */}
-      <div>
-        <label className={label}>Tag URL Prefix</label>
-        <input
-          type="text"
-          value={settings.seo.tagPrefix}
-          onChange={(e) =>
-            setSettings(prev => ({
-              ...prev,
-              seo: { ...prev.seo, tagPrefix: e.target.value }
-            }))
+        <p className="text-xs mt-2 text-gray-400">
+          Available: {'{slug}'}
+        </p>
+
+        {/* Preview */}
+        <div className="mt-2 text-sm text-green-500">
+          Preview: {
+            settings.seo.pageUrlStructure
+              .replace('{slug}', 'contact')
           }
-          className={inputClass}
-          placeholder="tag"
-        />
+        </div>
       </div>
 
-      {/* 🔥 META TITLE TEMPLATE */}
+      {/* ================= META ================= */}
       <div>
-        <label className={label}>Meta Title Template</label>
+        <h3 className="text-md font-semibold mb-3">SEO Templates</h3>
+
         <input
           type="text"
           placeholder="{title} | {site}"
-          value={settings.seo.metaTitleTemplate || ''}
+          value={settings.seo.metaTitleTemplate}
           onChange={(e) =>
             setSettings(prev => ({
               ...prev,
@@ -1105,51 +1100,18 @@ export default function CustomizationPage() {
           }
           className={inputClass}
         />
-        <p className="text-xs mt-2 text-gray-400">
-          Available: {'{title}'}, {'{site}'}, {'{category}'}, {'{author}'}, {'{year}'}
-        </p>
 
-        {/* 🔥 LIVE PREVIEW */}
-        <div className="mt-2 text-sm text-blue-500">
-          Preview: {
-            (settings.seo.metaTitleTemplate || "{title} | {site}")
-              .replace('{title}', 'Sample Article Title')
-              .replace('{site}', settings.branding.siteTitle || 'Your Site')
-              .replace('{category}', 'Cricket')
-              .replace('{author}', 'John Doe')
-              .replace('{year}', new Date().getFullYear())
-          }
-        </div>
-      </div>
-
-      {/* 🔥 META DESCRIPTION TEMPLATE */}
-      <div>
-        <label className={label}>Meta Description Template</label>
         <textarea
           placeholder="Read {title} on {site}"
-          value={settings.seo.metaDescriptionTemplate || ''}
+          value={settings.seo.metaDescriptionTemplate}
           onChange={(e) =>
             setSettings(prev => ({
               ...prev,
               seo: { ...prev.seo, metaDescriptionTemplate: e.target.value }
             }))
           }
-          className={`${inputClass} min-h-[100px]`}
+          className={`${inputClass} mt-3`}
         />
-        <p className="text-xs mt-2 text-gray-400">
-          Available: {'{title}'}, {'{site}'}, {'{category}'}, {'{author}'}
-        </p>
-
-        {/* 🔥 LIVE PREVIEW */}
-        <div className="mt-2 text-sm text-green-500">
-          Preview: {
-            (settings.seo.metaDescriptionTemplate || "Read {title} on {site}")
-              .replace('{title}', 'Sample Article Title')
-              .replace('{site}', settings.branding.siteTitle || 'Your Site')
-              .replace('{category}', 'Cricket')
-              .replace('{author}', 'John Doe')
-          }
-        </div>
       </div>
 
     </div>
