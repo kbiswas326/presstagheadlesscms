@@ -5,7 +5,7 @@ import { MoreVertical, TrendingUp, Eye, Loader } from "lucide-react";
 import { posts as postsAPI } from "../../lib/api";
 import { useRouter } from 'next/navigation';
 import { getEditPath } from '@/utils/getEditPath';
-import { useTheme } from "../context/ThemeContext";
+import { useTheme } from '../context/ThemeContext';
 
 export default function DashboardPage() {
   const router = useRouter();
