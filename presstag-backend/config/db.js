@@ -5,7 +5,7 @@ let db;
 
 const connectDB = async () => {
   try {
-    const client = new MongoClient(process.env.MONGODB_URI, {
+    const client = new MongoClient(process.env.MONGO_URI, {
       tls: true,
       family: 4, // Force IPv4
       tlsAllowInvalidCertificates: true, // Fix for SSL alert 80
