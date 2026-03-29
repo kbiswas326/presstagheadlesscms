@@ -41,7 +41,13 @@ router.post('/refresh', authMiddleware, async (req, res) => {
 });
 
 router.get('/me', authMiddleware, async (req, res) => {
-  res.json(req.user); // 🔥 fastest & safest
+  try {
+    const user = await User.findById(req.user._id); // ← fix this line
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 module.exports = router;
