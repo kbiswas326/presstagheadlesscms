@@ -1,3 +1,4 @@
+///components/Sidebar.jsx | Collapsible sidebar with nested navigation and theme toggle ///
 "use client";
 
 import { useState } from "react";
@@ -5,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { useTheme } from "../app/context/ThemeContext";
+import { useUser } from "../app/context/UserContext";
 
 const {
   Menu,
@@ -32,6 +34,7 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [openMenus, setOpenMenus] = useState({});
   const { isDark, toggleTheme } = useTheme();
+  const { user } = useUser();
 
   const toggleSubmenu = (key) => {
     setOpenMenus((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -81,6 +84,14 @@ export default function Sidebar() {
     if (!href) return false;
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
+  };
+
+  // Get initials from name
+  const getInitials = (name) => {
+    if (!name) return "AD";
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
   const theme = isDark
@@ -243,12 +254,16 @@ export default function Sidebar() {
       {!collapsed && (
         <div className={`p-3 border-t ${theme.border}`}>
           <div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${theme.hoverBg} cursor-pointer`}>
-            <div className={`w-8 h-8 bg-gradient-to-br ${theme.userBg} rounded-full flex items-center justify-center`}>
-              <span className="text-white text-xs font-semibold">AD</span>
+            <div className={`w-8 h-8 bg-gradient-to-br ${theme.userBg} rounded-full flex items-center justify-center flex-shrink-0`}>
+              <span className="text-white text-xs font-semibold">{getInitials(user?.name)}</span>
             </div>
-            <div>
-              <p className={`text-sm font-medium ${theme.userText}`}>Admin</p>
-              <p className={`text-xs ${theme.userSubtext}`}>admin@presstag.com</p>
+            <div className="min-w-0">
+              <p className={`text-sm font-medium truncate ${theme.userText}`}>
+                {user?.name || 'Admin'}
+              </p>
+              <p className={`text-xs truncate ${theme.userSubtext}`}>
+                {user?.email || 'admin@presstag.com'}
+              </p>
             </div>
           </div>
         </div>
