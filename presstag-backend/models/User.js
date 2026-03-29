@@ -1,4 +1,4 @@
-///models/User.js///
+///backend > models/User.js | User model for handling user registration, authentication, and management in the MongoDB database. This includes password hashing and validation using bcryptjs.///
 const { ObjectId } = require('mongodb');
 const bcryptjs = require('bcryptjs');
 

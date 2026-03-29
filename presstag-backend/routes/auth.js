@@ -1,4 +1,4 @@
-///routes/auth.js///
+///backend > routes/auth.js | Authentication routes for handling user registration, login, and token management.///
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
