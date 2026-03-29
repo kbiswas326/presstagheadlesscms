@@ -1086,7 +1086,8 @@ export default function CustomizationPage() {
 
       {/* ================= META ================= */}
       <div>
-        <h3 className="text-md font-semibold mb-3">SEO Templates</h3>
+        <h3 className="text-md font-semibold mb-3">Default Meta Tags</h3>
+        <h4 className="text-md font-semibold mb-3">Default Meta Title</h4>
 
         <input
           type="text"
@@ -1100,7 +1101,7 @@ export default function CustomizationPage() {
           }
           className={inputClass}
         />
-
+        <h4 className="text-md font-semibold mb-3">Default Meta Description</h4>
         <textarea
           placeholder="Read {title} on {site}"
           value={settings.seo.metaDescriptionTemplate}
