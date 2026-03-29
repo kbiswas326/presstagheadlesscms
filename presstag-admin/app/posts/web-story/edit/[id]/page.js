@@ -1,4 +1,4 @@
-///posts/web-story/edit/page.js///
+/// This is a self-contained web-story editor page. It assumes the global CMS layout provides the sidebar and topbar, so it focuses solely on the editor UI and logic.
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -92,9 +92,9 @@ useEffect(() => {
       const headers = { Authorization: `Bearer ${token}` };
 
       const [usersRes, categoriesRes, tagsRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, { headers }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, { headers }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/tags`, { headers }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, { headers }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`, { headers }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tags`, { headers }),
       ]);
 
       if (usersRes.ok) {
