@@ -1,3 +1,4 @@
+/// This is the Ad Inserter settings page. It allows admins to create and manage ad blocks that can be injected into various parts of the website (header, footer, article content, sidebar, etc.). Each ad block has a name, code (HTML/JS), position, priority, and display conditions (device types, page types). Admins can create new ad blocks, edit existing ones, toggle their active status, and delete them. The page uses modals for creating/editing ad blocks and provides real-time feedback with toast notifications. It also handles loading states and empty states gracefully.
 'use client';
 
 import React, { useState, useEffect } from 'react';

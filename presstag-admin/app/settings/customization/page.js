@@ -1,3 +1,4 @@
+/// This is the main customization page for the admin panel. It allows admins to configure various aspects of the website's layout and appearance, including the navbar, homepage sections, sidebar widgets, footer content, and overall branding (logo, colors, etc.). The page is organized into tabs for each major section, and provides a live preview of changes as they are made. Settings are saved to the backend via API calls, and loaded on page load to ensure persistence.
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -51,6 +52,13 @@ export default function CustomizationPage() {
         { text: "Contact", href: "/contact" }
       ]
     },
+    seo: {
+      urlStructure: '/:slug',
+      categoryPrefix: 'category',
+      tagPrefix: 'tag',
+      defaultMetaTitle: '',
+      defaultMetaDescription: '',
+},
     branding: {
       logo: '/images/logo.png',
       primaryColor: '#185EFD',
@@ -384,12 +392,13 @@ export default function CustomizationPage() {
   const checkboxClass = `w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer`;
 
   const tabs = [
-    { id: 'branding', label: 'Branding', icon: <Layout size={18} /> },
-    { id: 'navbar', label: 'Navigation', icon: <Menu size={18} /> },
-    { id: 'homepage', label: 'Homepage', icon: <Globe size={18} /> },
-    { id: 'sidebar', label: 'Sidebar', icon: <Columns size={18} /> },
-    { id: 'footer', label: 'Footer', icon: <LinkIcon size={18} /> },
-  ];
+  { id: 'branding', label: 'Branding', icon: <Layout size={18} /> },
+  { id: 'navbar', label: 'Navigation', icon: <Menu size={18} /> },
+  { id: 'homepage', label: 'Homepage', icon: <Globe size={18} /> },
+  { id: 'sidebar', label: 'Sidebar', icon: <Columns size={18} /> },
+  { id: 'footer', label: 'Footer', icon: <LinkIcon size={18} /> },
+  { id: 'seo', label: 'SEO & URLs', icon: <Globe size={18} /> },
+];
 
   return (
     <div className={`min-h-screen transition-colors duration-200 ${isDark ? "bg-gray-900" : "bg-gray-50"} p-6`}>
@@ -999,6 +1008,121 @@ export default function CustomizationPage() {
               </div>
             </div>
           )}
+          {/* SEO & URL Section */}
+          {activeTab === 'seo' && (
+          <div className={`${panel} p-6`}>
+            <h2 className={sectionTitle}>
+          <Globe size={20} /> SEO & URL Configuration
+            </h2>
+
+          <div className="space-y-6">
+
+          {/* URL Structure */}
+          <div>
+          <label className={label}>URL Structure</label>
+          <select
+          value={settings.seo.urlStructure}
+          onChange={(e) =>
+            setSettings(prev => ({
+              ...prev,
+              seo: { ...prev.seo, urlStructure: e.target.value }
+            }))
+          }
+          className={selectClass}
+        >
+          <option value="/:slug">/post-title</option>
+          <option value="/:category/:slug">/category/post-title</option>
+          <option value="/:year/:month/:slug">/2025/03/post-title</option>
+          <option value="/custom">Custom</option>
+        </select>
+          </div>
+
+          {/* Custom URL */}
+      {settings.seo.urlStructure === '/custom' && (
+        <div>
+          <label className={label}>Custom URL Pattern</label>
+          <input
+            type="text"
+            placeholder="/:category/:slug"
+            value={settings.seo.customPattern || ''}
+            onChange={(e) =>
+              setSettings(prev => ({
+                ...prev,
+                seo: { ...prev.seo, customPattern: e.target.value }
+              }))
+            }
+            className={inputClass}
+          />
+        </div>
+      )}
+
+      {/* Category Prefix */}
+      <div>
+        <label className={label}>Category URL Prefix</label>
+        <input
+          type="text"
+          value={settings.seo.categoryPrefix}
+          onChange={(e) =>
+            setSettings(prev => ({
+              ...prev,
+              seo: { ...prev.seo, categoryPrefix: e.target.value }
+            }))
+          }
+          className={inputClass}
+          placeholder="category"
+        />
+      </div>
+
+      {/* Tag Prefix */}
+      <div>
+        <label className={label}>Tag URL Prefix</label>
+        <input
+          type="text"
+          value={settings.seo.tagPrefix}
+          onChange={(e) =>
+            setSettings(prev => ({
+              ...prev,
+              seo: { ...prev.seo, tagPrefix: e.target.value }
+            }))
+          }
+          className={inputClass}
+          placeholder="tag"
+        />
+      </div>
+
+      {/* Meta Defaults */}
+      <div>
+        <label className={label}>Default Meta Title</label>
+        <input
+          type="text"
+          value={settings.seo.defaultMetaTitle}
+          onChange={(e) =>
+            setSettings(prev => ({
+              ...prev,
+              seo: { ...prev.seo, defaultMetaTitle: e.target.value }
+            }))
+          }
+          className={inputClass}
+        />
+      </div>
+
+      <div>
+        <label className={label}>Default Meta Description</label>
+        <textarea
+          value={settings.seo.defaultMetaDescription}
+          onChange={(e) =>
+            setSettings(prev => ({
+              ...prev,
+              seo: { ...prev.seo, defaultMetaDescription: e.target.value }
+            }))
+          }
+          className={`${inputClass} min-h-[100px]`}
+        />
+      </div>
+
+    </div>
+  </div>
+      )}
         </div>
       </div>
     </div>
