@@ -56,9 +56,9 @@ export default function CustomizationPage() {
       urlStructure: '/:slug',
       categoryPrefix: 'category',
       tagPrefix: 'tag',
-      defaultMetaTitle: '',
-      defaultMetaDescription: '',
-},
+      metaTitleTemplate: '{title} | {site}',
+      metaDescriptionTemplate: 'Read {title} on {site}',
+          },
     branding: {
       logo: '/images/logo.png',
       primaryColor: '#185EFD',
@@ -1009,18 +1009,18 @@ export default function CustomizationPage() {
             </div>
           )}
           {/* SEO & URL Section */}
-          {activeTab === 'seo' && (
-          <div className={`${panel} p-6`}>
-            <h2 className={sectionTitle}>
-          <Globe size={20} /> SEO & URL Configuration
-            </h2>
+{activeTab === 'seo' && (
+  <div className={`${panel} p-6`}>
+    <h2 className={sectionTitle}>
+      <Globe size={20} /> SEO & URL Configuration
+    </h2>
 
-          <div className="space-y-6">
+    <div className="space-y-6">
 
-          {/* URL Structure */}
-          <div>
-          <label className={label}>URL Structure</label>
-          <select
+      {/* URL Structure */}
+      <div>
+        <label className={label}>URL Structure</label>
+        <select
           value={settings.seo.urlStructure}
           onChange={(e) =>
             setSettings(prev => ({
@@ -1035,9 +1035,9 @@ export default function CustomizationPage() {
           <option value="/:year/:month/:slug">/2025/03/post-title</option>
           <option value="/custom">Custom</option>
         </select>
-          </div>
+      </div>
 
-          {/* Custom URL */}
+      {/* Custom URL */}
       {settings.seo.urlStructure === '/custom' && (
         <div>
           <label className={label}>Custom URL Pattern</label>
@@ -1090,39 +1090,71 @@ export default function CustomizationPage() {
         />
       </div>
 
-      {/* Meta Defaults */}
+      {/* 🔥 META TITLE TEMPLATE */}
       <div>
-        <label className={label}>Default Meta Title</label>
+        <label className={label}>Meta Title Template</label>
         <input
           type="text"
-          value={settings.seo.defaultMetaTitle}
+          placeholder="{title} | {site}"
+          value={settings.seo.metaTitleTemplate || ''}
           onChange={(e) =>
             setSettings(prev => ({
               ...prev,
-              seo: { ...prev.seo, defaultMetaTitle: e.target.value }
+              seo: { ...prev.seo, metaTitleTemplate: e.target.value }
             }))
           }
           className={inputClass}
         />
+        <p className="text-xs mt-2 text-gray-400">
+          Available: {'{title}'}, {'{site}'}, {'{category}'}, {'{author}'}, {'{year}'}
+        </p>
+
+        {/* 🔥 LIVE PREVIEW */}
+        <div className="mt-2 text-sm text-blue-500">
+          Preview: {
+            (settings.seo.metaTitleTemplate || "{title} | {site}")
+              .replace('{title}', 'Sample Article Title')
+              .replace('{site}', settings.branding.siteTitle || 'Your Site')
+              .replace('{category}', 'Cricket')
+              .replace('{author}', 'John Doe')
+              .replace('{year}', new Date().getFullYear())
+          }
+        </div>
       </div>
 
+      {/* 🔥 META DESCRIPTION TEMPLATE */}
       <div>
-        <label className={label}>Default Meta Description</label>
+        <label className={label}>Meta Description Template</label>
         <textarea
-          value={settings.seo.defaultMetaDescription}
+          placeholder="Read {title} on {site}"
+          value={settings.seo.metaDescriptionTemplate || ''}
           onChange={(e) =>
             setSettings(prev => ({
               ...prev,
-              seo: { ...prev.seo, defaultMetaDescription: e.target.value }
+              seo: { ...prev.seo, metaDescriptionTemplate: e.target.value }
             }))
           }
           className={`${inputClass} min-h-[100px]`}
         />
+        <p className="text-xs mt-2 text-gray-400">
+          Available: {'{title}'}, {'{site}'}, {'{category}'}, {'{author}'}
+        </p>
+
+        {/* 🔥 LIVE PREVIEW */}
+        <div className="mt-2 text-sm text-green-500">
+          Preview: {
+            (settings.seo.metaDescriptionTemplate || "Read {title} on {site}")
+              .replace('{title}', 'Sample Article Title')
+              .replace('{site}', settings.branding.siteTitle || 'Your Site')
+              .replace('{category}', 'Cricket')
+              .replace('{author}', 'John Doe')
+          }
+        </div>
       </div>
 
     </div>
   </div>
-      )}
+)}
         </div>
       </div>
     </div>
