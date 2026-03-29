@@ -1,3 +1,4 @@
+/// Root layout for the CMS dashboard, providing a consistent structure and styling across all pages. - admin > app > layout.js///
 import "./globals.css";
 import { UserProvider } from "./context/UserContext";
 import { ThemeProvider } from "./context/ThemeContext";
