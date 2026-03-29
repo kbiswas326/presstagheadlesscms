@@ -1,4 +1,4 @@
-///context>UserContext.js///
+///context>UserContext.js | User context for managing authentication state ///
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
@@ -28,9 +28,17 @@ const isTokenExpiringSoon = (token) => {
     
     return hoursLeft < 24; // Refresh if less than 24 hours left
   } catch (error) {
-    console.error('Error checking token expiration:', error);
-    return true; // Assume expired if can't decode
+  console.error('Auth check failed:', error.message);
+  // Only log out if token is truly invalid, not on network errors
+  if (error.message.includes('401') || error.message.includes('Invalid token') || error.message.includes('Token expired')) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
   }
+  // For 404 or network errors — keep user logged in
+} finally {
+  setIsLoading(false);
+}
 };
 
 // Refresh token from backend
