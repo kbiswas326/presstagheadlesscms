@@ -1,7 +1,7 @@
 ///context>UserContext.js | User context for managing authentication state ///
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { auth } from '../../lib/api';
 
 // Helper function to check if token is expiring soon
@@ -80,12 +80,17 @@ export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const authChecked = useRef(false);
 
   // Check if user is already logged in on mount
   useEffect(() => {
+    if (authChecked.current) return;
+    authChecked.current = true;
+
     const checkAuth = async () => {
       try {
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        console.log('🔑 Token found:', !!token);
         
         if (token) {
           // Check if token is expiring soon and refresh if needed
@@ -93,6 +98,7 @@ export function UserProvider({ children }) {
           
           // Verify token with backend
           const validUser = await auth.me();
+          console.log('📡 /me response:', validUser);
           
           if (validUser) {
             setUser(validUser);
@@ -101,18 +107,22 @@ export function UserProvider({ children }) {
             console.log('✅ User verified and restored:', validUser.email);
           } else {
             console.log('⚠️ Token invalid or expired');
-            throw new Error("Token invalid");
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setIsLoggedIn(false);
           }
         } else {
           console.log('⚠️ No token found in localStorage');
         }
       } catch (error) {
         console.error('Auth check failed:', error.message);
-        // MODIFIED: Do NOT clear session automatically.
-        // This prevents "random" logouts if the server hiccups or network fails.
-        // localStorage.removeItem('token');
-        // localStorage.removeItem('user');
-        setIsLoggedIn(false); 
+        // Only log out if it's a 401 (token invalid), not on network/server errors
+        if (error.message.includes('401') || error.message.includes('Invalid token') || error.message.includes('Token expired')) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setIsLoggedIn(false);
+        }
+        // For other errors (network, server), keep user logged in
       } finally {
         setIsLoading(false);
       }
@@ -129,7 +139,7 @@ export function UserProvider({ children }) {
     }, 60 * 60 * 1000); // Check every 1 hour
     
     return () => clearInterval(refreshInterval);
-  }, [isLoggedIn]);
+  }, []);
 
   // Login function
   const login = async (email, password) => {

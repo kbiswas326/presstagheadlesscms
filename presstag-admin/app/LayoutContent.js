@@ -17,6 +17,7 @@ export default function LayoutContent({ children }) {
   useEffect(() => {
     if (isLoading) return;
     if (!isLoggedIn && !isLoginPage) {
+      console.log('🔄 Redirecting to /login because isLoggedIn:', isLoggedIn, 'isLoading:', isLoading);
       router.push("/login");
     }
     if (isLoggedIn && isLoginPage) {

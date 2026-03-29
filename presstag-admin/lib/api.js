@@ -1,5 +1,5 @@
 ///lib/api.js///
-const API_URL = process.env.NEXT_PUBLIC_API_URL + '/api' || 'http://localhost:5001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL + '/api' || 'http://localhost:5000/api';
 
 /**
  * Wrapper for API calls that handles token refresh on 401 errors
@@ -106,6 +106,11 @@ export const auth = {
         },
       });
 
+      if (res.status === 401) {
+        console.log('⚠️ Me endpoint failed with 401');
+        return null;
+      }
+
       if (!res.ok) {
         console.log('⚠️ Me endpoint failed:', res.status);
         throw new Error(`Server error: ${res.status}`);
@@ -116,7 +121,7 @@ export const auth = {
       return result;
     } catch (err) {
       console.error('❌ Me endpoint error:', err.message);
-      return null;
+      throw err; // Throw instead of returning null for non-401 errors
     }
   },
 
