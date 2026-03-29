@@ -1,3 +1,4 @@
+///posts/article/edit/[id]/page.js | Main page component for creating and editing articles in the PressTag CMS admin panel. Handles form state, API interactions, auto-saving, SEO analysis, and media management.
 'use client';
 
 import { useRouter, useParams } from 'next/navigation';
@@ -109,7 +110,7 @@ export default function ArticleEditorPage() {
         const headers = { 'Authorization': `Bearer ${token}` };
 
         // Fetch authors/users
-        const usersRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, { headers });
+        const usersRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, { headers });
         if (usersRes.ok) {
           const usersData = await usersRes.json();
           const usersList = Array.isArray(usersData.users) ? usersData.users : (Array.isArray(usersData.data) ? usersData.data : (Array.isArray(usersData) ? usersData : []));
@@ -122,7 +123,7 @@ export default function ArticleEditorPage() {
         }
 
         // Fetch categories
-        const catRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, { headers });
+        const catRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`, { headers });
         if (catRes.ok) {
           const catData = await catRes.json();
           const categories = Array.isArray(catData.categories) ? catData.categories : (Array.isArray(catData.data) ? catData.data : (Array.isArray(catData) ? catData : []));
@@ -130,7 +131,7 @@ export default function ArticleEditorPage() {
         }
 
         // Fetch tags
-        const tagRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tags`, { headers });
+        const tagRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tags`, { headers });
         if (tagRes.ok) {
           const tagData = await tagRes.json();
           const tags = Array.isArray(tagData.tags) ? tagData.tags : (Array.isArray(tagData.data) ? tagData.data : (Array.isArray(tagData) ? tagData : []));
@@ -226,7 +227,7 @@ export default function ArticleEditorPage() {
     setGeneratingCaption(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/generate-caption`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts/generate-caption`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -753,7 +754,7 @@ export default function ArticleEditorPage() {
       let preservedPublishedAt = undefined;
       if (postId && postId !== 'new') {
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}`);
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts/${postId}`);
           if (response.ok) {
             const currentPost = await response.json();
             preservedPublishedAt = currentPost.publishedAt;

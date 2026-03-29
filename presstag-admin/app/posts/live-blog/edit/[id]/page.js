@@ -1,4 +1,5 @@
-﻿'use client';
+﻿///posts/live-blog/edit/[id]/page.js | Main page component for creating and editing live blogs in the PressTag CMS admin panel. Handles form state, API interactions, live update management, SEO analysis, and media management.///
+'use client';
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';

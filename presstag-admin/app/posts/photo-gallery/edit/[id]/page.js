@@ -1,4 +1,4 @@
-///post>photo-gallery/edit/page.js///
+///posts/photo-gallery/edit/[id]/page.js | Main page component for creating and editing photo galleries in the PressTag CMS admin panel. Handles form state, API interactions, image management, SEO analysis, and media selection.///
 'use client';
 
 import { useRouter, useParams } from 'next/navigation';
@@ -59,9 +59,9 @@ export default function PhotoGalleryEditorPage() {
       const headers = { Authorization: `Bearer ${token}` };
 
       const [usersRes, catRes, tagRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, { headers }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, { headers }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/tags`, { headers }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, { headers }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`, { headers }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tags`, { headers }),
       ]);
 
       const usersData = await usersRes.json();

@@ -1,3 +1,4 @@
+///posts/web-story/page.js | Main page component for listing and managing Web Story posts in the PressTag CMS admin panel. Handles fetching post data, pagination, status filtering, and rendering the Table and TableHeader components.///
 'use client';
 import useAllPostDataStore from '../../../store/useAllPostDataStore';
 import Table from '../../../components/Table';
@@ -16,10 +17,10 @@ const Page = () => {
   const fetchData = () => {
     let url;
     if (status === 'pending-approval') {
-      url = `${process.env.NEXT_PUBLIC_API_URL}/posts/pending-approval/all?type=Web Story&limit=${limit}&page=${currentPage}`;
+      url = `${process.env.NEXT_PUBLIC_API_URL}/api/posts/pending-approval/all?type=Web Story&limit=${limit}&page=${currentPage}`;
 
     } else {
-     url = `${process.env.NEXT_PUBLIC_API_URL}/posts/${status}?type=Web Story&limit=${limit}&page=${currentPage}`;
+     url = `${process.env.NEXT_PUBLIC_API_URL}/api/posts/${status}?type=Web Story&limit=${limit}&page=${currentPage}`;
     }
     fetchAllPostedData(url, 'Web Story');
   };
