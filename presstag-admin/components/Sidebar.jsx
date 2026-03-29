@@ -1,4 +1,3 @@
-///components/Sidebar.jsx | Collapsible sidebar with nested navigation and theme toggle ///
 "use client";
 
 import { useState } from "react";
