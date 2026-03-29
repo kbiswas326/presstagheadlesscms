@@ -1,5 +1,5 @@
 ///lib/api.js///
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL + '/api' || 'http://localhost:5001/api';
 
 /**
  * Wrapper for API calls that handles token refresh on 401 errors
