@@ -1,10 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    turbo: {
-      enabled: false,
-    },
-  },
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -63,4 +58,5 @@ const nextConfig = {
     ],
   },
 };
+
 export default nextConfig;
