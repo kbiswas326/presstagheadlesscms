@@ -1,3 +1,4 @@
+///website post page - handles rendering of individual posts based on ID, with special handling for different post types (article, video, gallery, web story, live blog). Also sets up metadata for SEO and social sharing. Uses Next.js 13 app directory features and server components for optimal performance.
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';

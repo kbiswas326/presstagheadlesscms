@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    turbo: {
+      enabled: false,
+    },
+  },
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -11,7 +16,7 @@ const nextConfig = {
       {
         protocol: 'http',
         hostname: 'localhost',
-        port: '5001', // ✅ Add this for new backend
+        port: '5001',
       },
       {
         protocol: 'http',
@@ -21,7 +26,7 @@ const nextConfig = {
       {
         protocol: 'http',
         hostname: '127.0.0.1',
-        port: '5001', // ✅ Add this too
+        port: '5001',
       },
       {
         protocol: 'http',
@@ -31,7 +36,7 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'dev.sportzpoint.com',
       },
-       {
+      {
         protocol: 'https',
         hostname: 'sportzpoint.com',
       },
@@ -50,6 +55,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'dmpsza32x691.cloudfront.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'laudable-integrity-production-cc28.up.railway.app',
       },
     ],
   },
