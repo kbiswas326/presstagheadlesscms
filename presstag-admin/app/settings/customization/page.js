@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Plus, Trash2, X, Upload, Eye, EyeOff, Save, RotateCcw, Check, Layout, Menu, Globe, columns, Columns, Link as LinkIcon, Info, Mail, Edit2, GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-hot-toast';
+import { uploadImage, getImageUrl } from '../../../lib/imageHelper';
 
 const navbarItems = ['Home', 'About', 'Blog', 'News', 'Events', 'Contact', 'Gallery', 'Services'];
 const sidebarSections = ['Recent Posts', 'Popular Tags', 'Categories', 'Newsletter', 'Social Media', 'Ads', 'About Widget'];
@@ -63,13 +64,14 @@ export default function CustomizationPage() {
   metaDescriptionTemplate: 'Read {title} on {site}',
 },
     branding: {
-      logo: '/images/logo.png',
-      primaryColor: '#185EFD',
-      siteTitle: 'SportzPoint',
-      siteTagline: '',
-      logoDisplayMode: 'both', // 'both', 'logo', 'text'
-      logoFile: null,
-    }
+  logo: '/images/logo.png',
+  primaryColor: '#185EFD',
+  siteTitle: 'SportzPoint',
+  siteTagline: '',
+  logoDisplayMode: 'both',
+  logoFile: null,
+  fallbackImage: ''
+}
   });
 
   const [activeTab, setActiveTab] = useState('branding');
@@ -569,6 +571,46 @@ export default function CustomizationPage() {
                       Recommended size: Height 40px-60px. Supports PNG (transparent), JPG, SVG.
                   </p>
                 </div>
+                {/* ================= FALLBACK IMAGE ================= */}
+<div>
+  <label className={label}>Fallback Image (used when post has no image)</label>
+
+  <input
+    type="file"
+    accept="image/*"
+    onChange={async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        const uploaded = await uploadImage(file);
+
+        setSettings(prev => ({
+          ...prev,
+          branding: {
+            ...prev.branding,
+            fallbackImage: uploaded.url
+          }
+        }));
+
+        toast.success('Fallback image uploaded');
+      } catch (err) {
+        console.error(err);
+        toast.error('Upload failed');
+      }
+    }}
+    className={inputClass}
+  />
+
+  {/* Preview */}
+  {settings?.branding?.fallbackImage && (
+    <img
+      src={getImageUrl(settings.branding.fallbackImage)}
+      alt="Fallback"
+      className="mt-4 rounded-lg max-h-40 border"
+    />
+  )}
+</div>
               </div>
             </div>
           </div>
