@@ -1,4 +1,4 @@
-/// Helper functions for handling image URLs and uploads in the Presstag web app. This module provides utilities to resolve image URLs from various formats (strings, objects with url/src properties) and to upload images to the backend API. It also includes functions to fetch a fallback image from the layout configuration and to resolve the appropriate image for a post, ensuring that the frontend can consistently display images regardless of how they are stored in the backend. //
+/// Helper functions for handling image URLs and uploads in the Presstag web app. This module provides utilities to resolve image URLs from various formats, upload images to the backend, and fetch fallback images from the layout configuration. The functions ensure that image URLs are correctly formatted and accessible, whether they are absolute URLs or relative paths stored in the backend. The upload function handles file uploads with associated metadata and returns the necessary information for displaying the uploaded image in the app. The fallback image function retrieves a default image from the layout configuration to be used when specific post images are not available. //
 export const getImageUrl = (relativePath) => {
   if (!relativePath) return null;
 
@@ -54,7 +54,7 @@ export const uploadImage = async (file, metadata = {}) => {
   };
 };
 
-// ✅ REQUIRED FIX
+// ✅ FIXED
 export async function getFallbackImage() {
   try {
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
@@ -73,7 +73,7 @@ export async function getFallbackImage() {
   }
 }
 
-// ✅ REQUIRED FIX
+// ✅ FINAL
 export function resolvePostImage(post, fallbackImage = null) {
   const img =
     post?.featuredImage?.url ||
