@@ -39,12 +39,7 @@ router.get('/', async (req, res) => {
           showNewsletter: true,
           showSocial: true,
         },
-        branding: {
-  logo: req.body.branding.logo,
-  primaryColor: req.body.branding.primaryColor,
-  siteTitle: req.body.branding.siteTitle,
-  fallbackImage: req.body.branding.fallbackImage || null, 
-}
+        branding: req.body.branding
       };
       
       config = await LayoutConfig.create(defaultConfig);
