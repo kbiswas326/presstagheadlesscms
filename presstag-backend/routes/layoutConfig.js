@@ -1,3 +1,4 @@
+/// Backend route for managing layout configuration (navbar, homepage sections, sidebar widgets, footer, branding)//
 const express = require('express');
 const router = express.Router();
 const LayoutConfig = require('../models/LayoutConfig');
@@ -39,11 +40,11 @@ router.get('/', async (req, res) => {
           showSocial: true,
         },
         branding: {
-          logo: '/images/logo.png',
-          primaryColor: '#006356',
-          siteTitle: 'PressTag',
-          logoFile: null,
-        }
+  logo: req.body.branding.logo,
+  primaryColor: req.body.branding.primaryColor,
+  siteTitle: req.body.branding.siteTitle,
+  fallbackImage: req.body.branding.fallbackImage || null, 
+}
       };
       
       config = await LayoutConfig.create(defaultConfig);
