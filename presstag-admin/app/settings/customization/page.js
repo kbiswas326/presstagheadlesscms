@@ -81,7 +81,7 @@ export default function CustomizationPage() {
     const loadSettings = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/layout-config`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/layout-config`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -127,7 +127,7 @@ export default function CustomizationPage() {
     setIsSaving(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/layout-config`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/layout-config`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
