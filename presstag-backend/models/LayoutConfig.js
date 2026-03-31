@@ -1,3 +1,4 @@
+// models/LayoutConfig.js | Manages layout configuration data for the CMS, including retrieval, creation, and updates.//
 const { getDB } = require('../config/db');
 
 class LayoutConfig {

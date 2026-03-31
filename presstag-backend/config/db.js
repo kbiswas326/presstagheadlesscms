@@ -1,3 +1,4 @@
+// config/db.js | MongoDB connection setup with error handling and fallback for development mode.//
 const { MongoClient } = require('mongodb');
 require('dotenv').config();
 
