@@ -1,12 +1,14 @@
-﻿"use client";
+﻿// web> src> components> ArticleGridCard.jsx | Reusable grid card component for displaying post summaries in a visually appealing grid layout, with support for featured images, categories, publish date, and live status. Used in various sections of the website to showcase posts in a compact format. --- IGNORE ---
+"use client";
 
 import { formatDate } from "../util/timeFormat";
 import Image from "next/image";
 import React from "react";
 import Link from "next/link";
 import { getImageUrl } from '@/lib/imageHelper';
+import { buildPostUrl } from '@/lib/urlBuilder';
 
-const ArticleGridCard = ({ post }) => {
+const ArticleGridCard = ({ post, urlStructure }) => {
   
 
   if (!post) {
@@ -34,9 +36,7 @@ const imageUrl = getImageUrl(post.featuredImage?.url || post.featuredImage || po
                      post.type?.toLowerCase().trim() === 'web-story' || 
                      post.type?.toLowerCase().trim() === 'story';
   
-  const postUrl = isWebStory 
-      ? `/web-stories/${post.slug || post._id}`
-      : `/posts/${post.slug || post._id}`;
+  const postUrl = buildPostUrl(post, urlStructure);
 
   return (
     <Link

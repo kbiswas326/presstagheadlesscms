@@ -1,3 +1,4 @@
+// lib/imageHelper.js | Utility functions for handling image URLs and uploads in the Presstag CMS frontend.//
 export const getImageUrl = (relativePath) => {
   if (!relativePath) return null;
 

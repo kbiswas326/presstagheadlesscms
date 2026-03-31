@@ -1,3 +1,4 @@
+// web> src> components> HorizontalCard.jsx | Reusable horizontal card component for displaying post summaries in a compact format, with support for featured images, categories, publish date, and read time. Used in various sections of the website to showcase posts in a visually appealing way. --- IGNORE ---
 "use client";
 
 import { formatDate } from "../util/timeFormat";
@@ -6,8 +7,9 @@ import Image from "next/image";
 import React from "react";
 import Link from "next/link";
 import { getImageUrl } from '@/lib/imageHelper';
+import { buildPostUrl } from '@/lib/urlBuilder';
 
-const HorizontalCard = ({ post }) => {
+const HorizontalCard = ({ post, urlStructure }) => {
 
   if (!post) return null;
 
@@ -15,9 +17,7 @@ const HorizontalCard = ({ post }) => {
                      post.type?.toLowerCase().trim() === 'web-story' || 
                      post.type?.toLowerCase().trim() === 'story';
   
-  const postUrl = isWebStory 
-      ? `/web-stories/${post.slug || post._id}`
-      : `/posts/${post.slug || post._id}`;
+  const postUrl = buildPostUrl(post, urlStructure);
 
 const imageUrl = getImageUrl(post.featuredImage?.url || post.featuredImage || post.banner_image || post.coverImage?.url || post.coverImage);  let finalImageSrc = null;
   if (imageUrl) {

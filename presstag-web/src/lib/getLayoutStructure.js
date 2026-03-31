@@ -1,3 +1,4 @@
+// web> src> lib> getLayoutStructure.js | fetches layout structure from API, with error handling and fallback to default structure if API call fails or returns invalid data. Used for dynamic rendering of website layout based on backend configuration. --- IGNORE ---
 import { BsNutFill } from "react-icons/bs";
 
 export async function getLayoutStructure(url) {

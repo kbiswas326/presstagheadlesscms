@@ -1,4 +1,4 @@
-/// Main homepage component for the Presstag web app. This component fetches the layout configuration and posts from the backend API to dynamically render the homepage sections based on the admin-defined settings. It includes a hero section with featured posts, followed by multiple sections that can be customized to display posts from specific categories, tags, authors, or content types. The component also handles fallback images for posts that do not have a specific image set, ensuring a consistent visual experience. The sidebar is included for additional widgets and content as defined in the layout configuration. //
+/// web> src> app> page.js | Main homepage component for the Presstag web app. This component fetches the layout configuration and posts from the backend API to dynamically render the homepage sections based on the admin-defined settings. It includes a hero section with featured posts, followed by multiple sections that can be customized to display posts from specific categories, tags, authors, or content types. The component also handles fallback images for posts that do not have a specific image set, ensuring a consistent visual experience. The sidebar is included for additional widgets and content as defined in the layout configuration. //
 import React from "react";
 import FeaturedHero from "../components/FeaturedHero";
 import HorizontalCard from "../components/HorizontalCard";
@@ -56,6 +56,7 @@ export default async function Page() {
   const fallbackImage = await getFallbackImage(); // ✅ FIX ADDED
 
   const primaryColor = config?.branding?.primaryColor || '#006356';
+  const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
 
   // HERO POSTS
   const heroPosts = await getPosts({ limit: 5 });
@@ -145,6 +146,7 @@ export default async function Page() {
                         ...post,
                         image: resolvePostImage(post, fallbackImage) // ✅ FIX
                       }}
+                      urlStructure={urlStructure}
                     />
                   ))}
                 </div>
@@ -167,6 +169,7 @@ export default async function Page() {
                 sectionName={section.name}
                 primaryColor={primaryColor}
                 viewAllUrl={section.viewAllUrl}
+                urlStructure={urlStructure}
               />
             ))}
           </div>
