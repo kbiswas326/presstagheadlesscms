@@ -1,4 +1,4 @@
-///routes/posts.js///
+///routes/posts.js | Route handlers for managing blog posts, including creation, retrieval, updating, and deletion operations. ---
 const express = require('express');
 const router = express.Router();
 const Post = require('../models/Post');
@@ -7,6 +7,27 @@ const { getDB } = require('../config/db');
 const { ObjectId } = require('mongodb');
 const { generateKeyTakeaways, generateImageCaption } = require('../utils/ai');
 const MOCK_POSTS = require('./mock_posts');
+
+// GET post by slug — must be before /:id route
+router.get('/slug/:slug', async (req, res) => {
+  try {
+    const db = getDB();
+    const post = await db.collection('posts').findOne({ 
+      slug: req.params.slug,
+      status: 'published'
+    });
+    
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+    
+    const populated = await populatePost(post, db);
+    res.json(populated);
+  } catch (err) {
+    console.error('Get post by slug error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 /* =====================================================
    HELPERS
