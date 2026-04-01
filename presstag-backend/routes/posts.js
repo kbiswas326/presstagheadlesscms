@@ -210,6 +210,11 @@ router.get('/', async (req, res) => {
         }
     }
 
+          // Filter by previous slug (for 301 redirects)
+      if (req.query.previousSlug) {
+        query.previousSlugs = req.query.previousSlug;
+}
+
     console.log('📋 GET /posts query:', JSON.stringify(query));
 
     // Sort configuration

@@ -106,6 +106,7 @@ class Post {
 
       /* URL */
       originalUrl: postData.originalUrl || null,
+      previousSlugs: postData.previousSlugs || [],
       
       /* AI */
       ai_pointers: postData.ai_pointers || [],
@@ -194,6 +195,18 @@ class Post {
         .map(t => (typeof t === 'string' ? t : t?._id))
         .filter(id => ObjectId.isValid(id))
         .map(id => new ObjectId(id));
+    }
+
+    // ---------- Track previous slugs for SEO redirects ----------
+    if (updateData.slug) {
+      const existingPost = await db.collection('posts').findOne({ _id: new ObjectId(id) });
+      if (existingPost && existingPost.slug && existingPost.slug !== updateData.slug) {
+        const previousSlugs = existingPost.previousSlugs || [];
+        if (!previousSlugs.includes(existingPost.slug)) {
+          previousSlugs.push(existingPost.slug);
+        }
+        updateData.previousSlugs = previousSlugs;
+      }
     }
 
     try {
