@@ -1,3 +1,4 @@
+/// web> src> components> SidebarWidget.jsx | Component that renders individual widgets in the sidebar based on the type defined in the admin panel. It supports various widget types such as Trending Posts, Recent Posts, Related Posts, Newsletter Subscription, Social Links, Ads, and Categories. The component fetches necessary data for each widget type from the backend API and displays it in a visually appealing manner. It also applies the primary branding color to widget titles and handles image URLs with a fallback mechanism for better user experience. The component is designed to be reusable and adaptable to different widget configurations defined by the admin. // --- IGNORE ---
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -6,12 +7,12 @@ import { FaFacebook, FaTwitter, FaInstagram, FaYoutube, FaLinkedin, FaTiktok, Fa
 import usePostStore from '../store/postStore';
 import { getImageUrl } from '@/lib/imageHelper';
 
-const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#ef4444' }) => {
+const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#ef4444', fallbackImage = null }) => {
     
     const getImageUrl = (input) => {
-        if (!input) return '/placeholder.jpg';
+        if (!input) return fallbackImage || '/placeholder.jpg';
         const url = typeof input === 'string' ? input : input?.url;
-        if (!url) return '/placeholder.jpg';
+        if (!url) return fallbackImage || '/placeholder.jpg';
         if (url.startsWith('http')) {
             // Fix port compatibility: replace localhost:5000 with localhost:5001
             return url.replace('localhost:5000', 'localhost:5001');

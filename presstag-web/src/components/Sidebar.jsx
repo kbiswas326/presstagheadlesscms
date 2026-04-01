@@ -1,4 +1,4 @@
-
+/// web> src> components> Sidebar.jsx | The Sidebar component is responsible for rendering the sidebar section of the homepage and post pages. It fetches the sidebar configuration from the backend API, which includes the list of widgets to display and their respective types. The component manages the loading state while fetching the configuration and renders a placeholder skeleton UI during that time. Once the configuration is loaded, it dynamically renders each widget using the SidebarWidget component, passing necessary props such as currentPostId, categorySlug, primaryColor, and fallbackImage. The Sidebar also includes AdSpot components at the top and bottom positions to display advertisements. The component is designed to be flexible and can adapt to different widget configurations defined by the admin in the backend. // --- IGNORE ---
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -9,6 +9,7 @@ const Sidebar = ({ currentPostId, categorySlug }) => {
   const [widgets, setWidgets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [primaryColor, setPrimaryColor] = useState('#006356'); // Default color
+  const [fallbackImage, setFallbackImage] = useState(null);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -21,6 +22,10 @@ const Sidebar = ({ currentPostId, categorySlug }) => {
                 // Set branding color
                 if (data.branding && data.branding.primaryColor) {
                     setPrimaryColor(data.branding.primaryColor);
+                }
+
+                if (data.branding?.fallbackImage) {
+                setFallbackImage(data.branding.fallbackImage);
                 }
 
                 if (data && data.sidebar && data.sidebar.widgets && data.sidebar.widgets.length > 0) {
@@ -70,6 +75,7 @@ const Sidebar = ({ currentPostId, categorySlug }) => {
                 currentPostId={currentPostId} 
                 categorySlug={categorySlug} 
                 primaryColor={primaryColor}
+                fallbackImage={fallbackImage}
             />
         ))}
         <AdSpot position="sidebar_bottom" />
