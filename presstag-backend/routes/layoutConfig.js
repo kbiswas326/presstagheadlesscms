@@ -57,7 +57,7 @@ router.get('/', async (req, res) => {
 // @access  Private (Admin)
 router.put('/', auth, async (req, res) => {
   try {
-    const { homepage, sidebar, navbar, mobileNav, footer, branding } = req.body;
+    const { homepage, sidebar, navbar, mobileNav, footer, branding, seo } = req.body;
     
     // Construct update object
     const updateData = {};
@@ -67,6 +67,7 @@ router.put('/', auth, async (req, res) => {
     if (mobileNav) updateData.mobileNav = mobileNav;
     if (footer) updateData.footer = footer;
     if (branding) updateData.branding = branding;
+    if (seo) updateData.seo = seo;
     
     // Use the update method which handles upsert
     const updatedConfig = await LayoutConfig.update(updateData);
