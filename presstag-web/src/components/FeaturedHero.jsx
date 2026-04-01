@@ -1,3 +1,4 @@
+/// web>src>components>FeaturedHero.jsx | used for featured hero section ///
 "use client";
 
 import { formatDate } from "../util/timeFormat";

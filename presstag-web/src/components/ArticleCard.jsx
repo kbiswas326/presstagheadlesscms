@@ -1,4 +1,5 @@
-﻿"use client";
+﻿/// web>src>components>ArticleCard.jsx | used for article cards in various sections like latest news, featured, etc. ///
+"use client";
 
 import { formatDate } from "../util/timeFormat";
 import { calculateReadTime } from "../util/readTime";
@@ -37,8 +38,17 @@ const ArticleCard = ({ mainPost, secondaryPost }) => {
     return (
       <div className="p-4 flex flex-col h-full">
         <div className="flex flex-wrap gap-1 mb-2">
-          {post.isLive && (`r`n            <div className="text-[10px] gap-1.5 font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded flex items-center border border-red-100">`r`n              <span className="relative flex h-2 w-2">`r`n                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>`r`n                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>`r`n              </span>`r`n              <span>LIVE</span>`r`n            </div>`r`n          )}
-          {uniqueRenderingCategories?.map(
+{post.isLive && (
+  <div className="text-[10px] gap-1.5 font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded flex items-center border border-red-100">
+    <span className="relative flex h-2 w-2">
+      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>
+      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+    </span>
+    <span>LIVE</span>
+  </div>
+)}          
+
+{uniqueRenderingCategories?.map(
             (c, i) =>
               c.name &&
               c.name !== "Sports" && (
@@ -68,7 +78,7 @@ const ArticleCard = ({ mainPost, secondaryPost }) => {
   };
 
   const ArticleBox = ({ post }) => {
-    const imageUrl = getImageUrl(post.featuredImage?.url || post.featuredImage || post.banner_image);
+    const imageUrl = post.image || getImageUrl(post.featuredImage?.url || post.featuredImage || post.banner_image);
     let finalImageSrc = null;
     if (imageUrl) {
       if (imageUrl.startsWith('http')) {
@@ -79,7 +89,6 @@ const ArticleCard = ({ mainPost, secondaryPost }) => {
         finalImageSrc = `${process.env.NEXT_PUBLIC_API_URL}/uploads/${imageUrl}`;
       }
     }
-
     return (
     <div
       className="bg-white hover:bg-gray-50 transition-colors border border-gray-200 rounded-lg overflow-hidden cursor-pointer flex flex-col h-full"

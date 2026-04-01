@@ -21,8 +21,7 @@ const ArticleGridCard = ({ post, urlStructure }) => {
 
   
 
-const imageUrl = getImageUrl(post.featuredImage?.url || post.featuredImage || post.banner_image || post.coverImage?.url || post.coverImage);  let finalImageSrc = null;
-  if (imageUrl) {
+const imageUrl = post.image || getImageUrl(post.featuredImage?.url || post.featuredImage || post.banner_image || post.coverImage?.url || post.coverImage);  if (imageUrl) {
     if (imageUrl.startsWith('http')) {
       finalImageSrc = imageUrl;
     } else if (imageUrl.startsWith('/uploads')) {
