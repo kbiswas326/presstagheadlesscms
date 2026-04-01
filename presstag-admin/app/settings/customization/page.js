@@ -6,6 +6,7 @@ import { ChevronDown, Plus, Trash2, X, Upload, Eye, EyeOff, Save, RotateCcw, Che
 import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-hot-toast';
 import { uploadImage, getImageUrl } from '../../../lib/imageHelper';
+import MediaImagesSelector from '../../media/MediaImagesSelector';
 
 const navbarItems = ['Home', 'About', 'Blog', 'News', 'Events', 'Contact', 'Gallery', 'Services'];
 const sidebarSections = ['Recent Posts', 'Popular Tags', 'Categories', 'Newsletter', 'Social Media', 'Ads', 'About Widget'];
@@ -15,6 +16,7 @@ export default function CustomizationPage() {
   const { isDark } = useTheme();
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef(null);
+  const [showFallbackImagePicker, setShowFallbackImagePicker] = useState(false);
 
   const [settings, setSettings] = useState({
     navbar: {
@@ -72,6 +74,7 @@ export default function CustomizationPage() {
   logoFile: null,
   fallbackImage: ''
 }
+
   });
 
   const [activeTab, setActiveTab] = useState('branding');
@@ -574,40 +577,56 @@ export default function CustomizationPage() {
                 {/* ================= FALLBACK IMAGE ================= */}
 <div>
   <label className={label}>Fallback Image (used when post has no image)</label>
+  
+  <button
+    type="button"
+    onClick={() => setShowFallbackImagePicker(true)}
+    className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
+      isDark 
+        ? 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600' 
+        : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+    }`}
+  >
+    <Upload size={16} />
+    Choose Image
+  </button>
 
-  <input
-    type="file"
-    accept="image/*"
-    onChange={async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+  {/* Preview */}
+  {settings?.branding?.fallbackImage && (
+    <div className="mt-4 relative inline-block">
+      <img
+        src={settings.branding.fallbackImage}
+        alt="Fallback"
+        className="rounded-lg max-h-40 border"
+      />
+      <button
+        onClick={() => setSettings(prev => ({
+          ...prev,
+          branding: { ...prev.branding, fallbackImage: '' }
+        }))}
+        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+      >
+        <X size={14} />
+      </button>
+    </div>
+  )}
 
-      try {
-        const uploaded = await uploadImage(file);
-
+  {/* Media Picker Modal */}
+  {showFallbackImagePicker && (
+    <MediaImagesSelector
+      onSelect={(img) => {
+        const imageUrl = img.url || img.src || img.fullUrl;
         setSettings(prev => ({
           ...prev,
           branding: {
             ...prev.branding,
-            fallbackImage: uploaded.url
+            fallbackImage: imageUrl
           }
         }));
-
-        toast.success('Fallback image uploaded');
-      } catch (err) {
-        console.error(err);
-        toast.error('Upload failed');
-      }
-    }}
-    className={inputClass}
-  />
-
-  {/* Preview */}
-  {settings?.branding?.fallbackImage && (
-    <img
-      src={getImageUrl(settings.branding.fallbackImage)}
-      alt="Fallback"
-      className="mt-4 rounded-lg max-h-40 border"
+        setShowFallbackImagePicker(false);
+        toast.success('Fallback image selected');
+      }}
+      onClose={() => setShowFallbackImagePicker(false)}
     />
   )}
 </div>
