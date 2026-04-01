@@ -11,6 +11,7 @@ import { getImageUrl } from '@/lib/imageHelper';
 const FeaturedHero = ({ post }) => {
 
   if (!post) return null;
+  console.log('hero image:', post.image, 'featuredImage:', post.featuredImage);
 
   const isWebStory = post.type?.toLowerCase().trim() === 'web story' || 
                      post.type?.toLowerCase().trim() === 'web-story' || 
@@ -20,16 +21,18 @@ const FeaturedHero = ({ post }) => {
       ? `/web-stories/${post.slug || post._id}`
       : `/posts/${post.slug || post._id}`;
 
-const imageUrl = getImageUrl(post.featuredImage?.url || post.featuredImage || post.banner_image);  let finalImageSrc = null;
-  if (imageUrl) {
-    if (imageUrl.startsWith('http')) {
-      finalImageSrc = imageUrl;
-    } else if (imageUrl.startsWith('/uploads')) {
-      finalImageSrc = `${process.env.NEXT_PUBLIC_API_URL}${imageUrl}`;
-    } else {
-      finalImageSrc = `${process.env.NEXT_PUBLIC_API_URL}/uploads/${imageUrl}`;
-    }
+// Use pre-resolved image from page.js, or fall back to deriving it
+const imageUrl = post.image || getImageUrl(post.featuredImage?.url || post.featuredImage || post.banner_image);
+let finalImageSrc = null;
+if (imageUrl) {
+  if (imageUrl.startsWith('http')) {
+    finalImageSrc = imageUrl;
+  } else if (imageUrl.startsWith('/uploads')) {
+    finalImageSrc = `${process.env.NEXT_PUBLIC_API_URL}${imageUrl}`;
+  } else {
+    finalImageSrc = `${process.env.NEXT_PUBLIC_API_URL}/uploads/${imageUrl}`;
   }
+}
 
   const renderingCategories = [
     ...(post.primary_category || []),
