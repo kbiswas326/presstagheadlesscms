@@ -1,4 +1,4 @@
-///models/Post.js///
+///backend/models/Post.js ///
 const { ObjectId } = require('mongodb');
 
 class Post {
@@ -103,6 +103,9 @@ class Post {
       /* Metrics */
       seoScore: postData.seoScore || 0,
       views: 0,
+
+      /* URL */
+      originalUrl: postData.originalUrl || null,
       
       /* AI */
       ai_pointers: postData.ai_pointers || [],
