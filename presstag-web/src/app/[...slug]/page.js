@@ -33,6 +33,20 @@ async function getPostBySlug(slug) {
   return null;
 }
 
+async function getPostByPreviousSlug(slug) {
+  try {
+    const res = await fetch(`${API_URL}/api/posts?previousSlug=${slug}`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      const posts = Array.isArray(data) ? data : (data.articles || []);
+      if (posts.length > 0) return posts[0];
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  return null;
+}
+
 export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const slugParts = resolvedParams.slug;
@@ -55,9 +69,19 @@ export default async function CatchAllPostPage({ params }) {
   if (slugParts[0] === 'web-stories') notFound();
 
   const lastSegment = slugParts[slugParts.length - 1];
-  const post = await getPostBySlug(lastSegment);
+  let post = await getPostBySlug(lastSegment);
 
-  if (!post) notFound();
+if (!post) {
+  // Check if this was an old slug that changed — 301 redirect to new URL
+  const oldPost = await getPostByPreviousSlug(lastSegment);
+  if (oldPost) {
+    const config = await fetch(`${API_URL}/api/layout-config`, { cache: 'no-store' }).then(r => r.json()).catch(() => null);
+    const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
+    const { buildPostUrl } = await import('@/lib/urlBuilder');
+    redirect(buildPostUrl(oldPost, urlStructure));
+  }
+  notFound();
+}
 
   if (post) post.gallery = post.gallery || post.images;
 
