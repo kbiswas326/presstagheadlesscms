@@ -1,4 +1,4 @@
-
+/// web> src> lib> api.js | API utility functions for fetching posts and post details from the backend. The getPosts function retrieves a list of published posts with pagination support, while the getPostById function fetches detailed information about a specific post by its ID. Both functions handle errors gracefully and return default values in case of failures. The API URL is configured using an environment variable for flexibility across different deployment environments. // --- IGNORE ---
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function getPosts(page = 1, limit = 10) {

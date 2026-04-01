@@ -1,6 +1,9 @@
 // web> src> lib> urlBuilder.js — builds post URLs based on admin SEO config
 
 export function buildPostUrl(post, urlStructure = '/{category}/{slug}') {
+  // Use original URL if preserved from migration
+  if (post.originalUrl) return post.originalUrl;
+
   // Web stories always use their own route
   const cleanType = post.type?.toLowerCase().trim();
   const isWebStory = cleanType === 'web story' || cleanType === 'web-story' || cleanType === 'story';
@@ -24,13 +27,8 @@ export function buildPostUrl(post, urlStructure = '/{category}/{slug}') {
 // Parses a URL against a structure pattern and extracts the slug
 // e.g. url: "/cricket/ipl-2025", structure: "/{category}/{slug}" → "ipl-2025"
 export function extractSlugFromUrl(urlParts, urlStructure = '/{category}/{slug}') {
-  // Split structure into parts, filter empty strings
   const structureParts = urlStructure.split('/').filter(Boolean);
-  
-  // Find which position {slug} is in
   const slugIndex = structureParts.findIndex(p => p === '{slug}');
-  
   if (slugIndex === -1) return null;
-  
   return urlParts[slugIndex] || null;
 }
