@@ -1,4 +1,5 @@
-﻿"use client";
+﻿///admin/app/posts/published/page.js | Published Posts Management Page ///
+"use client";
 
 import { useState, useEffect } from "react";
 import { MoreVertical, TrendingUp, Eye, Loader, BarChart3, FileText, Film, Image as ImageIcon, Smartphone, CircleDot } from "lucide-react";

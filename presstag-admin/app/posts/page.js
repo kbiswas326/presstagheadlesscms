@@ -1,3 +1,4 @@
+///admin/app/posts/page.js | Posts Dashboard Page ///
 "use client";
 
 import { useState, useEffect } from "react";

@@ -1,3 +1,4 @@
+///admin/app/posts/pending-approval/page.js | Pending Approval Posts Management Page ///
 "use client";
 
 import { useState, useEffect } from "react";

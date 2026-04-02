@@ -1,16 +1,16 @@
+/// admin/reset-password/[slug]/page.js | This page allows users to reset their password using a token from the URL. It includes form validation and communicates with the backend API to update the password.
 "use client";
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; // Import useRouter for pathname access
+import { useRouter } from "next/navigation";
 
 const ResetPasswordPage = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [token, setToken] = useState(""); // State to store the token from URL
-  const router = useRouter(); // Router to access pathname
+  const [token, setToken] = useState("");
+  const router = useRouter();
 
-  // Extract the token from the pathname
   useEffect(() => {
     const tokenFromUrl = window.location.pathname.split("/")[2];
     setToken(tokenFromUrl);
@@ -22,12 +22,16 @@ const ResetPasswordPage = () => {
       setError("Passwords do not match");
       return;
     }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
     if (!token) {
       setError("Invalid token.");
       return;
     }
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/reset-password/${token}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/reset-password/${token}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -39,10 +43,10 @@ const ResetPasswordPage = () => {
 
       if (res.ok) {
         setSuccess("Your password has been reset successfully.");
-        router.push('/login')
         setError(null);
+        setTimeout(() => router.push('/login'), 2000);
       } else {
-        setError(data.message || "Failed to reset password");
+        setError(data.error || data.message || "Failed to reset password");
         setSuccess(null);
       }
     } catch (err) {

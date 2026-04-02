@@ -1,3 +1,4 @@
+///admin/app/posts/video/page.js | Video Posts Management Page ///
 'use client';
 
 import { useState, useEffect, useRef } from 'react';

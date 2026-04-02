@@ -1,3 +1,4 @@
+// admin/app/posts/article/page.js | Article Posts Management Page //
 'use client';  // This tells Next.js that this component should only run in the browser
 
 import useAllPostDataStore from '../../../store/useAllPostDataStore';

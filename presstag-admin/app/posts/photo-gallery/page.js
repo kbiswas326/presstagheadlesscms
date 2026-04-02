@@ -1,3 +1,4 @@
+///admin/app/posts/photo-gallery/page.js | Photo Gallery Posts Management Page ///
 'use client';
 import useAllPostDataStore from '../../../store/useAllPostDataStore';
 import Table from '../../../components/Table';

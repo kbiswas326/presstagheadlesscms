@@ -1,3 +1,4 @@
+///admin/app/posts/drafts/page.js | Draft Posts Management Page ///
 "use client";
 
 import { useState, useEffect } from "react";
