@@ -158,6 +158,10 @@ export function UserProvider({ children }) {
     localStorage.removeItem('user');
     setUser(null);
     setIsLoggedIn(false);
+    // Redirect to login page after logout
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
   };
 
   return (
