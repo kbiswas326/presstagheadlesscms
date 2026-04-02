@@ -1,3 +1,4 @@
+/// components/Sidebar.jsx | This component renders the sidebar navigation for the PressTag admin dashboard. It includes links to different sections of the admin panel, a theme toggle button, and a user profile section. The sidebar supports collapsing and expanding, as well as highlighting the active page.///
 "use client";
 
 import { useState } from "react";
@@ -26,6 +27,7 @@ const {
   X,
   Sun,
   Moon,
+  LogOut,
 } = LucideIcons;
 
 export default function Sidebar() {
@@ -33,7 +35,7 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [openMenus, setOpenMenus] = useState({});
   const { isDark, toggleTheme } = useTheme();
-  const { user } = useUser();
+  const { user, logout } = useUser();
 
   const toggleSubmenu = (key) => {
     setOpenMenus((prev) => ({ ...prev, [key]: !prev[key] }));

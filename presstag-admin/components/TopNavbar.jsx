@@ -1,3 +1,4 @@
+/// components/TopNavbar.jsx | This component renders the top navigation bar for the PressTag admin dashboard. It includes a search input for filtering content, a "New Post" button with a dropdown menu for creating different types of posts, and adapts its styling based on the current theme (light or dark). The component uses React state to manage the visibility of the dropdown menu and Next.js router for navigation.///
 "use client";
 
 import { useState } from "react";
