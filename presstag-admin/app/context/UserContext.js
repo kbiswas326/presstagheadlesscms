@@ -154,15 +154,12 @@ export function UserProvider({ children }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    setIsLoggedIn(false);
-    // Redirect to login page after logout
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login';
-    }
-  };
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  setUser(null);
+  setIsLoggedIn(false);
+  window.location.href = '/login';
+};
 
   return (
     <UserContext.Provider value={{ user, login, logout, isLoading, isLoggedIn }}>
