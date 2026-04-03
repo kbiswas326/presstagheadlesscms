@@ -72,7 +72,7 @@ const useAllPostDataStore = create((set, get) => ({
                     totalPages: data.pagination?.totalPages || 0,
                     currentPage: data.pagination?.page || 1,
                     pendingApprovalCount: data.pagination?.total || 0,
-                    allPosts: data.articles || [],
+                    allPosts: data.posts || [],
                     loading: false,
                 }));
             } else {
@@ -80,7 +80,7 @@ const useAllPostDataStore = create((set, get) => ({
                     totalPages: data.pagination?.totalPages || 0,
                     currentPage: data.pagination?.page || 1,
                     totalPostCount: data.pagination?.total || 0,
-                    allPosts: data.articles || [],
+                    allPosts: data.posts || [],
                     loading: false,
                 }));
             }
