@@ -1,333 +1,273 @@
 /// app/posts/page.js - Final version with accurate backend data
 "use client";
 
-import { useState, useEffect } from "react";
-import { MoreVertical, Loader } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { 
+  MoreVertical, 
+  Loader, 
+  ChevronLeft, 
+  ChevronRight, 
+  Search, 
+  Filter,
+  FileEdit,
+  Trash2,
+  ExternalLink
+} from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { getEditPath } from '@/utils/getEditPath';
-import { useTheme } from '../context/ThemeContext';
 
 export default function PostsPage() {
   const router = useRouter();
-  const { isDark } = useTheme();
 
+  // State for Data
   const [posts, setPosts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState("All");
-  const [filterStatus, setFilterStatus] = useState("All");
-  const [filterCategory, setFilterCategory] = useState("All");
-  const [availableCategories, setAvailableCategories] = useState([]);
-
-  const postsPerPage = 20;
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const [openMenuIndex, setOpenMenuIndex] = useState(null);
-  const [confirmDeleteIndex, setConfirmDeleteIndex] = useState(null);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
-
-  // Helper to get category names
-  const getCategoryNames = (categoriesArray) => {
-    if (!Array.isArray(categoriesArray)) return 'Uncategorized';
-    return categoriesArray
-      .map(cat => (typeof cat === 'object' && cat.name) ? cat.name : cat)
-      .filter(Boolean)
-      .join(', ') || 'Uncategorized';
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const token = localStorage.getItem('token');
-        const headers = { 
-          'Authorization': `Bearer ${token}`,
-          'x-tenant-id': 'sportzpoint'
-        };
-
-        // Fetch categories for filter dropdown
-        const catRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, { headers });
-        if (catRes.ok) {
-          const catData = await catRes.json();
-          setAvailableCategories(catData.categories || catData || []);
-        }
-
-        // === FIXED: Fetch posts with pagination and total count ===
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/posts?page=1&limit=50`,
-          { headers }
-        );
-
-        if (!res.ok) throw new Error('Failed to fetch posts');
-
-        const data = await res.json();
-
-        setPosts(data.posts || []);
-
-        console.log(`✅ Loaded ${data.posts?.length || 0} posts | Total in DB: ${data.pagination?.total || 0}`);
-
-      } catch (err) {
-        console.error('❌ Fetch error:', err);
-        setError('Failed to fetch posts: ' + err.message);
-        setPosts([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  // Filter logic
-  const filtered = posts.filter((p) => {
-    const categoryNames = getCategoryNames(p.categories);
-    const title = p.title || "";
-    return (
-      title.toLowerCase().includes(search.toLowerCase()) &&
-      (filterType === "All" || p.type?.toLowerCase() === filterType.toLowerCase()) &&
-      (filterStatus === "All" || p.status?.toLowerCase() === filterStatus.toLowerCase()) &&
-      (filterCategory === "All" || categoryNames.toLowerCase().includes(filterCategory.toLowerCase()))
-    );
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 1
   });
 
-  const totalPages = Math.ceil(filtered.length / postsPerPage);
-  const paginated = filtered.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
+  // State for Filters & Pagination
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [typeFilter, setTypeFilter] = useState("All");
 
+  // UI State
+  const [openMenuId, setOpenMenuId] = useState(null);
+
+  // ✅ FETCH FUNCTION: Calls backend with pagination params
+  const fetchPosts = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Construct Query String
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: "20",
+        tenantId: "sportzpoint" // Explicitly setting tenant
+      });
+
+      if (statusFilter !== "All") params.append("status", statusFilter.toLowerCase());
+      if (typeFilter !== "All") params.append("type", typeFilter.toLowerCase());
+      if (search) params.append("search", search);
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-tenant-id': 'sportzpoint', // Header for backend middleware
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!res.ok) throw new Error('Failed to fetch');
+      
+      const data = await res.json();
+      
+      // ✅ Set the full count and paginated list
+      setPosts(data.posts || []);
+      setPagination(data.pagination || { total: 0, totalPages: 1, page: 1 });
+      
+    } catch (err) {
+      console.error("❌ Error fetching posts:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, statusFilter, typeFilter, search]);
+
+  // Trigger fetch on change (with debounce for search)
   useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(1);
-  }, [filtered.length, totalPages]);
+    const timer = setTimeout(() => {
+      fetchPosts();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [fetchPosts]);
 
-  const handleEdit = (post) => {
-    const path = getEditPath(post);
-    if (path) router.push(path);
+  // Reset to page 1 when filters change
+  const handleFilterChange = (setter, value) => {
+    setter(value);
+    setCurrentPage(1);
   };
-
-  const handleMenuClick = (e, key) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const menuHeight = 200;
-    const viewportHeight = window.innerHeight;
-    const spaceBelow = viewportHeight - rect.bottom;
-
-    const topPosition = spaceBelow < menuHeight 
-      ? rect.top - menuHeight - 8 
-      : rect.bottom + 8;
-
-    setMenuPosition({ top: Math.max(8, topPosition), left: rect.left - 200 });
-    setOpenMenuIndex(openMenuIndex === key ? null : key);
-    setConfirmDeleteIndex(null);
-  };
-
-  const handleDelete = async (postId) => {
-    // Add your delete logic here if needed
-    console.log("Delete clicked for:", postId);
-    // Example: await postsAPI.delete(postId); then refresh list
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="flex flex-col items-center gap-4">
-          <Loader size={32} className="animate-spin text-blue-600 dark:text-blue-500" />
-          <p className="text-gray-600 dark:text-gray-400">Loading posts...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-8">
-      {/* Breadcrumb */}
-      <nav className="text-sm text-slate-600 dark:text-gray-400 mb-8">
-        <ol className="flex items-center space-x-2">
-          <li><a href="/" className="text-blue-600 dark:text-blue-400 hover:text-blue-700">Home</a></li>
-          <li className="text-slate-400 dark:text-gray-600">/</li>
-          <li className="text-slate-900 dark:text-white font-semibold">All Posts</li>
-        </ol>
-      </nav>
-
-      <div className="flex items-center gap-3 mb-10">
-        <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
-          <MoreVertical className="text-blue-600 dark:text-blue-400" size={24} />
-        </div>
-        <div>
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-white">All Posts</h1>
-          <p className="text-slate-600 dark:text-gray-400">
-            Total Articles: <span className="font-semibold text-slate-900 dark:text-white">{posts.length}</span>
-          </p>
-        </div>
-      </div>
-
-      {error && (
-        <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400">
-          {error}
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-6 mb-8">
-        <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-64">
-            <input
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Search posts..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
+      
+      {/* Header Section */}
+      <div className="max-w-7xl mx-auto mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Content Library</h1>
+            <p className="text-slate-500 mt-1">
+              Managing <span className="font-bold text-blue-600">{pagination.total.toLocaleString()}</span> total articles for SportzPoint
+            </p>
           </div>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input 
+                type="text"
+                placeholder="Search by title..."
+                value={search}
+                onChange={(e) => handleFilterChange(setSearch, e.target.value)}
+                className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none w-64 shadow-sm"
+              />
+            </div>
+            
+            <select 
+              value={statusFilter}
+              onChange={(e) => handleFilterChange(setStatusFilter, e.target.value)}
+              className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+            >
+              <option value="All">All Status</option>
+              <option value="Published">Published</option>
+              <option value="Pending">Pending</option>
+              <option value="Draft">Draft</option>
+            </select>
 
-          <select value={filterType} onChange={(e) => setFilterType(e.target.value)}
-            className="px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500">
-            <option value="All">All Types</option>
-            <option value="article">Article</option>
-            <option value="video">Video</option>
-            <option value="photo-gallery">Gallery</option>
-            <option value="web-story">Web Story</option>
-            <option value="live-blog">Live Blog</option>
-          </select>
-
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500">
-            <option value="All">All Status</option>
-            <option value="published">Published</option>
-            <option value="pending">Pending</option>
-            <option value="draft">Draft</option>
-          </select>
-
-          <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500">
-            <option value="All">All Categories</option>
-            {availableCategories.map(cat => (
-              <option key={cat._id} value={cat.name}>{cat.name}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-gray-700 dark:to-gray-800 border-b border-slate-200 dark:border-gray-700">
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">Title</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">Type</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">Status</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">Category</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">Date</th>
-              <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700 dark:text-gray-300">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-gray-700">
-            {paginated.map((post) => (
-              <tr key={post._id} className="hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-colors">
-                <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white">{post.title}</td>
-                <td className="px-6 py-4">
-                  <span className={`px-3 py-1.5 rounded-full text-xs font-semibold inline-block ${tagClass(post.type)}`}>
-                    {post.type || 'Article'}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-3 py-1.5 rounded-full text-xs font-semibold inline-block ${statusClass(post.status)}`}>
-                    {post.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-slate-700 dark:text-gray-300">{getCategoryNames(post.categories)}</td>
-                <td className="px-6 py-4 text-slate-600 dark:text-gray-400 text-sm">
-                  {post.publishedAt || post.updatedAt || post.createdAt 
-                    ? new Date(post.publishedAt || post.updatedAt || post.createdAt).toLocaleDateString('en-GB', {
-                        year: 'numeric', month: 'short', day: '2-digit'
-                      })
-                    : 'N/A'}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button
-                    data-menu-button
-                    onClick={(e) => handleMenuClick(e, `post-${post._id}`)}
-                    className="p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-700 transition text-slate-600 dark:text-gray-400 hover:text-slate-900"
-                  >
-                    <MoreVertical size={18} />
-                  </button>
-
-                  {/* Menu Dropdown - your original logic */}
-                  {openMenuIndex === `post-${post._id}` && (
-                    <div className="fixed bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl shadow-lg z-50 w-48 menu-dropdown"
-                         style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}>
-                      <ul className="py-1">
-                        <li>
-                          <button onClick={() => handleEdit(post)} className="px-4 py-3 w-full hover:bg-blue-50 text-left text-sm">
-                            Edit
-                          </button>
-                        </li>
-                        <li>
-                          {confirmDeleteIndex === `post-${post._id}` ? (
-                            <div className="px-4 py-3">
-                              <p className="text-xs text-red-600 mb-2">Confirm delete?</p>
-                              <div className="flex gap-2">
-                                <button onClick={() => handleDelete(post._id)} className="flex-1 bg-red-600 text-white px-3 py-1.5 rounded text-xs">Delete</button>
-                                <button onClick={() => setConfirmDeleteIndex(null)} className="flex-1 bg-gray-100 px-3 py-1.5 rounded text-xs">Cancel</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button onClick={() => setConfirmDeleteIndex(`post-${post._id}`)} className="px-4 py-3 w-full hover:bg-red-50 text-left text-red-600 text-sm">
-                              Delete
-                            </button>
-                          )}
-                        </li>
-                      </ul>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-
-            {paginated.length === 0 && (
-              <tr>
-                <td colSpan="6" className="text-center py-12 text-slate-500">No posts found</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-10">
-          <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}
-            className="px-4 py-2.5 bg-white dark:bg-gray-800 border rounded-lg disabled:opacity-50">
-            Previous
-          </button>
-          {[...Array(totalPages)].map((_, i) => (
-            <button key={i} onClick={() => setCurrentPage(i + 1)}
-              className={`px-4 py-2.5 rounded-lg ${currentPage === i + 1 ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border'}`}>
-              {i + 1}
+            <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-200 flex items-center gap-2">
+              <ExternalLink size={16} /> New Post
             </button>
-          ))}
-          <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}
-            className="px-4 py-2.5 bg-white dark:bg-gray-800 border rounded-lg disabled:opacity-50">
-            Next
-          </button>
+          </div>
         </div>
-      )}
+      </div>
+
+      {/* Table Section */}
+      <div className="max-w-7xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-6 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider">Article Details</th>
+                <th className="px-6 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider">Type</th>
+                <th className="px-6 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-5 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {isLoading ? (
+                <tr>
+                  <td colSpan="5" className="py-24 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader className="animate-spin text-blue-600" size={32} />
+                      <p className="text-slate-400 font-medium">Fetching your content...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : posts.length > 0 ? (posts.map((post) => (
+                <tr key={post._id} className="hover:bg-slate-50/50 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-slate-100 flex-shrink-0 overflow-hidden border border-slate-200">
+                        <img 
+                          src={post.thumbnail || `https://picsum.photos/seed/${post._id}/100/100`} 
+                          alt="" 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-900 truncate max-w-md group-hover:text-blue-600 transition-colors">
+                          {post.title || "Untitled Post"}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-0.5">by {post.authorName || "Staff Writer"}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${getStatusStyles(post.status)}`}>
+                      {post.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm font-medium text-slate-600 capitalize">{post.type || 'Article'}</td>
+                  <td className="px-6 py-4 text-sm text-slate-400">
+                    {new Date(post.publishedAt || post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </td>
+                  <td className="px-6 py-4 text-right relative">
+                    <button 
+                      onClick={() => setOpenMenuId(openMenuId === post._id ? null : post._id)}
+                      className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-slate-900"
+                    >
+                      <MoreVertical size={18} />
+                    </button>
+                    
+                    {openMenuId === post._id && (
+                      <div className="absolute right-6 top-12 w-48 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 py-2 animate-in fade-in zoom-in duration-200">
+                        <button onClick={() => router.push(getEditPath(post))} className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 flex items-center gap-2 text-slate-700">
+                          <FileEdit size={16} /> Edit Article
+                        </button>
+                        <button className="w-full px-4 py-2.5 text-left text-sm hover:bg-red-50 flex items-center gap-2 text-red-600">
+                          <Trash2 size={16} /> Delete
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))) : (
+                <tr>
+                  <td colSpan="5" className="py-20 text-center text-slate-400">No articles found matching your criteria.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* ✅ PAGINATION FOOTER */}
+        <div className="px-6 py-5 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-slate-500 font-medium">
+            Showing page <span className="text-slate-900 font-bold">{pagination.page}</span> of <span className="text-slate-900 font-bold">{pagination.totalPages}</span>
+          </p>
+          
+          <div className="flex items-center gap-2">
+            <button 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-all shadow-sm flex items-center gap-2"
+            >
+              <ChevronLeft size={16} /> Previous
+            </button>
+            
+            <div className="hidden sm:flex items-center gap-1">
+              {/* Show a few page numbers around current page */}
+              {Array.from({ length: Math.min(5, pagination.totalPages) }).map((_, i) => {
+                const pageNum = i + 1;
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${currentPage === pageNum ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-400'}`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button 
+              disabled={currentPage >= pagination.totalPages}
+              onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
+              className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-all shadow-sm flex items-center gap-2"
+            >
+              Next <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-// Helper functions (kept from your original)
-function tagClass(type) {
-  const t = type?.toLowerCase() || '';
-  if (t === "article") return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-  if (t === "live-blog") return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-  if (t === "video") return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400";
-  if (t === "photo-gallery") return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
-  if (t === "web-story") return "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-400";
-  return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-}
-
-function statusClass(status) {
-  const s = status?.toLowerCase() || '';
-  if (s === "published") return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-  if (s === "pending") return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
-  return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+// Helper for Status Badge Styles
+function getStatusStyles(status) {
+  switch (status?.toLowerCase()) {
+    case 'published': return 'bg-green-50 text-green-700 border-green-100';
+    case 'pending': return 'bg-amber-50 text-amber-700 border-amber-100';
+    case 'draft': return 'bg-slate-50 text-slate-600 border-slate-200';
+    case 'live-blog': return 'bg-red-50 text-red-700 border-red-100';
+    default: return 'bg-slate-50 text-slate-500 border-slate-100';
+  }
 }

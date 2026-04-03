@@ -1,6 +1,6 @@
 /// admin/lib/api.js | This file contains functions to interact with the PressTag backend API for the admin panel. It includes functions for authentication, managing posts, media uploads, user management, and handling categories and tags. The API URL and tenant ID are configured using environment variables. The functions handle token refresh on 401 errors to maintain user sessions seamlessly. Each function logs its actions and errors for easier debugging and provides clear error messages when operations fail.
 const API_URL = process.env.NEXT_PUBLIC_API_URL + '/api' || 'http://localhost:5000/api';
-const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'sportzpoint';
+const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'presstag';
 
 /**
  * Wrapper for API calls that handles token refresh on 401 errors

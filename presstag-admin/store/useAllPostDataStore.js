@@ -20,11 +20,10 @@ const useAllPostDataStore = create((set, get) => ({
             }
 
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/posts?status=pending&type=${type}&limit=1&page=1`,
+                `${process.env.NEXT_PUBLIC_API_URL}/posts/pending-approval/all?type=${type}&limit=1&page=1`,
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
-                        'x-tenant-id': 'sportzpoint',
                     },
                 }
             );
@@ -56,7 +55,6 @@ const useAllPostDataStore = create((set, get) => ({
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
-                    'x-tenant-id': 'sportzpoint',
                 },
             });
 
@@ -72,7 +70,7 @@ const useAllPostDataStore = create((set, get) => ({
                     totalPages: data.pagination?.totalPages || 0,
                     currentPage: data.pagination?.page || 1,
                     pendingApprovalCount: data.pagination?.total || 0,
-                    allPosts: data.posts || [],
+                    allPosts: data.articles || [],
                     loading: false,
                 }));
             } else {
@@ -80,7 +78,7 @@ const useAllPostDataStore = create((set, get) => ({
                     totalPages: data.pagination?.totalPages || 0,
                     currentPage: data.pagination?.page || 1,
                     totalPostCount: data.pagination?.total || 0,
-                    allPosts: data.posts || [],
+                    allPosts: data.articles || [],
                     loading: false,
                 }));
             }
@@ -136,7 +134,6 @@ const useAllPostDataStore = create((set, get) => ({
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
-                    'x-tenant-id': 'sportzpoint'
                 },
             });
 
