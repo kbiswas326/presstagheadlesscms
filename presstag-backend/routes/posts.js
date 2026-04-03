@@ -138,8 +138,6 @@ async function populatePost(post, db) {
   }
 
   // ── merge effective category for urlBuilder ──────────
-  // If categories is empty but primary_category has data, mirror it so
-  // urlBuilder.js and breadcrumbs work without any frontend changes.
   const effectiveCategories =
     categories.length > 0 ? categories : primary_category;
 
@@ -209,7 +207,7 @@ router.post('/generate-caption', async (req, res) => {
 ===================================================== */
 router.get('/', async (req, res) => {
   try {
-    const { status, type, author, category, tag, limit } = req.query;
+    const { status, type, author, category, tag, limit, skip, page } = req.query; // ✅ ADDED: skip and page
     const db = getDB(req.tenantId);
 
     const query = {};
@@ -229,7 +227,6 @@ router.get('/', async (req, res) => {
         }
       }
       if (ObjectId.isValid(categoryId) && !query.categories) {
-        // Match against both categories and primary_category
         const oid = new ObjectId(categoryId);
         query.$or = [
           { categories: oid },
@@ -270,15 +267,27 @@ router.get('/', async (req, res) => {
       sortConfig = { publishedAt: 1 };
     }
 
+    // ✅ FIXED: limit, skip, and page support
+    const limitVal = limit ? parseInt(limit, 10) : 20;
+    const pageVal = page ? parseInt(page, 10) : 1;
+    const skipVal = skip
+      ? parseInt(skip, 10)
+      : page
+      ? (pageVal - 1) * limitVal
+      : 0;
+
     let cursor = db.collection('posts').find(query).sort(sortConfig);
 
-    const limitVal = limit ? parseInt(limit, 10) : 20; // default 20 if no limit specified
+    if (!isNaN(skipVal) && skipVal > 0) {
+      cursor = cursor.skip(skipVal);
+    }
+
     if (!isNaN(limitVal) && limitVal > 0) {
       cursor = cursor.limit(limitVal);
     }
 
     const posts = await cursor.toArray();
-    console.log(`✅ Found ${posts.length} posts`);
+    console.log(`✅ Found ${posts.length} posts (skip=${skipVal}, limit=${limitVal})`);
 
     const postsWithRelations = await Promise.all(
       posts.map(async (post) => {
