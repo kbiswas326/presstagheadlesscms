@@ -6,12 +6,17 @@ const tenantHeaders = {
   'x-tenant-id': TENANT_ID,
 };
 
+// ✅ FIXED: accepts page and limit, passes skip to backend
 export async function getPosts(page = 1, limit = 10) {
   try {
-    const res = await fetch(`${API_URL}/api/posts?status=published`, {
-      cache: 'no-store',
-      headers: tenantHeaders,
-    });
+    const skip = (page - 1) * limit;
+    const res = await fetch(
+      `${API_URL}/api/posts?status=published&limit=${limit}&skip=${skip}`,
+      {
+        cache: 'no-store',
+        headers: tenantHeaders,
+      }
+    );
     if (!res.ok) throw new Error('Failed to fetch posts');
     const data = await res.json();
     const posts = Array.isArray(data) ? data : (data.posts || []);
