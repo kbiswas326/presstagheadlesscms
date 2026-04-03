@@ -145,7 +145,7 @@ export const posts = {
       const token = localStorage.getItem("token");
       console.log('🔑 Token present:', !!token);
 
-      const res = await apiCall(`${API_URL}/posts/${id}`, {
+      const res = await apiCall(`${API_URL}/posts?status=${status}&limit=200`, {
         headers: {
           "Content-Type": "application/json",
         },

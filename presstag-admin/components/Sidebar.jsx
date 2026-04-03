@@ -252,13 +252,13 @@ export default function Sidebar() {
       </div>
 
       {/* Footer */}
-      {!collapsed && (
-        <div className={`p-3 border-t ${theme.border}`}>
-          <div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${theme.hoverBg} cursor-pointer`}>
+      <div className={`p-3 border-t ${theme.border}`}>
+        {!collapsed && (
+          <div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${theme.hoverBg}`}>
             <div className={`w-8 h-8 bg-gradient-to-br ${theme.userBg} rounded-full flex items-center justify-center flex-shrink-0`}>
               <span className="text-white text-xs font-semibold">{getInitials(user?.name)}</span>
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className={`text-sm font-medium truncate ${theme.userText}`}>
                 {user?.name || 'Admin'}
               </p>
@@ -267,8 +267,17 @@ export default function Sidebar() {
               </p>
             </div>
           </div>
-        </div>
-      )}
+        )}
+        <button
+          onClick={logout}
+          className={`w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all ${
+            collapsed ? "justify-center" : ""
+          }`}
+        >
+          <LogOut size={18} />
+          {!collapsed && <span className="text-sm font-medium">Logout</span>}
+        </button>
+      </div>
     </aside>
   );
 }
