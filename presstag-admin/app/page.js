@@ -41,55 +41,57 @@ export default function HomePage() {
     fetchDropDownData(`${process.env.NEXT_PUBLIC_API_URL}/users`, 'roleBaseUser');
 
     const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        const userData = await authAPI.me();
-        setUser(userData);
+  try {
+    setLoading(true);
+    const userData = await authAPI.me();
+    setUser(userData);
 
-        // === MAIN FIX: Use new /stats endpoint for accurate counts ===
-        const statsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/stats`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+    // ✅ Use the new stats endpoint
+    const statsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/stats`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+        'Content-Type': 'application/json',
+        'x-tenant-id': 'sportzpoint',
+      },
+      cache: 'no-store',
+    });
 
-        if (!statsRes.ok) throw new Error('Failed to fetch stats');
-        
-        const statsData = await statsRes.json();
+    if (!statsRes.ok) throw new Error(`Stats fetch failed: ${statsRes.status}`);
 
-        setStats({
-          total: statsData.totalArticles || 0,
-          published: statsData.published || 0,
-          pending: statsData.pending || 0,
-          drafts: statsData.drafts || 0,
-        });
+    const statsData = await statsRes.json();
 
-        // Fetch limited recent pending and drafts for display
-        const [pendingRes, draftsRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts?status=pending&limit=5`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-          }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts?status=draft&limit=5`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-          })
-        ]);
+    setStats({
+      total: statsData.totalArticles || 0,
+      published: statsData.published || 0,
+      pending: statsData.pending || 0,
+      drafts: statsData.drafts || 0,
+    });
 
-        const pendingData = await pendingRes.json();
-        const draftsData = await draftsRes.json();
+    // Fetch only recent items for UI (limit=5)
+    const [pendingRes, draftsRes] = await Promise.all([
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts?status=pending&limit=5`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'x-tenant-id': 'sportzpoint' },
+      }),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts?status=draft&limit=5`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'x-tenant-id': 'sportzpoint' },
+      })
+    ]);
 
-        setPendingPosts(pendingData.posts || []);
-        setRecentDrafts(
-          (draftsData.posts || []).sort((a, b) => 
-            new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
-          )
-        );
+    const pendingData = await pendingRes.json();
+    const draftsData = await draftsRes.json();
 
-      } catch (error) {
-        console.error("Dashboard fetch error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    setPendingPosts(pendingData.posts || []);
+    setRecentDrafts((draftsData.posts || []).sort((a, b) => 
+      new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
+    ));
+
+  } catch (error) {
+    console.error("Dashboard fetch error:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
     fetchDashboardData();
   }, []);

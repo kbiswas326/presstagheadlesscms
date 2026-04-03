@@ -33,6 +33,7 @@ const Page = () => {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+            "x-tenant-id": "sportzpoint"
           },
         }
       );

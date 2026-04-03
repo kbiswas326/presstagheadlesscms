@@ -72,6 +72,7 @@ const Advertise = () => {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          'x-tenant-id': 'sportzpoint'
         },
         body: JSON.stringify(updateData)
       });
@@ -97,7 +98,11 @@ const Advertise = () => {
     const fetchLayoutStructure = async () => {
 
       try {
-        const data = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/structure`)
+        const data = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/structure`, {
+          headers: {
+            'x-tenant-id': 'sportzpoint'
+          }
+        })
 
         const {
           top_nav,
@@ -193,6 +198,8 @@ const Advertise = () => {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          'x-tenant-id': 'sportzpoint'
+        },
         },
         body: JSON.stringify(updateData)
       });

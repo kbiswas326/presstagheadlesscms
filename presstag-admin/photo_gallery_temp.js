@@ -56,7 +56,10 @@ export default function PhotoGalleryEditorPage() {
   const fetchDropdownData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = { 
+        Authorization: `Bearer ${token}`,
+        'x-tenant-id': 'sportzpoint'
+      };
 
       const [usersRes, catRes, tagRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, { headers }),
@@ -548,7 +551,12 @@ const getSelectedTagsText = () =>
                 // Get the current post to preserve publishedAt
                 let preservedPublishedAt = undefined;
                 try {
-                  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}`);
+                  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}`, {
+                    headers: {
+                      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                      'x-tenant-id': 'sportzpoint'
+                    }
+                  });
                   if (response.ok) {
                     const currentPost = await response.json();
                     preservedPublishedAt = currentPost.publishedAt;

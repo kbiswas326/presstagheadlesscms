@@ -43,7 +43,10 @@ export default function PostsPage() {
         setError(null);
 
         const token = localStorage.getItem('token');
-        const headers = { 'Authorization': `Bearer ${token}` };
+        const headers = { 
+          'Authorization': `Bearer ${token}`,
+          'x-tenant-id': 'sportzpoint'
+        };
 
         // Fetch categories for filter dropdown
         const catRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, { headers });

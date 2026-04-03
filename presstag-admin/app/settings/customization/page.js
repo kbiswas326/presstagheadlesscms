@@ -85,7 +85,7 @@ export default function CustomizationPage() {
       try {
         const token = localStorage.getItem('token');
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/layout-config`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${token}`, 'x-tenant-id': 'sportzpoint' }
         });
         if (response.ok) {
           const data = await response.json();
@@ -134,7 +134,8 @@ export default function CustomizationPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'x-tenant-id': 'sportzpoint'
         },
         body: JSON.stringify(settings)
       });

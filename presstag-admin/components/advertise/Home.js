@@ -73,6 +73,7 @@ const Home = ({ home_page }) => {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
+                    'x-tenant-id': 'sportzpoint'
                 },
                 body: JSON.stringify({
                     home_page: {

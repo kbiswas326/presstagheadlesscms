@@ -24,6 +24,7 @@ const useAllPostDataStore = create((set, get) => ({
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
+                        'x-tenant-id': 'sportzpoint',
                     },
                 }
             );
@@ -55,6 +56,7 @@ const useAllPostDataStore = create((set, get) => ({
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
+                    'x-tenant-id': 'sportzpoint',
                 },
             });
 
@@ -134,6 +136,7 @@ const useAllPostDataStore = create((set, get) => ({
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
+                    'x-tenant-id': 'sportzpoint'
                 },
             });
 
