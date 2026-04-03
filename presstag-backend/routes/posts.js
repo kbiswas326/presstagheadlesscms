@@ -54,54 +54,101 @@ async function notifyAuthor(db, userId, message, postId) {
   });
 }
 
-// Helper: Populate categories and tags with their full objects
+// Helper: Populate categories, primary_category, tags, and author with their full objects
 async function populatePost(post, db) {
   if (!post) return null;
 
+  // ── categories ──────────────────────────────────────
   let categories = [];
   if (post.categories && post.categories.length > 0) {
     const categoryIds = post.categories
       .map(id => {
-          if (typeof id === 'string' && ObjectId.isValid(id)) return new ObjectId(id);
-          return id;
-      });
+        if (id && typeof id === 'object' && id._id) return id; // already populated
+        if (typeof id === 'string' && ObjectId.isValid(id)) return new ObjectId(id);
+        if (id instanceof ObjectId) return id;
+        return null;
+      })
+      .filter(Boolean);
 
-    categories = await db
-      .collection('categories')
-      .find({ _id: { $in: categoryIds } })
-      .toArray();
+    if (categoryIds.length > 0) {
+      categories = await db
+        .collection('categories')
+        .find({ _id: { $in: categoryIds } })
+        .toArray();
+    }
   }
 
+  // ── primary_category ─────────────────────────────────
+  let primary_category = [];
+  if (post.primary_category && post.primary_category.length > 0) {
+    const primaryCatIds = post.primary_category
+      .map(id => {
+        if (id && typeof id === 'object' && id._id) return id; // already populated
+        if (typeof id === 'string' && ObjectId.isValid(id)) return new ObjectId(id);
+        if (id instanceof ObjectId) return id;
+        return null;
+      })
+      .filter(Boolean);
+
+    if (primaryCatIds.length > 0) {
+      primary_category = await db
+        .collection('categories')
+        .find({ _id: { $in: primaryCatIds } })
+        .toArray();
+    }
+  }
+
+  // ── tags ─────────────────────────────────────────────
   let tags = [];
   if (post.tags && post.tags.length > 0) {
     const tagIds = post.tags
       .map(id => {
-          if (typeof id === 'string' && ObjectId.isValid(id)) return new ObjectId(id);
-          return id;
-      });
+        if (id && typeof id === 'object' && id._id) return id; // already populated
+        if (typeof id === 'string' && ObjectId.isValid(id)) return new ObjectId(id);
+        if (id instanceof ObjectId) return id;
+        return null;
+      })
+      .filter(Boolean);
 
-    tags = await db
-      .collection('tags')
-      .find({ _id: { $in: tagIds } })
-      .toArray();
+    if (tagIds.length > 0) {
+      tags = await db
+        .collection('tags')
+        .find({ _id: { $in: tagIds } })
+        .toArray();
+    }
   }
 
+  // ── author ───────────────────────────────────────────
   let author = null;
   if (post.author) {
-      const authorId = typeof post.author === 'string' && ObjectId.isValid(post.author) 
-          ? new ObjectId(post.author) 
-          : post.author;
-          
-      if (authorId instanceof ObjectId) {
-          author = await db.collection('users').findOne({ _id: authorId }, { projection: { password: 0 } });
-      }
+    const authorId =
+      typeof post.author === 'string' && ObjectId.isValid(post.author)
+        ? new ObjectId(post.author)
+        : post.author instanceof ObjectId
+        ? post.author
+        : post.author?._id
+        ? post.author // already populated object
+        : null;
+
+    if (authorId instanceof ObjectId) {
+      author = await db
+        .collection('users')
+        .findOne({ _id: authorId }, { projection: { password: 0 } });
+    }
   }
+
+  // ── merge effective category for urlBuilder ──────────
+  // If categories is empty but primary_category has data, mirror it so
+  // urlBuilder.js and breadcrumbs work without any frontend changes.
+  const effectiveCategories =
+    categories.length > 0 ? categories : primary_category;
 
   return {
     ...post,
-    categories: categories,
-    tags: tags,
-    author: author || post.author
+    categories: effectiveCategories,
+    primary_category,
+    tags,
+    author: author || post.author,
   };
 }
 
@@ -119,7 +166,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const payload = {
       ...req.body,
-      author: req.body.author || req.user._id, // Auto-assign author if not provided
+      author: req.body.author || req.user._id,
       status,
       publishedAt: status === 'published' ? now : null,
     };
@@ -172,82 +219,69 @@ router.get('/', async (req, res) => {
 
     // Filter by Category (slug or ID)
     if (category) {
-        let categoryId = category;
-        // If it's a slug (not an ObjectId), look it up
-        if (!ObjectId.isValid(category)) {
-            const catObj = await db.collection('categories').findOne({ slug: category });
-            if (catObj) {
-                categoryId = catObj._id;
-            } else {
-                // If slug not found, ensure query returns nothing
-                // Using a non-existent ID or empty $in
-                query.categories = { $in: [] }; 
-            }
+      let categoryId = category;
+      if (!ObjectId.isValid(category)) {
+        const catObj = await db.collection('categories').findOne({ slug: category });
+        if (catObj) {
+          categoryId = catObj._id;
+        } else {
+          query.categories = { $in: [] };
         }
-        
-        // If we have a valid ID (either passed directly or resolved from slug)
-        // Check if query.categories wasn't already set to "nothing" above
-        if (ObjectId.isValid(categoryId) && !query.categories) {
-             query.categories = new ObjectId(categoryId);
-        }
+      }
+      if (ObjectId.isValid(categoryId) && !query.categories) {
+        // Match against both categories and primary_category
+        const oid = new ObjectId(categoryId);
+        query.$or = [
+          { categories: oid },
+          { primary_category: oid },
+        ];
+      }
     }
 
     // Filter by Tag (slug or ID)
     if (tag) {
-        let tagId = tag;
-        // If it's a slug (not an ObjectId), look it up
-        if (!ObjectId.isValid(tag)) {
-            const tagObj = await db.collection('tags').findOne({ slug: tag });
-            if (tagObj) {
-                tagId = tagObj._id;
-            } else {
-                 query.tags = { $in: [] };
-            }
+      let tagId = tag;
+      if (!ObjectId.isValid(tag)) {
+        const tagObj = await db.collection('tags').findOne({ slug: tag });
+        if (tagObj) {
+          tagId = tagObj._id;
+        } else {
+          query.tags = { $in: [] };
         }
-        
-        if (ObjectId.isValid(tagId) && !query.tags) {
-             query.tags = new ObjectId(tagId);
-        }
+      }
+      if (ObjectId.isValid(tagId) && !query.tags) {
+        query.tags = new ObjectId(tagId);
+      }
     }
 
-          // Filter by previous slug (for 301 redirects)
-      if (req.query.previousSlug) {
-        query.previousSlugs = req.query.previousSlug;
-}
+    // Filter by previous slug (for 301 redirects)
+    if (req.query.previousSlug) {
+      query.previousSlugs = req.query.previousSlug;
+    }
 
     console.log('📋 GET /posts query:', JSON.stringify(query));
 
     // Sort configuration
-    let sortConfig = { 
-        publishedAt: -1,  // Default: Newest first
-        createdAt: -1 
-    };
+    let sortConfig = { publishedAt: -1, createdAt: -1 };
 
     if (req.query.sort === 'trending' || req.query.sort === 'views') {
-        // Sort by views descending. Secondary sort by title to differentiate from Recent when views are tied.
-        sortConfig = { views: -1, title: 1 }; 
+      sortConfig = { views: -1, title: 1 };
     } else if (req.query.sort === 'oldest') {
-        sortConfig = { publishedAt: 1 };
+      sortConfig = { publishedAt: 1 };
     }
 
-    // Get posts sorted by configuration
-    let cursor = db
-      .collection('posts')
-      .find(query)
-      .sort(sortConfig);
+    let cursor = db.collection('posts').find(query).sort(sortConfig);
 
     if (limit) {
-        const limitVal = parseInt(limit, 10);
-        if (!isNaN(limitVal) && limitVal > 0) {
-            cursor = cursor.limit(limitVal);
-        }
+      const limitVal = parseInt(limit, 10);
+      if (!isNaN(limitVal) && limitVal > 0) {
+        cursor = cursor.limit(limitVal);
+      }
     }
 
     const posts = await cursor.toArray();
-
     console.log(`✅ Found ${posts.length} posts`);
 
-    // Populate categories and tags for all posts
     const postsWithRelations = await Promise.all(
       posts.map(async (post) => {
         const enriched = await populatePost(post, db);
@@ -269,18 +303,15 @@ router.get('/:id', async (req, res) => {
   try {
     const db = getDB(req.tenantId);
 
-    // FAILSAFE: Always check MOCK DATA first for known slugs/ids
-    // This allows overriding broken DB content for demo purposes
     const mockPost = MOCK_POSTS.find(p => p.slug === req.params.id || p._id === req.params.id);
     if (mockPost) {
-         console.log('⚠️ Serving MOCK data for known post:', req.params.id);
-         return res.json(mockPost);
+      console.log('⚠️ Serving MOCK data for known post:', req.params.id);
+      return res.json(mockPost);
     }
 
-    // FAILSAFE: If DB is not connected, serve MOCK DATA
     if (!db) {
-        console.warn('⚠️ Database unavailable. Serving MOCK data for GET /posts/:id.');
-        return res.status(404).json({ error: 'Post not found (Mock Mode)' });
+      console.warn('⚠️ Database unavailable. Serving MOCK data for GET /posts/:id.');
+      return res.status(404).json({ error: 'Post not found (Mock Mode)' });
     }
 
     let query;
@@ -290,9 +321,7 @@ router.get('/:id', async (req, res) => {
       query = { slug: req.params.id };
     }
 
-    const post = await db
-      .collection('posts')
-      .findOne(query);
+    const post = await db.collection('posts').findOne(query);
 
     if (!post) {
       return res.status(404).json({ error: 'Post not found' });
@@ -300,14 +329,19 @@ router.get('/:id', async (req, res) => {
 
     console.log('🔍 GET /posts/:id', req.params.id);
 
-    // Populate categories and tags with their full objects
     const enrichedPost = await populatePost(post, db);
-    
-    if (enrichedPost && enrichedPost.categories) {
-        console.log('✅ Loaded categories:', enrichedPost.categories.map(c => c.name).join(', '));
+
+    if (enrichedPost?.categories?.length) {
+      console.log('✅ Loaded categories:', enrichedPost.categories.map(c => c.name).join(', '));
     }
-    if (enrichedPost && enrichedPost.tags) {
-        console.log('✅ Loaded tags:', enrichedPost.tags.map(t => t.name).join(', '));
+    if (enrichedPost?.primary_category?.length) {
+      console.log('✅ Loaded primary_category:', enrichedPost.primary_category.map(c => c.name).join(', '));
+    }
+    if (enrichedPost?.tags?.length) {
+      console.log('✅ Loaded tags:', enrichedPost.tags.map(t => t.name).join(', '));
+    }
+    if (enrichedPost?.author?.name) {
+      console.log('✅ Loaded author:', enrichedPost.author.name);
     }
 
     console.log('📤 Returning post with populated relations');
@@ -325,36 +359,28 @@ router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const db = getDB(req.tenantId);
 
-    // HANDLE "NEW" ID AS CREATE
     if (req.params.id === 'new') {
-        console.log('✨ PUT /posts/new detected - creating new post');
-        const now = new Date();
-        const status =
-          typeof req.body.status === 'string'
-            ? req.body.status.toLowerCase().trim()
-            : 'draft';
-    
-        const payload = {
-          ...req.body,
-          status,
-          publishedAt: status === 'published' ? now : null,
-        };
-    
-        const post = await Post.create(payload);
-        if (post?.error) return res.status(400).json({ error: post.error });
-    
-        const enrichedPost = await populatePost(post, db);
-        return res.status(201).json(enrichedPost || post);
+      console.log('✨ PUT /posts/new detected - creating new post');
+      const now = new Date();
+      const status =
+        typeof req.body.status === 'string'
+          ? req.body.status.toLowerCase().trim()
+          : 'draft';
+
+      const payload = {
+        ...req.body,
+        status,
+        publishedAt: status === 'published' ? now : null,
+      };
+
+      const post = await Post.create(payload);
+      if (post?.error) return res.status(400).json({ error: post.error });
+
+      const enrichedPost = await populatePost(post, db);
+      return res.status(201).json(enrichedPost || post);
     }
 
     console.log('✏️ PUT /posts/:id', req.params.id);
-    console.log('📝 Update data:', {
-      title: req.body.title,
-      status: req.body.status,
-      publishDate: req.body.publishDate,
-      publishTime: req.body.publishTime,
-      publishedAt: req.body.publishedAt,
-    });
 
     let targetId = req.params.id;
     if (!ObjectId.isValid(targetId)) {
@@ -373,11 +399,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: post.error });
     }
 
-    // Populate the updated post
     const enrichedPost = await populatePost(post, db);
 
     console.log('✅ Post updated successfully');
-    console.log('📤 Returning updated post with publishedAt:', enrichedPost?.publishedAt);
     res.json(enrichedPost || post);
   } catch (error) {
     console.error('PUT /posts/:id error:', error);
@@ -387,9 +411,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
 /* =====================================================
    UPDATE POST STATUS (EDITORIAL FLOW)
-   Rules:
-   - Author: draft → pending
-   - Editor/Admin: pending → published | pending → draft
 ===================================================== */
 router.patch('/:id/status', authMiddleware, async (req, res) => {
   try {
@@ -402,14 +423,12 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
 
     const isEditorOrAdmin = ['admin', 'editor'].includes(req.user.role);
 
-    // Authors can ONLY submit for approval
     if (!isEditorOrAdmin && status !== 'pending') {
       return res.status(403).json({
         error: 'Only editors or admins can publish or revert posts',
       });
     }
 
-    // Editors/Admins required for publish or send-back
     if (status !== 'pending' && !requireEditorOrAdmin(req, res)) return;
 
     let targetId = req.params.id;
@@ -431,7 +450,6 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
       updatedAt: new Date(),
     };
 
-    /* ---------- AUDIT LOG ---------- */
     if (status === 'published') {
       updateData.approvedBy = new ObjectId(req.user._id);
       updateData.approvedAt = new Date();
@@ -445,23 +463,12 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
     const updated = await Post.update(targetId, updateData);
     if (updated?.error) return res.status(400).json({ error: updated.error });
 
-    /* ---------- NOTIFICATIONS ---------- */
     if (status === 'published') {
-      await notifyAuthor(
-        db,
-        post.author,
-        'Your post has been approved and published',
-        post._id
-      );
+      await notifyAuthor(db, post.author, 'Your post has been approved and published', post._id);
     }
 
     if (status === 'draft') {
-      await notifyAuthor(
-        db,
-        post.author,
-        'Your post was sent back to drafts by the editor',
-        post._id
-      );
+      await notifyAuthor(db, post.author, 'Your post was sent back to drafts by the editor', post._id);
     }
 
     res.json({
@@ -509,26 +516,17 @@ router.patch('/bulk/approve', authMiddleware, async (req, res) => {
       }
     );
 
-    // Notify authors
     const approvedPosts = await db
       .collection('posts')
       .find({ _id: { $in: validIds } })
       .toArray();
 
     for (const post of approvedPosts) {
-      await notifyAuthor(
-        db,
-        post.author,
-        'Your post has been approved and published',
-        post._id
-      );
+      await notifyAuthor(db, post.author, 'Your post has been approved and published', post._id);
     }
 
     console.log(`✅ Bulk approved ${result.modifiedCount} posts`);
-
-    res.json({
-      approvedCount: result.modifiedCount,
-    });
+    res.json({ approvedCount: result.modifiedCount });
   } catch (error) {
     console.error('PATCH /posts/bulk/approve error:', error);
     res.status(500).json({ error: error.message });
@@ -568,69 +566,54 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 ===================================================== */
 router.post('/:id/generate-ai', async (req, res) => {
   try {
-    // Auth middleware is skipped if DB is down for demo purposes, 
-    // OR we should keep authMiddleware but modify it to allow pass if DB is down?
-    // For now, let's assume auth passed or we removed it for this specific block to be safe.
-    // Actually, authMiddleware checks DB for user. It will fail if DB is down.
-    // So we need to handle that. 
-    // But this route has authMiddleware attached in definition: router.post('...', authMiddleware, ...)
-    // We can't easily bypass it inside the handler.
-    // I will remove authMiddleware from this route definition temporarily or fix authMiddleware.
-    
     const { id } = req.params;
     const db = getDB(req.tenantId);
-    
-    // MOCK DB HANDLER
-    if (!db) {
-        console.log('⚠️ DB not connected. Generating AI for MOCK POST.');
-        const mockPost = MOCK_POSTS.find(p => p.slug === id || p._id === id);
-        if (!mockPost) return res.status(404).json({ error: 'Post not found (Mock)' });
 
-        const contentToAnalyze = mockPost.content || mockPost.summary || mockPost.title;
-        console.log(`🤖 Generating AI pointers for Mock Post: ${mockPost.title}`);
-        
-        const pointers = await generateKeyTakeaways(contentToAnalyze);
-        
-        if (pointers && pointers.length > 0) {
-             mockPost.ai_pointers = pointers; // Update in-memory mock
-             console.log('✅ AI pointers saved to MOCK POST');
-        }
-        return res.json({ pointers });
+    if (!db) {
+      console.log('⚠️ DB not connected. Generating AI for MOCK POST.');
+      const mockPost = MOCK_POSTS.find(p => p.slug === id || p._id === id);
+      if (!mockPost) return res.status(404).json({ error: 'Post not found (Mock)' });
+
+      const contentToAnalyze = mockPost.content || mockPost.summary || mockPost.title;
+      const pointers = await generateKeyTakeaways(contentToAnalyze);
+
+      if (pointers && pointers.length > 0) {
+        mockPost.ai_pointers = pointers;
+      }
+      return res.json({ pointers });
     }
-    
-    // 1. Find the post
+
     let query;
     if (ObjectId.isValid(id)) {
-        query = { _id: new ObjectId(id) };
+      query = { _id: new ObjectId(id) };
     } else {
-        query = { slug: id };
+      query = { slug: id };
     }
-    
+
     const post = await db.collection('posts').findOne(query);
     if (!post) {
       return res.status(404).json({ error: 'Post not found' });
     }
 
-    // 2. Generate content for AI
-    // Prefer content, fallback to summary or title
     const contentToAnalyze = post.content || post.summary || post.title;
-    
     console.log(`🤖 Generating AI pointers for: ${post.title}`);
-    
-    // 3. Call AI Service
+
     const pointers = await generateKeyTakeaways(contentToAnalyze);
-    
-    // 4. Update Post if successful
-    if (pointers && pointers.length > 0 && !pointers[0].startsWith('Error') && !pointers[0].startsWith('Could not')) {
-        await db.collection('posts').updateOne(
-            { _id: post._id },
-            { $set: { ai_pointers: pointers } }
-        );
-        console.log('✅ AI pointers saved to DB');
+
+    if (
+      pointers &&
+      pointers.length > 0 &&
+      !pointers[0].startsWith('Error') &&
+      !pointers[0].startsWith('Could not')
+    ) {
+      await db.collection('posts').updateOne(
+        { _id: post._id },
+        { $set: { ai_pointers: pointers } }
+      );
+      console.log('✅ AI pointers saved to DB');
     }
 
     res.json({ pointers });
-
   } catch (error) {
     console.error('POST /posts/:id/generate-ai error:', error);
     res.status(500).json({ error: error.message });

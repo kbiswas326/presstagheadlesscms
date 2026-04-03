@@ -1,29 +1,43 @@
-// config/db.js | MongoDB connection setup with error handling and fallback for development mode.//
+// config/db.js | Multi-tenant MongoDB connection setup
 const { MongoClient } = require('mongodb');
 require('dotenv').config();
 
-let db;
+let client;
+const dbCache = {}; // Cache database connections per tenant
 
 const connectDB = async () => {
   try {
-    const client = new MongoClient(process.env.MONGO_URI, {
+    client = new MongoClient(process.env.MONGO_URI, {
       tls: true,
-      family: 4, // Force IPv4
-      tlsAllowInvalidCertificates: true, // Fix for SSL alert 80
+      family: 4,
+      tlsAllowInvalidCertificates: true,
     });
     await client.connect();
-    db = client.db();
+    
+    // Default DB is presstag (platform DB)
+    dbCache['presstag'] = client.db('presstag');
+    
     console.log('✅ MongoDB connected');
-    return db;
+    return dbCache['presstag'];
   } catch (error) {
     console.error('❌ MongoDB connection failed:', error.message);
-    console.warn('⚠️ Server entering FAILSAFE MODE. Mock data will be served.');
-    console.warn('💡 Tip: Check your MongoDB Atlas IP Whitelist if you see SSL/Network errors.');
-    // Do not exit process, just log error so server stays alive for diagnostics
-    // process.exit(1); 
+    console.warn('⚠️ Server entering FAILSAFE MODE.');
   }
 };
 
-const getDB = () => db;
+// Get DB for a specific tenant — defaults to presstag
+const getDB = (tenantId = null) => {
+  if (!client) return null;
+  
+  if (!tenantId) return dbCache['presstag'];
+  
+  // Return cached connection or create new one
+  if (!dbCache[tenantId]) {
+    dbCache[tenantId] = client.db(tenantId);
+    console.log(`🔌 Connected to tenant DB: ${tenantId}`);
+  }
+  
+  return dbCache[tenantId];
+};
 
 module.exports = { connectDB, getDB };
