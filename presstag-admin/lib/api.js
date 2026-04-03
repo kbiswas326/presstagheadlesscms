@@ -7,10 +7,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL + '/api' || 'http://localhost:50
 async function apiCall(url, options = {}) {
   const token = localStorage.getItem('token');
   
-  // Store the original body since it can only be used once
   const originalBody = options.body;
   
-  // Add authorization header
   if (token) {
     options.headers = {
       ...options.headers,
@@ -20,7 +18,6 @@ async function apiCall(url, options = {}) {
 
   let response = await fetch(url, options);
 
-  // If 401 Unauthorized, try to refresh token and retry once
   if (response.status === 401 && token) {
     console.log('🔄 Token expired, attempting refresh...');
     try {
@@ -38,7 +35,6 @@ async function apiCall(url, options = {}) {
           console.log('✅ Token refreshed successfully');
           localStorage.setItem('token', refreshData.token);
 
-          // Retry original request with new token
           const retryOptions = {
             ...options,
             body: originalBody,
@@ -143,7 +139,7 @@ export const posts = {
       const token = localStorage.getItem("token");
       console.log('🔑 Token present:', !!token);
 
-      const res = await apiCall(`${API_URL}/posts/${id}`, { // ✅ FIXED: was hitting list endpoint with undefined status
+      const res = await apiCall(`${API_URL}/posts/${id}`, {
         headers: {
           "Content-Type": "application/json",
         },
@@ -176,13 +172,17 @@ export const posts = {
     }
   },
 
-  async getByStatus(status) {
+  // ✅ FIXED: accepts page param, passes limit=200 and skip to backend
+  async getByStatus(status, page = 1, limit = 200) {
     try {
-      console.log('🔍 Fetching posts with status:', status);
+      console.log(`🔍 Fetching posts with status: ${status}, page: ${page}, limit: ${limit}`);
       const token = localStorage.getItem("token");
       console.log('🔑 Token present:', !!token);
 
-      const res = await apiCall(`${API_URL}/posts?status=${status}&limit=200`, { // ✅ FIXED: added &limit=200
+      const skip = (page - 1) * limit;
+      const url = `${API_URL}/posts?status=${status}&limit=${limit}&skip=${skip}`;
+
+      const res = await apiCall(url, {
         headers: {
           "Content-Type": "application/json",
         },
@@ -205,7 +205,6 @@ export const posts = {
 
       const data = JSON.parse(text);
       
-      // Backend returns array directly
       const fetchedPosts = Array.isArray(data) ? data : (data.posts || []);
       console.log('✅ Posts fetched:', fetchedPosts.length);
       
@@ -399,9 +398,7 @@ export async function uploadMedia(file, metadata = {}) {
       throw new Error("You must be logged in to upload images. Please log in and try again.");
     }
 
-    const headers = {
-      'Authorization': `Bearer ${token}`
-    };
+    const headers = { 'Authorization': `Bearer ${token}` };
 
     const res = await fetch(`${API_URL}/media/upload`, {
       method: "POST",
@@ -412,7 +409,6 @@ export async function uploadMedia(file, metadata = {}) {
     if (!res.ok) {
       if (res.status === 401) {
         console.log('🔄 Upload got 401, attempting token refresh...');
-        
         try {
           const refreshRes = await fetch(`${API_URL}/auth/refresh`, {
             method: 'POST',
@@ -429,13 +425,9 @@ export async function uploadMedia(file, metadata = {}) {
               localStorage.setItem('token', refreshData.token);
               token = refreshData.token;
 
-              const newHeaders = {
-                'Authorization': `Bearer ${token}`
-              };
-
               const retryRes = await fetch(`${API_URL}/media/upload`, {
                 method: "POST",
-                headers: newHeaders,
+                headers: { 'Authorization': `Bearer ${token}` },
                 body: formData,
               });
 
@@ -476,7 +468,6 @@ export async function uploadMedia(file, metadata = {}) {
 export async function getMediaLibrary() {
   try {
     const token = localStorage.getItem("token");
-
     console.log('📂 Fetching media library');
 
     const res = await fetch(`${API_URL}/media`, {
@@ -484,9 +475,7 @@ export async function getMediaLibrary() {
     });
 
     if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error("Session expired");
-      }
+      if (res.status === 401) throw new Error("Session expired");
       const errorText = await res.text();
       console.error('❌ Fetch error:', errorText);
       throw new Error("Failed to fetch media library");
@@ -507,19 +496,14 @@ export async function getMediaLibrary() {
 export async function getUsers() {
   try {
     const token = localStorage.getItem("token");
-
     console.log('👥 Fetching users');
 
     const res = await fetch(`${API_URL}/users`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
 
     if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error("Session expired");
-      }
+      if (res.status === 401) throw new Error("Session expired");
       const errorText = await res.text();
       console.error('❌ Fetch error:', errorText);
       throw new Error("Failed to fetch users");
@@ -541,19 +525,14 @@ export async function getUsers() {
 export async function getCategories() {
   try {
     const token = localStorage.getItem("token");
-
     console.log('📂 Fetching categories');
 
     const res = await fetch(`${API_URL}/categories`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
 
     if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error("Session expired");
-      }
+      if (res.status === 401) throw new Error("Session expired");
       const errorText = await res.text();
       console.error('❌ Fetch error:', errorText);
       throw new Error("Failed to fetch categories");
@@ -575,19 +554,14 @@ export async function getCategories() {
 export async function getTags() {
   try {
     const token = localStorage.getItem("token");
-
     console.log('🏷️ Fetching tags');
 
     const res = await fetch(`${API_URL}/tags`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
 
     if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error("Session expired");
-      }
+      if (res.status === 401) throw new Error("Session expired");
       const errorText = await res.text();
       console.error('❌ Fetch error:', errorText);
       throw new Error("Failed to fetch tags");
@@ -610,28 +584,19 @@ export async function createCategory(data) {
     
     const res = await fetch(`${API_URL}/categories`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
     });
 
     if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error("Session expired");
-      }
+      if (res.status === 401) throw new Error("Session expired");
       const errorText = await res.text();
       console.error('❌ Create category error:', errorText);
       let errorMessage = "Failed to create category";
       try {
         const errorJson = JSON.parse(errorText);
-        if (errorJson.error) {
-          errorMessage = errorJson.error;
-        }
-      } catch (e) {
-        // ignore
-      }
+        if (errorJson.error) errorMessage = errorJson.error;
+      } catch (e) {}
       throw new Error(errorMessage);
     }
 
@@ -651,17 +616,12 @@ export async function updateCategory(id, data) {
     
     const res = await fetch(`${API_URL}/categories/${id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
     });
 
     if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error("Session expired");
-      }
+      if (res.status === 401) throw new Error("Session expired");
       const errorText = await res.text();
       console.error('❌ Update category error:', errorText);
       throw new Error("Failed to update category");
@@ -683,15 +643,11 @@ export async function deleteCategory(id) {
     
     const res = await fetch(`${API_URL}/categories/${id}`, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
 
     if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error("Session expired");
-      }
+      if (res.status === 401) throw new Error("Session expired");
       const errorText = await res.text();
       console.error('❌ Delete category error:', errorText);
       throw new Error("Failed to delete category");
@@ -713,17 +669,12 @@ export async function createTag(data) {
     
     const res = await fetch(`${API_URL}/tags`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
     });
 
     if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error("Session expired");
-      }
+      if (res.status === 401) throw new Error("Session expired");
       const errorText = await res.text();
       console.error('❌ Create tag error:', errorText);
       throw new Error("Failed to create tag");
@@ -745,17 +696,12 @@ export async function updateTag(id, data) {
     
     const res = await fetch(`${API_URL}/tags/${id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
     });
 
     if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error("Session expired");
-      }
+      if (res.status === 401) throw new Error("Session expired");
       const errorText = await res.text();
       console.error('❌ Update tag error:', errorText);
       throw new Error("Failed to update tag");
@@ -777,15 +723,11 @@ export async function deleteTag(id) {
     
     const res = await fetch(`${API_URL}/tags/${id}`, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
 
     if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error("Session expired");
-      }
+      if (res.status === 401) throw new Error("Session expired");
       const errorText = await res.text();
       console.error('❌ Delete tag error:', errorText);
       throw new Error("Failed to delete tag");
@@ -807,17 +749,12 @@ export async function createUser(data) {
     
     const res = await fetch(`${API_URL}/auth/register`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
     });
 
     if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error("Session expired");
-      }
+      if (res.status === 401) throw new Error("Session expired");
       const errorText = await res.text();
       console.error('❌ Create user error:', errorText);
       throw new Error("Failed to create user");
@@ -839,17 +776,12 @@ export async function updateUser(id, data) {
     
     const res = await fetch(`${API_URL}/users/${id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
     });
 
     if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error("Session expired");
-      }
+      if (res.status === 401) throw new Error("Session expired");
       const errorText = await res.text();
       console.error('❌ Update user error:', errorText);
       throw new Error("Failed to update user");
@@ -871,15 +803,11 @@ export async function deleteUser(id) {
     
     const res = await fetch(`${API_URL}/users/${id}`, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
 
     if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error("Session expired");
-      }
+      if (res.status === 401) throw new Error("Session expired");
       const errorText = await res.text();
       console.error('❌ Delete user error:', errorText);
       throw new Error("Failed to delete user");
