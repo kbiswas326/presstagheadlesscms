@@ -19,13 +19,16 @@ const app = express();
 // Tenant detection middleware
 app.use((req, res, next) => {
   const host = req.headers.host || '';
-  
-  if (host.includes('sportzpoint')) {
+  const tenantHeader = req.headers['x-tenant-id'];
+
+  if (tenantHeader) {
+    req.tenantId = tenantHeader; // explicit header takes priority
+  } else if (host.includes('sportzpoint')) {
     req.tenantId = 'sportzpoint';
   } else {
     req.tenantId = 'presstag'; // default
   }
-  
+
   next();
 });
 
