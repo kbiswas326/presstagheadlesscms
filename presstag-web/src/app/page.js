@@ -27,7 +27,7 @@ async function getPosts(params = {}) {
   else if (type === 'author' && value) path += '&author=' + value;
   else if ((type === 'content_type' || type === 'type') && value) path += '&type=' + value;
   try {
-    const res = await fetchLayoutConfig();
+    const res = await fetchWithTenant(path); // ✅ FIXED: was fetchLayoutConfig()
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data) ? data : (data.articles || []);
@@ -36,7 +36,7 @@ async function getPosts(params = {}) {
 
 export default async function Page() {
   const config = await getLayoutConfig();
-  const fallbackImage = await getFallbackImage(); // ✅ FIX ADDED
+  const fallbackImage = await getFallbackImage();
 
   const primaryColor = config?.branding?.primaryColor || '#006356';
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
@@ -106,7 +106,7 @@ export default async function Page() {
                 <FeaturedHero
                   post={{
                     ...featuredPost,
-                    image: resolvePostImage(featuredPost, fallbackImage) // ✅ FIX
+                    image: resolvePostImage(featuredPost, fallbackImage)
                   }}
                 />
               </div>
@@ -127,7 +127,7 @@ export default async function Page() {
                       key={i}
                       post={{
                         ...post,
-                        image: resolvePostImage(post, fallbackImage) // ✅ FIX
+                        image: resolvePostImage(post, fallbackImage)
                       }}
                       urlStructure={urlStructure}
                     />
@@ -147,7 +147,7 @@ export default async function Page() {
                 key={index}
                 posts={section.posts.map(post => ({
                   ...post,
-                  image: resolvePostImage(post, fallbackImage) // ✅ FIX
+                  image: resolvePostImage(post, fallbackImage)
                 }))}
                 sectionName={section.name}
                 primaryColor={primaryColor}
