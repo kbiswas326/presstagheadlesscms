@@ -200,7 +200,6 @@ const Advertise = () => {
           'Authorization': `Bearer ${token}`,
           'x-tenant-id': 'sportzpoint'
         },
-        },
         body: JSON.stringify(updateData)
       });
 
