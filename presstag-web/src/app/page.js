@@ -2,126 +2,134 @@
 import React from "react";
 import FeaturedHero from "../components/FeaturedHero";
 import HorizontalCard from "../components/HorizontalCard";
-import ArticleGridCard from "../components/ArticleGridCard";
 import Sidebar from "../components/Sidebar";
 import ResponsivePostGrid from "../components/ResponsivePostGrid";
 import { getFallbackImage, resolvePostImage } from '../lib/imageHelper';
 import { fetchWithTenant, fetchLayoutConfig } from '../lib/fetchWithTenant';
 
-// Force dynamic rendering
+// Force dynamic rendering to ensure admin changes reflect immediately
 export const dynamic = 'force-dynamic';
 
+/**
+ * Fetches the layout configuration (branding, colors, sections) for the tenant.
+ * Uses 'no-store' to ensure real-time updates from the admin dashboard.
+ */
 async function getLayoutConfig() {
   try {
-    const res = await fetchLayoutConfig();
+    const res = await fetchLayoutConfig({ cache: 'no-store' });
     if (res.ok) return res.json();
-  } catch (e) { console.error(e); }
+  } catch (e) { 
+    console.error("❌ Layout Config Fetch Error:", e); 
+  }
   return null;
 }
 
+/**
+ * Fetches posts based on specific criteria (category, tag, latest, etc.)
+ */
 async function getPosts(params = {}) {
   const { type = 'latest', value, limit = 10 } = params;
+  
+  // Construct query path
   let path = `/posts?status=published&limit=${limit}`;
-  if (type === 'category' && value) path += '&category=' + value;
-  else if (type === 'tag' && value) path += '&tag=' + value;
-  else if (type === 'author' && value) path += '&author=' + value;
-  else if ((type === 'content_type' || type === 'type') && value) path += '&type=' + value;
+  
+  if (type === 'category' && value) path += `&category=${value}`;
+  else if (type === 'tag' && value) path += `&tag=${value}`;
+  else if (type === 'author' && value) path += `&author=${value}`;
+  else if ((type === 'content_type' || type === 'type') && value) path += `&type=${value}`;
+  else if (type === 'trending') path += `&sort=trending`;
+
   try {
-    const res = await fetchWithTenant(path); // ✅ FIXED: was fetchLayoutConfig()
+    // FIXED: Using fetchWithTenant with no-cache to see admin changes instantly
+    const res = await fetchWithTenant(path, { cache: 'no-store' }); 
     if (!res.ok) return [];
+    
     const data = await res.json();
-    return Array.isArray(data) ? data : (data.posts || []);
-  } catch (e) { return []; }
+    // Backend returns { posts: [], pagination: {} }
+    return data.posts || [];
+  } catch (e) { 
+    console.error(`❌ Posts Fetch Error (${type}):`, e);
+    return []; 
+  }
 }
 
 export default async function Page() {
+  // 1. Load Configuration & Assets
   const config = await getLayoutConfig();
   const fallbackImage = await getFallbackImage();
 
-  const primaryColor = config?.branding?.primaryColor || '#006356';
+  // 2. Extract Branding
+  const primaryColor = config?.branding?.primaryColor || '#e11d48'; // SportzPoint Red
+  const siteName = config?.branding?.navbarTitle || 'SportzPoint';
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
 
-  // HERO POSTS
+  // 3. Fetch Hero Section Data (Latest 5)
   const heroPosts = await getPosts({ limit: 5 });
   const featuredPost = heroPosts[0];
   const sidePosts = heroPosts.slice(1, 5);
 
-  // DYNAMIC SECTIONS
+  // 4. Process Dynamic Sections from Admin
   let sectionsData = [];
 
-  if (config?.homepage?.sections) {
+  if (config?.homepage?.sections && config.homepage.sections.length > 0) {
     const sectionsPromise = config.homepage.sections
       .filter(section => section.enabled)
-      .sort((a, b) => a.order - b.order)
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
       .map(async (section) => {
+        const limit = section.limit || 8;
         let posts = [];
-        const limit = section.limit || 12;
-        let viewAllUrl = null;
+        let viewAllUrl = "#";
 
         if (section.type === 'system') {
-          if (section.id === 'latest') {
-            posts = await getPosts({ limit });
-            viewAllUrl = '/posts';
-          } else if (section.id === 'trending') {
-            posts = await getPosts({ limit });
-            viewAllUrl = '/posts?sort=trending';
-          }
-        } else if (section.type === 'custom') {
+          posts = await getPosts({ type: section.id, limit });
+          viewAllUrl = section.id === 'trending' ? '/posts?sort=trending' : '/posts';
+        } else {
           posts = await getPosts({
             type: section.sourceType,
             value: section.sourceValue,
             limit
           });
-
-          if (section.sourceType === 'category') viewAllUrl = `/category/${section.sourceValue}`;
-          else if (section.sourceType === 'tag') viewAllUrl = `/tag/${section.sourceValue}`;
-          else if (section.sourceType === 'author') viewAllUrl = `/author/${section.sourceValue}`;
+          viewAllUrl = `/${section.sourceType}/${section.sourceValue}`;
         }
 
-        return {
-          ...section,
-          posts,
-          viewAllUrl
-        };
+        return { ...section, posts, viewAllUrl };
       });
 
     sectionsData = await Promise.all(sectionsPromise);
   } else {
-    const latestNews = await getPosts({ limit: 12 });
-    sectionsData = [
-      { name: 'Latest News', posts: latestNews, viewAllUrl: '/posts' }
-    ];
+    // Fallback if no sections defined in admin
+    const latestNews = await getPosts({ limit: 10 });
+    sectionsData = [{ name: 'Latest News', posts: latestNews, viewAllUrl: '/posts' }];
   }
 
+  // 5. Render
   return (
-    <div className="bg-white min-h-screen pb-16">
-      <div className="container mx-auto px-4 pt-6">
+    <div className="bg-white min-h-screen pb-20 font-sans" style={{ '--primary': primaryColor }}>
+      <div className="container mx-auto px-4 pt-8">
 
-        {/* HERO SECTION */}
-        {featuredPost && (
-          <section className="mb-12">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-
-              <div className="lg:col-span-2">
+        {/* --- HERO SECTION --- */}
+        {featuredPost ? (
+          <section className="mb-16">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Main Featured Post */}
+              <div className="lg:col-span-8">
                 <FeaturedHero
                   post={{
                     ...featuredPost,
                     image: resolvePostImage(featuredPost, fallbackImage)
                   }}
+                  primaryColor={primaryColor}
                 />
               </div>
 
-              <div className="lg:col-span-1 flex flex-col h-full">
-                <div className="flex items-center justify-between mb-4">
-                  <h2
-                    className="text-lg font-bold text-gray-900 border-l-4 pl-3"
-                    style={{ borderColor: primaryColor }}
-                  >
+              {/* Side Trending List */}
+              <div className="lg:col-span-4 flex flex-col">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight border-l-4 pl-4" style={{ borderColor: primaryColor }}>
                     Top Stories
                   </h2>
                 </div>
-
-                <div className="flex flex-col gap-4 flex-grow">
+                <div className="space-y-6">
                   {sidePosts.map((post, i) => (
                     <HorizontalCard
                       key={i}
@@ -134,14 +142,19 @@ export default async function Page() {
                   ))}
                 </div>
               </div>
-
             </div>
           </section>
+        ) : (
+          <div className="py-20 text-center border-2 border-dashed rounded-3xl border-gray-100">
+            <p className="text-gray-400 font-medium">No published stories found for {siteName}.</p>
+          </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-
-          <div className="lg:col-span-8">
+        {/* --- MAIN CONTENT AREA --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          
+          {/* Dynamic Sections (Latest, Categories, etc.) */}
+          <div className="lg:col-span-8 space-y-16">
             {sectionsData.map((section, index) => (
               <ResponsivePostGrid
                 key={index}
@@ -157,10 +170,12 @@ export default async function Page() {
             ))}
           </div>
 
-          {/* SIDEBAR */}
-          <div className="lg:col-span-4 lg:sticky lg:top-0">
-            <Sidebar />
-          </div>
+          {/* Sidebar Widgets */}
+          <aside className="lg:col-span-4">
+            <div className="sticky top-24 space-y-10">
+              <Sidebar primaryColor={primaryColor} />
+            </div>
+          </aside>
 
         </div>
       </div>
