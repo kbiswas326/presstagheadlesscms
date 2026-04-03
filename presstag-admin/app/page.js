@@ -47,7 +47,7 @@ export default function HomePage() {
     setUser(userData);
 
     // ✅ Use the new stats endpoint
-    const statsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/stats`, {
+    const statsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts/stats`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
@@ -70,10 +70,10 @@ export default function HomePage() {
 
     // Fetch only recent items for UI (limit=5)
     const [pendingRes, draftsRes] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts?status=pending&limit=5`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts?status=pending&limit=5`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'x-tenant-id': 'sportzpoint' },
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts?status=draft&limit=5`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts?status=draft&limit=5`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'x-tenant-id': 'sportzpoint' },
       })
     ]);
