@@ -1,18 +1,14 @@
-/// Backend route for managing layout configuration (navbar, homepage sections, sidebar widgets, footer, branding)//
+/// backend>routes>LayoutConfig.js | Backend route for managing layout configuration (navbar, homepage sections, sidebar widgets, footer, branding)//
 const express = require('express');
 const router = express.Router();
 const LayoutConfig = require('../models/LayoutConfig');
 const auth = require('../middleware/auth');
 
-// @route   GET api/layout-config
-// @desc    Get layout configuration
-// @access  Public
 router.get('/', async (req, res) => {
   try {
-    let config = await LayoutConfig.get();
+    let config = await LayoutConfig.get(req.tenantId);
     
     if (!config) {
-      // Create default config if not exists
       const defaultConfig = {
         navbar: [
           { label: 'Home', slug: '/' },
@@ -29,9 +25,9 @@ router.get('/', async (req, res) => {
         },
         sidebar: {
           widgets: [
-             { type: 'trending', title: 'Trending Now', limit: 5 },
-             { type: 'newsletter', title: 'Subscribe to our Newsletter' },
-             { type: 'social_links', title: 'Follow Us' }
+            { type: 'trending', title: 'Trending Now', limit: 5 },
+            { type: 'newsletter', title: 'Subscribe to our Newsletter' },
+            { type: 'social_links', title: 'Follow Us' }
           ]
         },
         footer: {
@@ -39,10 +35,10 @@ router.get('/', async (req, res) => {
           showNewsletter: true,
           showSocial: true,
         },
-        branding: req.body.branding
+        branding: req.body?.branding
       };
       
-      config = await LayoutConfig.create(defaultConfig);
+      config = await LayoutConfig.create(defaultConfig, req.tenantId);
     }
     
     res.json(config);
@@ -52,14 +48,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   PUT api/layout-config
-// @desc    Update layout configuration
-// @access  Private (Admin)
 router.put('/', auth, async (req, res) => {
   try {
     const { homepage, sidebar, navbar, mobileNav, footer, branding, seo } = req.body;
     
-    // Construct update object
     const updateData = {};
     if (homepage) updateData.homepage = homepage;
     if (sidebar) updateData.sidebar = sidebar;
@@ -69,16 +61,7 @@ router.put('/', auth, async (req, res) => {
     if (branding) updateData.branding = branding;
     if (seo) updateData.seo = seo;
     
-    // Use the update method which handles upsert
-    const updatedConfig = await LayoutConfig.update(updateData);
-    
-    // In native driver, findOneAndUpdate returns the result object.
-    // If we used returnDocument: 'after', the doc is in result.value (v4) or just the doc (v6).
-    // Let's assume v4 or later. If it's v6, it returns the doc directly if includeResultMetadata is false (default).
-    // Let's just re-fetch to be safe if we are unsure about driver version, 
-    // OR just trust the return. 
-    // Wait, let's check LayoutConfig.update implementation again.
-    
+    const updatedConfig = await LayoutConfig.update(updateData, req.tenantId);
     res.json(updatedConfig);
   } catch (err) {
     console.error(err.message);

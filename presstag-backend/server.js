@@ -16,6 +16,19 @@ const adBlockRoutes = require('./routes/adBlocks');
 
 const app = express();
 
+// Tenant detection middleware
+app.use((req, res, next) => {
+  const host = req.headers.host || '';
+  
+  if (host.includes('sportzpoint')) {
+    req.tenantId = 'sportzpoint';
+  } else {
+    req.tenantId = 'presstag'; // default
+  }
+  
+  next();
+});
+
 app.use(cors({
   origin: '*',
   credentials: false,

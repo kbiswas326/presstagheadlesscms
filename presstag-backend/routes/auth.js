@@ -57,7 +57,7 @@ router.post('/forgot-password', async (req, res) => {
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(req.tenantId);
 
     const user = await db.collection('users').findOne({ email });
 
@@ -114,7 +114,7 @@ router.post('/reset-password/:token', async (req, res) => {
     }
 
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(req.tenantId);
 
     // Find user with valid non-expired token
     const user = await db.collection('users').findOne({

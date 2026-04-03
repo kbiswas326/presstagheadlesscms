@@ -11,7 +11,7 @@ const MOCK_POSTS = require('./mock_posts');
 // GET post by slug — must be before /:id route
 router.get('/slug/:slug', async (req, res) => {
   try {
-    const db = getDB();
+    const db = getDB(req.tenantId);
     const post = await db.collection('posts').findOne({ 
       slug: req.params.slug,
       status: 'published'
@@ -127,7 +127,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const post = await Post.create(payload);
     if (post?.error) return res.status(400).json({ error: post.error });
 
-    const db = getDB();
+    const db = getDB(req.tenantId);
     const enrichedPost = await populatePost(post, db);
 
     res.status(201).json(enrichedPost || post);
@@ -163,7 +163,7 @@ router.post('/generate-caption', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { status, type, author, category, tag, limit } = req.query;
-    const db = getDB();
+    const db = getDB(req.tenantId);
 
     const query = {};
     if (status) query.status = status;
@@ -267,7 +267,7 @@ router.get('/', async (req, res) => {
 ===================================================== */
 router.get('/:id', async (req, res) => {
   try {
-    const db = getDB();
+    const db = getDB(req.tenantId);
 
     // FAILSAFE: Always check MOCK DATA first for known slugs/ids
     // This allows overriding broken DB content for demo purposes
@@ -323,7 +323,7 @@ router.get('/:id', async (req, res) => {
 ===================================================== */
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const db = getDB();
+    const db = getDB(req.tenantId);
 
     // HANDLE "NEW" ID AS CREATE
     if (req.params.id === 'new') {
@@ -394,7 +394,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 router.patch('/:id/status', authMiddleware, async (req, res) => {
   try {
     const { status } = req.body;
-    const db = getDB();
+    const db = getDB(req.tenantId);
 
     if (!['draft', 'pending', 'published'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status value' });
@@ -489,7 +489,7 @@ router.patch('/bulk/approve', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'No post IDs provided' });
     }
 
-    const db = getDB();
+    const db = getDB(req.tenantId);
     const validIds = postIds
       .filter(id => ObjectId.isValid(id))
       .map(id => new ObjectId(id));
@@ -542,7 +542,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     console.log('🗑️ DELETE /posts/:id', req.params.id);
 
-    const db = getDB();
+    const db = getDB(req.tenantId);
     let targetId = req.params.id;
     if (!ObjectId.isValid(targetId)) {
       const foundBySlug = await db.collection('posts').findOne({ slug: targetId });
@@ -578,7 +578,7 @@ router.post('/:id/generate-ai', async (req, res) => {
     // I will remove authMiddleware from this route definition temporarily or fix authMiddleware.
     
     const { id } = req.params;
-    const db = getDB();
+    const db = getDB(req.tenantId);
     
     // MOCK DB HANDLER
     if (!db) {

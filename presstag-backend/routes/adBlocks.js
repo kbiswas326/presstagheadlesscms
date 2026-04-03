@@ -1,9 +1,9 @@
+///backend/routes/adBlocks.js | Express routes for managing ad blocks, including endpoints for creating, retrieving, updating, and deleting ad blocks.///
 const express = require('express');
 const router = express.Router();
 const AdBlock = require('../models/AdBlock');
 const authMiddleware = require('../middleware/auth');
 
-// Get all ad blocks
 router.get('/', async (req, res) => {
   try {
     const ads = await AdBlock.findAll();
@@ -13,7 +13,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get single ad block
 router.get('/:id', async (req, res) => {
   try {
     const ad = await AdBlock.findById(req.params.id);
@@ -24,7 +23,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create ad block
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const ad = await AdBlock.create(req.body);
@@ -34,7 +32,6 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-// Update ad block
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const ad = await AdBlock.update(req.params.id, req.body);
@@ -44,7 +41,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Delete ad block
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const success = await AdBlock.delete(req.params.id);

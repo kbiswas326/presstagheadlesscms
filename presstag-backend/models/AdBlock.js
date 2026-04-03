@@ -1,3 +1,5 @@
+///backend/models/AdBlock.js | Mongoose model for managing ad blocks, including fields for name, code, position, and display conditions.///
+const { getDB } = require('../config/db');
 const { ObjectId } = require('mongodb');
 
 class AdBlock {

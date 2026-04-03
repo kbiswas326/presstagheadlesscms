@@ -7,9 +7,6 @@ const { Upload } = require('@aws-sdk/lib-storage');
 const Media = require('../models/Media');
 const authMiddleware = require('../middleware/auth');
 
-/**
- * R2 CLIENT SETUP
- */
 const s3 = new S3Client({
   region: 'auto',
   endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -19,25 +16,16 @@ const s3 = new S3Client({
   },
 });
 
-// Memory storage — no local disk
 const upload = multer({ storage: multer.memoryStorage() });
 
-/**
- * UPLOAD MEDIA
- */
 router.post('/upload', authMiddleware, upload.single('file'), async (req, res) => {
   try {
     const file = req.file;
-    if (!file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
+    if (!file) return res.status(400).json({ message: 'No file uploaded' });
 
     const { altText, title, caption, credits } = req.body;
-    const clientId = req.user?.clientId || req.headers['x-client-id'] || 'default';
+    const clientId = req.tenantId || req.user?.clientId || 'default';
 
-    console.log('📤 Received metadata:', { altText, title, caption, credits, clientId });
-
-    // Build R2 key: clientId/timestamp-filename
     const ext = file.originalname.substring(file.originalname.lastIndexOf('.'));
     const baseName = file.originalname
       .replace(ext, '')
@@ -47,7 +35,6 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
     const filename = `${Date.now()}-${baseName}${ext}`;
     const r2Key = `${clientId}/${filename}`;
 
-    // Upload to R2
     const parallelUpload = new Upload({
       client: s3,
       params: {
@@ -62,11 +49,9 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
 
     const imageUrl = `${process.env.R2_PUBLIC_URL}/${r2Key}`;
 
-    console.log('☁️ Uploaded to R2:', imageUrl);
-
     const media = await Media.create({
-      filename: r2Key,        // store full R2 key so we can delete later
-      url: imageUrl,          // permanent public URL
+      filename: r2Key,
+      url: imageUrl,
       type: file.mimetype,
       size: file.size,
       altText: altText || '',
@@ -74,12 +59,10 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
       caption: caption || '',
       credits: credits || '',
       uploadedBy: req.user ? req.user._id : null,
-    });
-
-    console.log('✅ Saved to database:', media);
+    }, req.tenantId);
 
     res.json({
-      ...media._doc,
+      ...(media._doc || media),
       fullUrl: imageUrl,
     });
 
@@ -89,31 +72,21 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
   }
 });
 
-/**
- * GET MEDIA LIBRARY
- */
 router.get('/', async (req, res) => {
   try {
-    const media = await Media.findAll();
-    console.log('📚 Fetched media count:', media.length);
+    const media = await Media.findAll(req.tenantId);
     res.json(media);
   } catch (err) {
-    console.error('Fetch media error:', err);
     res.status(500).json({ message: 'Failed to fetch media' });
   }
 });
 
-/**
- * GET /api/media/img (for admin page with pagination)
- */
 router.get('/img', async (req, res) => {
   try {
     const { page = 1, limit = 12 } = req.query;
     const skip = (page - 1) * limit;
-
-    const media = await Media.findAll();
+    const media = await Media.findAll(req.tenantId);
     const paginatedMedia = media.slice(skip, skip + parseInt(limit));
-
     res.json({
       images: paginatedMedia,
       total: media.length,
@@ -121,27 +94,20 @@ router.get('/img', async (req, res) => {
       limit: parseInt(limit),
     });
   } catch (err) {
-    console.error('Fetch media error:', err);
     res.status(500).json({ message: 'Failed to fetch media' });
   }
 });
 
-/**
- * GET /api/media/search (for search functionality)
- */
 router.get('/search', async (req, res) => {
   try {
     const { alt = '', page = 1, limit = 12 } = req.query;
     const skip = (page - 1) * limit;
-
-    const media = await Media.findAll();
+    const media = await Media.findAll(req.tenantId);
     const filtered = media.filter(m =>
       (m.altText || '').toLowerCase().includes(alt.toLowerCase()) ||
       (m.filename || '').toLowerCase().includes(alt.toLowerCase())
     );
-
     const paginatedMedia = filtered.slice(skip, skip + parseInt(limit));
-
     res.json({
       images: paginatedMedia,
       total: filtered.length,
@@ -149,30 +115,23 @@ router.get('/search', async (req, res) => {
       limit: parseInt(limit),
     });
   } catch (err) {
-    console.error('Search media error:', err);
     res.status(500).json({ message: 'Failed to search media' });
   }
 });
 
-/**
- * DELETE MEDIA
- */
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const media = await Media.findById(req.params.id);
+    const media = await Media.findById(req.params.id, req.tenantId);
     if (!media) return res.status(404).json({ message: 'Media not found' });
 
-    // Delete from R2
     await s3.send(new DeleteObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
-      Key: media.filename, // this is the r2Key we stored
+      Key: media.filename,
     }));
 
-    await Media.findByIdAndDelete(req.params.id);
+    await Media.delete(req.params.id, req.tenantId);
     res.json({ success: true, message: 'Media deleted' });
-
   } catch (err) {
-    console.error('Delete media error:', err);
     res.status(500).json({ message: 'Delete failed', error: err.message });
   }
 });

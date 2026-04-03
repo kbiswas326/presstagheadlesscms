@@ -1,13 +1,12 @@
+///backend/models/Tag.js | Mongoose model for managing tags, including fields for name, description, image, slug, meta title, and meta description.///
 const { ObjectId } = require('mongodb');
 
 class Tag {
-  static async create(tagData) {
+  static async create(tagData, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     
-    if (!tagData.name) {
-      throw new Error("Name is required");
-    }
+    if (!tagData.name) throw new Error("Name is required");
 
     const tag = {
       name: tagData.name,
@@ -20,76 +19,52 @@ class Tag {
       updatedAt: new Date(),
     };
     
-    // Check for duplicate slug
     const existing = await db.collection('tags').findOne({ slug: tag.slug });
-    if (existing) {
-      throw new Error("Tag with this slug already exists");
-    }
+    if (existing) throw new Error("Tag with this slug already exists");
 
     const result = await db.collection('tags').insertOne(tag);
     return { _id: result.insertedId, ...tag };
   }
 
-  static async findAll() {
+  static async findAll(tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     
     const pipeline = [
-      {
-        $lookup: {
-          from: 'posts',
-          localField: '_id',
-          foreignField: 'tags',
-          as: 'matchedPosts'
-        }
-      },
-      {
-        $addFields: {
-          postCount: { $size: '$matchedPosts' }
-        }
-      },
-      {
-        $project: {
-          matchedPosts: 0
-        }
-      }
+      { $lookup: { from: 'posts', localField: '_id', foreignField: 'tags', as: 'matchedPosts' } },
+      { $addFields: { postCount: { $size: '$matchedPosts' } } },
+      { $project: { matchedPosts: 0 } }
     ];
 
-    const result = await db.collection('tags').aggregate(pipeline).toArray();
-    return result;
+    return await db.collection('tags').aggregate(pipeline).toArray();
   }
 
-  static async findById(id) {
+  static async findById(id, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     return await db.collection('tags').findOne({ _id: new ObjectId(id) });
   }
 
-  static async findBySlug(slug) {
+  static async findBySlug(slug, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     return await db.collection('tags').findOne({ slug });
   }
 
-  static async update(id, updateData) {
+  static async update(id, updateData, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     updateData.updatedAt = new Date();
-    
-    // If name is updated but slug isn't, maybe we should update slug? 
-    // Usually we don't auto-update slug on edit to preserve URLs.
-    
-    const result = await db.collection('tags').findOneAndUpdate(
+    return await db.collection('tags').findOneAndUpdate(
       { _id: new ObjectId(id) },
       { $set: updateData },
       { returnDocument: 'after' }
     );
-    return result;
   }
 
-  static async delete(id) {
+  static async delete(id, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     return await db.collection('tags').deleteOne({ _id: new ObjectId(id) });
   }
 }

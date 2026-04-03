@@ -1,18 +1,17 @@
+///backend/models/Category.js | Mongoose model for managing categories, including fields for name, description, image, slug, meta title, meta description, and parent category.///
 const { ObjectId } = require('mongodb');
 
 class Category {
-  static async create(categoryData) {
+  static async create(categoryData, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     
-    if (!categoryData.name) {
-      throw new Error("Name is required");
-    }
+    if (!categoryData.name) throw new Error("Name is required");
 
     const category = {
       name: categoryData.name,
       description: categoryData.description || '',
-      image: categoryData.image || null, // Added feature image field
+      image: categoryData.image || null,
       slug: categoryData.slug || categoryData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
       metaTitle: categoryData.metaTitle || '',
       metaDescription: categoryData.metaDescription || '',
@@ -21,71 +20,52 @@ class Category {
       updatedAt: new Date(),
     };
     
-    // Check for duplicate slug
     const existing = await db.collection('categories').findOne({ slug: category.slug });
-    if (existing) {
-      throw new Error("Category with this slug already exists");
-    }
+    if (existing) throw new Error("Category with this slug already exists");
 
     const result = await db.collection('categories').insertOne(category);
     return { _id: result.insertedId, ...category };
   }
 
-  static async findAll() {
+  static async findAll(tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     
     const pipeline = [
-      {
-        $lookup: {
-          from: 'posts',
-          localField: '_id',
-          foreignField: 'categories',
-          as: 'matchedPosts'
-        }
-      },
-      {
-        $addFields: {
-          postCount: { $size: '$matchedPosts' }
-        }
-      },
-      {
-        $project: {
-          matchedPosts: 0
-        }
-      }
+      { $lookup: { from: 'posts', localField: '_id', foreignField: 'categories', as: 'matchedPosts' } },
+      { $addFields: { postCount: { $size: '$matchedPosts' } } },
+      { $project: { matchedPosts: 0 } }
     ];
 
     return await db.collection('categories').aggregate(pipeline).toArray();
   }
 
-  static async findById(id) {
+  static async findById(id, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     return await db.collection('categories').findOne({ _id: new ObjectId(id) });
   }
 
-  static async findBySlug(slug) {
+  static async findBySlug(slug, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     return await db.collection('categories').findOne({ slug });
   }
 
-  static async update(id, updateData) {
+  static async update(id, updateData, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     updateData.updatedAt = new Date();
-    const result = await db.collection('categories').findOneAndUpdate(
+    return await db.collection('categories').findOneAndUpdate(
       { _id: new ObjectId(id) },
       { $set: updateData },
       { returnDocument: 'after' }
     );
-    return result;
   }
 
-  static async delete(id) {
+  static async delete(id, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     return await db.collection('categories').deleteOne({ _id: new ObjectId(id) });
   }
 }
