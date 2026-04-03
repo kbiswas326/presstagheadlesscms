@@ -185,7 +185,7 @@ export const posts = {
     }
   },
 
-  async getByStatus(status, page = 1, limit = 200) {
+  async getByStatus(status, page = 1, limit = 20) {
     try {
       console.log(`🔍 Fetching posts with status: ${status}, page: ${page}, limit: ${limit}`);
       const token = localStorage.getItem("token");
