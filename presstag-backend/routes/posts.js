@@ -272,11 +272,9 @@ router.get('/', async (req, res) => {
 
     let cursor = db.collection('posts').find(query).sort(sortConfig);
 
-    if (limit) {
-      const limitVal = parseInt(limit, 10);
-      if (!isNaN(limitVal) && limitVal > 0) {
-        cursor = cursor.limit(limitVal);
-      }
+    const limitVal = limit ? parseInt(limit, 10) : 20; // default 20 if no limit specified
+    if (!isNaN(limitVal) && limitVal > 0) {
+      cursor = cursor.limit(limitVal);
     }
 
     const posts = await cursor.toArray();
