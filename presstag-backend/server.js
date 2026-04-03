@@ -20,13 +20,16 @@ const app = express();
 app.use((req, res, next) => {
   const host = req.headers.host || '';
   const tenantHeader = req.headers['x-tenant-id'];
+  const tenantQuery = req.query.tenantId;
 
   if (tenantHeader) {
-    req.tenantId = tenantHeader; // explicit header takes priority
+    req.tenantId = tenantHeader;
+  } else if (tenantQuery) {
+    req.tenantId = tenantQuery;
   } else if (host.includes('sportzpoint')) {
     req.tenantId = 'sportzpoint';
   } else {
-    req.tenantId = 'presstag'; // default
+    req.tenantId = 'presstag';
   }
 
   next();
