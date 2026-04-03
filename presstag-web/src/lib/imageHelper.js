@@ -56,8 +56,8 @@ export const uploadImage = async (file, metadata = {}) => {
 
 export async function getFallbackImage() {
   try {
-    const { fetchWithTenant } = await import('./fetchWithTenant');
-    const res = await fetchWithTenant('/api/layout-config', { cache: 'no-store' });
+    const { fetchLayoutConfig } = await import('./fetchWithTenant');
+    const res = await fetchLayoutConfig();
     if (!res.ok) return null;
     const data = await res.json();
     return getImageUrl(data?.branding?.fallbackImage) || null;

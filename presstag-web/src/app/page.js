@@ -6,14 +6,14 @@ import ArticleGridCard from "../components/ArticleGridCard";
 import Sidebar from "../components/Sidebar";
 import ResponsivePostGrid from "../components/ResponsivePostGrid";
 import { getFallbackImage, resolvePostImage } from '../lib/imageHelper';
-import { fetchWithTenant } from '../lib/fetchWithTenant';
+import { fetchWithTenant, fetchLayoutConfig } from '../lib/fetchWithTenant';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
 async function getLayoutConfig() {
   try {
-    const res = await fetchWithTenant('/api/layout-config', { cache: 'no-store' });
+    const res = await fetchLayoutConfig();
     if (res.ok) return res.json();
   } catch (e) { console.error(e); }
   return null;
@@ -27,7 +27,7 @@ async function getPosts(params = {}) {
   else if (type === 'author' && value) path += '&author=' + value;
   else if ((type === 'content_type' || type === 'type') && value) path += '&type=' + value;
   try {
-    const res = await fetchWithTenant(path, { cache: 'no-store' });
+    const res = await fetchLayoutConfig();
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data) ? data : (data.articles || []);

@@ -10,3 +10,9 @@ export function tenantUrl(path) {
 export function fetchWithTenant(path, options = {}) {
   return fetch(tenantUrl(path), options);
 }
+
+export function fetchLayoutConfig() {
+  return fetch(tenantUrl('/api/layout-config'), { 
+    next: { revalidate: 300 } // cache 5 minutes
+  });
+}

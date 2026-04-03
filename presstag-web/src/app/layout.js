@@ -7,7 +7,7 @@ import LayoutClient from "../components/LayoutClient";
 import GoogleAnalytics from "../components/GoogleAnalytics";
 import ScrollToTop from "../components/ScrollToTop";
 import { AdProvider } from '../context/AdContext';
-import { fetchWithTenant } from '../lib/fetchWithTenant';
+import { fetchWithTenant, fetchLayoutConfig } from '../lib/fetchWithTenant';
 
 const roboto = Roboto({
   weight: ['400', '500', '700'],
@@ -45,7 +45,7 @@ export async function generateMetadata() {
 
 async function getLayoutConfig() {
   try {
-    const res = await fetchWithTenant('/api/layout-config', { cache: 'no-store' });
+    const res = await fetchLayoutConfig();
     if (res.ok) return res.json();
   } catch(e) { console.error(e); }
   return null;
