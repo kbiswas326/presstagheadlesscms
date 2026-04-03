@@ -1,5 +1,6 @@
-/// admin/lib/api.js | This file defines the API utility functions for the PressTag CMS admin panel. It includes functions for user authentication (login, logout, get current user), post management (get by ID, get by status, create, update, delete), media management (upload and get media library), and fetching categories and tags. The API calls are wrapped in a function that handles token refresh on 401 errors, ensuring a smoother user experience without unexpected logouts. Each function includes detailed logging for debugging purposes, making it easier to trace issues during development and maintenance.
+/// admin/lib/api.js | This file contains functions to interact with the PressTag backend API for the admin panel. It includes functions for authentication, managing posts, media uploads, user management, and handling categories and tags. The API URL and tenant ID are configured using environment variables. The functions handle token refresh on 401 errors to maintain user sessions seamlessly. Each function logs its actions and errors for easier debugging and provides clear error messages when operations fail.
 const API_URL = process.env.NEXT_PUBLIC_API_URL + '/api' || 'http://localhost:5000/api';
+const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'presstag';
 
 /**
  * Wrapper for API calls that handles token refresh on 401 errors
@@ -12,7 +13,13 @@ async function apiCall(url, options = {}) {
   if (token) {
     options.headers = {
       ...options.headers,
-      'Authorization': `Bearer ${token}`
+      'Authorization': `Bearer ${token}`,
+      'x-tenant-id': TENANT_ID,
+    };
+  } else {
+    options.headers = {
+      ...options.headers,
+      'x-tenant-id': TENANT_ID,
     };
   }
 
@@ -25,7 +32,8 @@ async function apiCall(url, options = {}) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'x-tenant-id': TENANT_ID,
         }
       });
 
@@ -40,7 +48,8 @@ async function apiCall(url, options = {}) {
             body: originalBody,
             headers: {
               ...options.headers,
-              'Authorization': `Bearer ${refreshData.token}`
+              'Authorization': `Bearer ${refreshData.token}`,
+              'x-tenant-id': TENANT_ID,
             }
           };
           response = await fetch(url, retryOptions);
@@ -67,7 +76,10 @@ export const auth = {
       console.log('🔐 Attempting login...');
       const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          'x-tenant-id': TENANT_ID,
+        },
         body: JSON.stringify(data),
       });
 
@@ -97,6 +109,7 @@ export const auth = {
       const res = await fetch(`${API_URL}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
+          'x-tenant-id': TENANT_ID,
         },
       });
 
@@ -172,7 +185,6 @@ export const posts = {
     }
   },
 
-  // ✅ FIXED: accepts page param, passes limit=200 and skip to backend
   async getByStatus(status, page = 1, limit = 200) {
     try {
       console.log(`🔍 Fetching posts with status: ${status}, page: ${page}, limit: ${limit}`);
@@ -227,13 +239,6 @@ export const posts = {
   async create(data) {
     try {
       console.log('➕ Creating new post:', data.title);
-      console.log('📝 Post data:', {
-        status: data.status,
-        categories: data.categories?.length || 0,
-        tags: data.tags?.length || 0,
-        publishDate: data.publishDate,
-        publishTime: data.publishTime,
-      });
 
       const res = await apiCall(`${API_URL}/posts`, {
         method: "POST",
@@ -270,14 +275,6 @@ export const posts = {
   async update(id, data) {
     try {
       console.log('✏️ Updating post:', id);
-      console.log('📝 Update data:', {
-        title: data.title,
-        status: data.status,
-        categories: data.categories?.length || 0,
-        tags: data.tags?.length || 0,
-        publishDate: data.publishDate,
-        publishTime: data.publishTime,
-      });
 
       const res = await apiCall(`${API_URL}/posts/${id}`, {
         method: "PUT",
@@ -325,8 +322,6 @@ export const posts = {
       }
 
       console.log('✅ Post updated:', id);
-      console.log('✅ Updated categories:', result.categories?.length || 0);
-      console.log('✅ Updated tags:', result.tags?.length || 0);
       return result;
     } catch (err) {
       console.error('❌ update error:', err.message);
@@ -344,6 +339,7 @@ export const posts = {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
+          'x-tenant-id': TENANT_ID,
         },
       });
 
@@ -398,7 +394,10 @@ export async function uploadMedia(file, metadata = {}) {
       throw new Error("You must be logged in to upload images. Please log in and try again.");
     }
 
-    const headers = { 'Authorization': `Bearer ${token}` };
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'x-tenant-id': TENANT_ID,
+    };
 
     const res = await fetch(`${API_URL}/media/upload`, {
       method: "POST",
@@ -414,7 +413,8 @@ export async function uploadMedia(file, metadata = {}) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
+              'Authorization': `Bearer ${token}`,
+              'x-tenant-id': TENANT_ID,
             }
           });
 
@@ -427,7 +427,10 @@ export async function uploadMedia(file, metadata = {}) {
 
               const retryRes = await fetch(`${API_URL}/media/upload`, {
                 method: "POST",
-                headers: { 'Authorization': `Bearer ${token}` },
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'x-tenant-id': TENANT_ID,
+                },
                 body: formData,
               });
 
@@ -471,7 +474,9 @@ export async function getMediaLibrary() {
     console.log('📂 Fetching media library');
 
     const res = await fetch(`${API_URL}/media`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      headers: token
+        ? { Authorization: `Bearer ${token}`, 'x-tenant-id': TENANT_ID }
+        : { 'x-tenant-id': TENANT_ID },
     });
 
     if (!res.ok) {
@@ -491,7 +496,7 @@ export async function getMediaLibrary() {
 }
 
 /* =====================================================
-   USERS (used by author selector)
+   USERS
 ===================================================== */
 export async function getUsers() {
   try {
@@ -499,7 +504,7 @@ export async function getUsers() {
     console.log('👥 Fetching users');
 
     const res = await fetch(`${API_URL}/users`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, 'x-tenant-id': TENANT_ID },
     });
 
     if (!res.ok) {
@@ -528,7 +533,7 @@ export async function getCategories() {
     console.log('📂 Fetching categories');
 
     const res = await fetch(`${API_URL}/categories`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, 'x-tenant-id': TENANT_ID },
     });
 
     if (!res.ok) {
@@ -557,7 +562,7 @@ export async function getTags() {
     console.log('🏷️ Fetching tags');
 
     const res = await fetch(`${API_URL}/tags`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, 'x-tenant-id': TENANT_ID },
     });
 
     if (!res.ok) {
@@ -584,7 +589,7 @@ export async function createCategory(data) {
     
     const res = await fetch(`${API_URL}/categories`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, 'x-tenant-id': TENANT_ID },
       body: JSON.stringify(data),
     });
 
@@ -616,7 +621,7 @@ export async function updateCategory(id, data) {
     
     const res = await fetch(`${API_URL}/categories/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, 'x-tenant-id': TENANT_ID },
       body: JSON.stringify(data),
     });
 
@@ -643,7 +648,7 @@ export async function deleteCategory(id) {
     
     const res = await fetch(`${API_URL}/categories/${id}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, 'x-tenant-id': TENANT_ID },
     });
 
     if (!res.ok) {
@@ -669,7 +674,7 @@ export async function createTag(data) {
     
     const res = await fetch(`${API_URL}/tags`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, 'x-tenant-id': TENANT_ID },
       body: JSON.stringify(data),
     });
 
@@ -696,7 +701,7 @@ export async function updateTag(id, data) {
     
     const res = await fetch(`${API_URL}/tags/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, 'x-tenant-id': TENANT_ID },
       body: JSON.stringify(data),
     });
 
@@ -723,7 +728,7 @@ export async function deleteTag(id) {
     
     const res = await fetch(`${API_URL}/tags/${id}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, 'x-tenant-id': TENANT_ID },
     });
 
     if (!res.ok) {
@@ -749,7 +754,7 @@ export async function createUser(data) {
     
     const res = await fetch(`${API_URL}/auth/register`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, 'x-tenant-id': TENANT_ID },
       body: JSON.stringify(data),
     });
 
@@ -776,7 +781,7 @@ export async function updateUser(id, data) {
     
     const res = await fetch(`${API_URL}/users/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, 'x-tenant-id': TENANT_ID },
       body: JSON.stringify(data),
     });
 
@@ -803,7 +808,7 @@ export async function deleteUser(id) {
     
     const res = await fetch(`${API_URL}/users/${id}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, 'x-tenant-id': TENANT_ID },
     });
 
     if (!res.ok) {
