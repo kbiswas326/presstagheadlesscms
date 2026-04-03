@@ -68,8 +68,8 @@ const usePostStore = create((set, get) => ({
 
       if (Array.isArray(data)) {
         articles = data;
-      } else if (data.articles && Array.isArray(data.articles)) {
-        articles = data.articles;
+      } else if (data.posts && Array.isArray(data.posts)) {
+        articles = data.posts;
         if (data.pagination && data.pagination.totalPages) {
           totalPages = data.pagination.totalPages;
         }
@@ -90,7 +90,7 @@ const usePostStore = create((set, get) => ({
   },
 
   fetchLatestStory: async (url) => {
-    const targetUrl = (typeof url === 'string' && url) ? url : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/posts?limit=5&status=published`;
+    const targetUrl = (typeof url === 'string' && url) ? url : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/posts?limit=5&status=published`;
     console.log('[PostStore] Fetching latest stories from:', targetUrl);
     set({ loading: true, error: null });
     try {
@@ -102,8 +102,8 @@ const usePostStore = create((set, get) => ({
       let articles = [];
       if (Array.isArray(data)) {
         articles = data;
-      } else if (data.articles && Array.isArray(data.articles)) {
-        articles = data.articles;
+      } else if (data.posts && Array.isArray(data.posts)) {
+        articles = data.posts;
       }
 
       // Process latest stories

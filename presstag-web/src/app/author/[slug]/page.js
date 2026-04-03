@@ -20,7 +20,7 @@ async function getAuthor(slug) {
 
 async function getAuthorPosts(authorId, page = 1) {
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/posts?author=${authorId}&limit=20&page=${page}`, {
+        const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')}/posts?author=${authorId}&limit=20&page=${page}`, {
             cache: 'no-store'
         });
         if (!res.ok) throw new Error('Failed to fetch posts');
@@ -37,8 +37,8 @@ async function getAuthorPosts(authorId, page = 1) {
              totalPages = Math.ceil(totalCount / 20);
              const startIndex = (page - 1) * 20;
              articles = articles.slice(startIndex, startIndex + 20);
-        } else if (data.articles && Array.isArray(data.articles)) {
-            articles = data.articles;
+        } else if (data.posts && Array.isArray(data.posts)) {
+            articles = data.posts;
              if (data.pagination) {
                 totalPages = data.pagination.totalPages;
             } else if (data.Count) {

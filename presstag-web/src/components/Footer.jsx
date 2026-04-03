@@ -43,7 +43,7 @@ const Footer = ({ config }) => {
 
   const fetchStories = useCallback(async () => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-    const url = `${apiUrl}/api/posts?limit=10`; // Increased limit to 10
+    const url = `${apiUrl}/posts?limit=10`; // Increased limit to 10
     await fetchLatestStory(url);
   }, [fetchLatestStory]);
 

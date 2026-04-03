@@ -5,47 +5,49 @@ import Pagination from '../../../components/Pagination';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 
 async function getCategoryPosts(slug, page = 1) {
-  if (!slug) return { articles: [], totalPages: 0 };
+  if (!slug) return { articles: [], totalPages: 1, total: 0 };
+
   const limit = 20;
+
   try {
-    const res = await fetchWithTenant(`/api/posts?category=${slug}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error('Failed to fetch posts');
+    const res = await fetchWithTenant(
+      `/posts?category=${slug}&page=${page}&limit=${limit}`,
+      { cache: 'no-store' }
+    );
+
+    if (!res.ok) throw new Error('Failed to fetch category posts');
+
     const data = await res.json();
-    let articles = [];
-    let totalPages = 1;
-    if (Array.isArray(data)) {
-      const totalCount = data.length;
-      totalPages = Math.ceil(totalCount / limit);
-      const startIndex = (page - 1) * limit;
-      articles = data.slice(startIndex, startIndex + limit);
-    } else if (data.articles && Array.isArray(data.articles)) {
-      articles = data.articles;
-      const totalCount = data.Count || data.total || 0;
-      if (totalCount > 0) totalPages = Math.ceil(totalCount / limit);
-      else if (data.pagination?.totalPages) totalPages = data.pagination.totalPages;
-    }
-    return { articles, totalPages };
+
+    const articles = Array.isArray(data) ? data : (data.posts || []);
+    const pagination = data.pagination || {};
+
+    return {
+      articles,
+      totalPages: pagination.totalPages || Math.ceil(articles.length / limit),
+      total: pagination.total || articles.length
+    };
   } catch (error) {
     console.error("Error fetching category posts:", error);
-    return { articles: [], totalPages: 0 };
+    return { articles: [], totalPages: 1, total: 0 };
   }
 }
 
 export default async function CategoryPage({ params, searchParams }) {
   const resolvedParams = await params;
   const { slug } = resolvedParams;
-  
   const resolvedSearchParams = await searchParams;
   const page = Number(resolvedSearchParams?.page) || 1;
-  
+
   if (!slug) {
     return <div className="container mx-auto px-4 py-8">Invalid category</div>;
   }
 
   const { articles: posts, totalPages } = await getCategoryPosts(slug, page);
-  
-  // Format title from slug
-  const title = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+  const title = slug.split('-').map(word => 
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
 
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen">
@@ -53,25 +55,28 @@ export default async function CategoryPage({ params, searchParams }) {
         <h1 className="text-3xl font-bold text-gray-900">
           Category: <span className="text-emerald-600">{title}</span>
         </h1>
+        <p className="text-gray-500 mt-1">
+          {posts.length} articles • Page {page}
+        </p>
       </div>
       
       {posts.length > 0 ? (
         <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {posts.map((post, i) => (
-                <ArticleGridCard key={i} post={post} />
-              ))}
-            </div>
-            
-            <Pagination 
-                currentPage={page} 
-                totalPages={totalPages} 
-                baseUrl={`/category/${slug}`} 
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {posts.map((post, i) => (
+              <ArticleGridCard key={post._id || i} post={post} />
+            ))}
+          </div>
+          
+          <Pagination 
+            currentPage={page} 
+            totalPages={totalPages} 
+            baseUrl={`/category/${slug}`} 
+          />
         </>
       ) : (
         <div className="text-center py-20">
-            <h2 className="text-xl text-gray-500">No posts found in this category.</h2>
+          <h2 className="text-xl text-gray-500">No posts found in this category.</h2>
         </div>
       )}
     </div>

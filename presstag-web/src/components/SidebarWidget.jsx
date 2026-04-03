@@ -47,10 +47,10 @@ const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#e
             const fetchTrending = async () => {
                 try {
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-                    const res = await fetch(apiUrl + '/api/posts?sort=trending&status=published&limit=' + (widget.limit || 5));
+                    const res = await fetch(apiUrl + '/posts?sort=trending&status=published&limit=' + (widget.limit || 5));
                     if (res.ok) {
                         const data = await res.json();
-                        setTrendingPosts(Array.isArray(data) ? data : (data.articles || []));
+                        setTrendingPosts(Array.isArray(data) ? data : (data.posts || []));
                     }
                 } catch(e) { console.error(e); }
             };
@@ -207,10 +207,10 @@ const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#e
                 if (!categorySlug) return;
                 try {
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-                    const res = await fetch(apiUrl + '/api/posts?category=' + categorySlug + '&limit=' + (widget.limit || 5));
+                    const res = await fetch(apiUrl + '/posts?category=' + categorySlug + '&limit=' + (widget.limit || 5));
                     if (res.ok) {
                         const data = await res.json();
-                        let p = Array.isArray(data) ? data : (data.articles || []);
+                        let p = Array.isArray(data) ? data : (data.posts || []);
                         setPosts(p.filter(item => item._id !== currentPostId && item.slug !== currentPostId).slice(0, widget.limit || 4));
                     }
                 } catch(e) { console.error(e); }

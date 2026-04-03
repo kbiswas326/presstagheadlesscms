@@ -7,7 +7,7 @@ async function getTagPosts(slug, page = 1) {
   const limit = 20;
   try {
     // API ignores limit for tags, returning all posts. We handle pagination client-side.
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts?tag=${slug}`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts?tag=${slug}`, {
       cache: 'no-store'
     });
     if (!res.ok) {
@@ -27,9 +27,9 @@ async function getTagPosts(slug, page = 1) {
         const startIndex = (page - 1) * limit;
         articles = data.slice(startIndex, startIndex + limit);
         
-    } else if (data.articles && Array.isArray(data.articles)) {
+    } else if (data.posts && Array.isArray(data.posts)) {
         // Fallback for standard pagination structure
-        articles = data.articles;
+        articles = data.posts;
         const totalCount = data.Count || data.total || 0;
         if (totalCount > 0) {
             totalPages = Math.ceil(totalCount / limit);

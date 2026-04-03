@@ -21,7 +21,7 @@ async function getLayoutConfig() {
 
 async function getPosts(params = {}) {
   const { type = 'latest', value, limit = 10 } = params;
-  let path = `/api/posts?status=published&limit=${limit}`;
+  let path = `/posts?status=published&limit=${limit}`;
   if (type === 'category' && value) path += '&category=' + value;
   else if (type === 'tag' && value) path += '&tag=' + value;
   else if (type === 'author' && value) path += '&author=' + value;
@@ -30,7 +30,7 @@ async function getPosts(params = {}) {
     const res = await fetchWithTenant(path); // ✅ FIXED: was fetchLayoutConfig()
     if (!res.ok) return [];
     const data = await res.json();
-    return Array.isArray(data) ? data : (data.articles || []);
+    return Array.isArray(data) ? data : (data.posts || []);
   } catch (e) { return []; }
 }
 

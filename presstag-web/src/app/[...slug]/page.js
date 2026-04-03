@@ -24,7 +24,7 @@ const merriweather = Merriweather({
 
 async function getPostBySlug(slug) {
   try {
-    const res = await fetchWithTenant(`/api/posts/slug/${slug}`, { cache: 'no-store' });
+    const res = await fetchWithTenant(`/posts/slug/${slug}`, { cache: 'no-store' });
     if (res.ok) return res.json();
   } catch (e) { console.error(e); }
   return null;
@@ -32,10 +32,10 @@ async function getPostBySlug(slug) {
 
 async function getPostByPreviousSlug(slug) {
   try {
-    const res = await fetchWithTenant(`/api/posts?previousSlug=${slug}`, { cache: 'no-store' });
+    const res = await fetchWithTenant(`/posts?previousSlug=${slug}`, { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
-      const posts = Array.isArray(data) ? data : (data.articles || []);
+      const posts = Array.isArray(data) ? data : (data.posts || []);
       if (posts.length > 0) return posts[0];
     }
   } catch (e) { console.error(e); }
