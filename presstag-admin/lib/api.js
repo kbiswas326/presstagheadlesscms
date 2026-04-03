@@ -1,4 +1,4 @@
-///lib/api.js///
+/// admin/lib/api.js | This file defines the API utility functions for the PressTag CMS admin panel. It includes functions for user authentication (login, logout, get current user), post management (get by ID, get by status, create, update, delete), media management (upload and get media library), and fetching categories and tags. The API calls are wrapped in a function that handles token refresh on 401 errors, ensuring a smoother user experience without unexpected logouts. Each function includes detailed logging for debugging purposes, making it easier to trace issues during development and maintenance.
 const API_URL = process.env.NEXT_PUBLIC_API_URL + '/api' || 'http://localhost:5000/api';
 
 /**
@@ -39,7 +39,6 @@ async function apiCall(url, options = {}) {
           localStorage.setItem('token', refreshData.token);
 
           // Retry original request with new token
-          // Reconstruct the request with the original body
           const retryOptions = {
             ...options,
             body: originalBody,
@@ -52,7 +51,6 @@ async function apiCall(url, options = {}) {
         }
       } else {
         console.error('❌ Token refresh failed:', refreshRes.status);
-        // Token refresh failed, clear session
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       }
@@ -121,7 +119,7 @@ export const auth = {
       return result;
     } catch (err) {
       console.error('❌ Me endpoint error:', err.message);
-      throw err; // Throw instead of returning null for non-401 errors
+      throw err;
     }
   },
 
@@ -145,7 +143,7 @@ export const posts = {
       const token = localStorage.getItem("token");
       console.log('🔑 Token present:', !!token);
 
-      const res = await apiCall(`${API_URL}/posts?status=${status}&limit=200`, {
+      const res = await apiCall(`${API_URL}/posts/${id}`, { // ✅ FIXED: was hitting list endpoint with undefined status
         headers: {
           "Content-Type": "application/json",
         },
@@ -184,7 +182,7 @@ export const posts = {
       const token = localStorage.getItem("token");
       console.log('🔑 Token present:', !!token);
 
-      const res = await apiCall(`${API_URL}/posts?status=${status}`, {
+      const res = await apiCall(`${API_URL}/posts?status=${status}&limit=200`, { // ✅ FIXED: added &limit=200
         headers: {
           "Content-Type": "application/json",
         },
@@ -353,11 +351,10 @@ export const posts = {
       console.log('📡 Delete response status:', res.status);
 
       if (!res.ok) {
-      if (res.status === 401) {
-        // Do not redirect automatically to prevent data loss
-        throw new Error("Session expired");
-      }
-      const errorText = await res.text();
+        if (res.status === 401) {
+          throw new Error("Session expired");
+        }
+        const errorText = await res.text();
         console.error('❌ Delete error:', errorText);
         throw new Error(`Failed to delete post: ${res.status}`);
       }
@@ -397,13 +394,11 @@ export async function uploadMedia(file, metadata = {}) {
     console.log('📤 Uploading media:', file.name);
     console.log('🔑 Token available:', !!token && token !== 'undefined' && token !== 'null');
 
-    // Validate token exists and is valid before proceeding
     if (!token || token === 'undefined' || token === 'null' || typeof token !== 'string' || token.length === 0) {
       console.error('❌ No valid token in localStorage - user must be logged in');
       throw new Error("You must be logged in to upload images. Please log in and try again.");
     }
 
-    // Build headers object
     const headers = {
       'Authorization': `Bearer ${token}`
     };
@@ -416,7 +411,6 @@ export async function uploadMedia(file, metadata = {}) {
 
     if (!res.ok) {
       if (res.status === 401) {
-        // Try to refresh token and retry
         console.log('🔄 Upload got 401, attempting token refresh...');
         
         try {
@@ -435,12 +429,10 @@ export async function uploadMedia(file, metadata = {}) {
               localStorage.setItem('token', refreshData.token);
               token = refreshData.token;
 
-              // Rebuild headers with new token
               const newHeaders = {
                 'Authorization': `Bearer ${token}`
               };
 
-              // Retry upload with new token
               const retryRes = await fetch(`${API_URL}/media/upload`, {
                 method: "POST",
                 headers: newHeaders,
@@ -493,7 +485,6 @@ export async function getMediaLibrary() {
 
     if (!res.ok) {
       if (res.status === 401) {
-        // Do not redirect automatically to prevent data loss
         throw new Error("Session expired");
       }
       const errorText = await res.text();
@@ -527,7 +518,6 @@ export async function getUsers() {
 
     if (!res.ok) {
       if (res.status === 401) {
-        // Do not redirect automatically to prevent data loss
         throw new Error("Session expired");
       }
       const errorText = await res.text();
@@ -562,7 +552,6 @@ export async function getCategories() {
 
     if (!res.ok) {
       if (res.status === 401) {
-        // Do not redirect automatically to prevent data loss
         throw new Error("Session expired");
       }
       const errorText = await res.text();
@@ -597,7 +586,6 @@ export async function getTags() {
 
     if (!res.ok) {
       if (res.status === 401) {
-        // Do not redirect automatically to prevent data loss
         throw new Error("Session expired");
       }
       const errorText = await res.text();
@@ -631,7 +619,6 @@ export async function createCategory(data) {
 
     if (!res.ok) {
       if (res.status === 401) {
-        // Do not redirect automatically to prevent data loss
         throw new Error("Session expired");
       }
       const errorText = await res.text();
@@ -673,7 +660,6 @@ export async function updateCategory(id, data) {
 
     if (!res.ok) {
       if (res.status === 401) {
-        // Do not redirect automatically to prevent data loss
         throw new Error("Session expired");
       }
       const errorText = await res.text();
@@ -704,7 +690,6 @@ export async function deleteCategory(id) {
 
     if (!res.ok) {
       if (res.status === 401) {
-        // Do not redirect automatically to prevent data loss
         throw new Error("Session expired");
       }
       const errorText = await res.text();
@@ -720,7 +705,6 @@ export async function deleteCategory(id) {
     throw err;
   }
 }
-
 
 export async function createTag(data) {
   try {
@@ -738,7 +722,6 @@ export async function createTag(data) {
 
     if (!res.ok) {
       if (res.status === 401) {
-        // Do not redirect automatically to prevent data loss
         throw new Error("Session expired");
       }
       const errorText = await res.text();
@@ -771,7 +754,6 @@ export async function updateTag(id, data) {
 
     if (!res.ok) {
       if (res.status === 401) {
-        // Do not redirect automatically to prevent data loss
         throw new Error("Session expired");
       }
       const errorText = await res.text();
@@ -802,7 +784,6 @@ export async function deleteTag(id) {
 
     if (!res.ok) {
       if (res.status === 401) {
-        // Do not redirect automatically to prevent data loss
         throw new Error("Session expired");
       }
       const errorText = await res.text();
@@ -819,13 +800,11 @@ export async function deleteTag(id) {
   }
 }
 
-
 export async function createUser(data) {
   try {
     const token = localStorage.getItem("token");
     console.log('➕ Creating user:', data.name);
     
-    // Using auth/register because it handles password hashing and creation
     const res = await fetch(`${API_URL}/auth/register`, {
       method: "POST",
       headers: {
@@ -837,7 +816,6 @@ export async function createUser(data) {
 
     if (!res.ok) {
       if (res.status === 401) {
-        // Do not redirect automatically to prevent data loss
         throw new Error("Session expired");
       }
       const errorText = await res.text();
@@ -870,7 +848,6 @@ export async function updateUser(id, data) {
 
     if (!res.ok) {
       if (res.status === 401) {
-        // Do not redirect automatically to prevent data loss
         throw new Error("Session expired");
       }
       const errorText = await res.text();
@@ -901,7 +878,6 @@ export async function deleteUser(id) {
 
     if (!res.ok) {
       if (res.status === 401) {
-        // Do not redirect automatically to prevent data loss
         throw new Error("Session expired");
       }
       const errorText = await res.text();
