@@ -15,7 +15,8 @@ const Sidebar = ({ currentPostId, categorySlug }) => {
     const fetchConfig = async () => {
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-            const res = await fetch(apiUrl + '/api/layout-config');
+            const { fetchWithTenant } = await import('../lib/fetchWithTenant');
+            const res = await fetchWithTenant('/api/layout-config');
             if (res.ok) {
                 const data = await res.json();
                 

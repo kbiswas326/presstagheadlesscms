@@ -6,49 +6,32 @@ import ArticleGridCard from "../components/ArticleGridCard";
 import Sidebar from "../components/Sidebar";
 import ResponsivePostGrid from "../components/ResponsivePostGrid";
 import { getFallbackImage, resolvePostImage } from '../lib/imageHelper';
+import { fetchWithTenant } from '../lib/fetchWithTenant';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
 async function getLayoutConfig() {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/layout-config`,
-      { cache: 'no-store' }
-    );
+    const res = await fetchWithTenant('/api/layout-config', { cache: 'no-store' });
     if (res.ok) return res.json();
-  } catch (e) {
-    console.error(e);
-  }
+  } catch (e) { console.error(e); }
   return null;
 }
 
 async function getPosts(params = {}) {
   const { type = 'latest', value, limit = 10 } = params;
-
-  let url =
-    (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') +
-    '/api/posts?status=published&limit=' +
-    limit;
-
-  if (type === 'category' && value) {
-    url += '&category=' + value;
-  } else if (type === 'tag' && value) {
-    url += '&tag=' + value;
-  } else if (type === 'author' && value) {
-    url += '&author=' + value;
-  } else if ((type === 'content_type' || type === 'type') && value) {
-    url += '&type=' + value;
-  }
-
+  let path = `/api/posts?status=published&limit=${limit}`;
+  if (type === 'category' && value) path += '&category=' + value;
+  else if (type === 'tag' && value) path += '&tag=' + value;
+  else if (type === 'author' && value) path += '&author=' + value;
+  else if ((type === 'content_type' || type === 'type') && value) path += '&type=' + value;
   try {
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await fetchWithTenant(path, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data) ? data : (data.articles || []);
-  } catch (e) {
-    return [];
-  }
+  } catch (e) { return []; }
 }
 
 export default async function Page() {

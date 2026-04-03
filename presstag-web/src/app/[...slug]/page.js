@@ -13,6 +13,7 @@ import Sidebar from '../../components/Sidebar';
 import AdSpot from '../../components/AdSpot';
 import ArticleContent from '../../components/ArticleContent';
 import { getImageUrl } from '@/lib/imageHelper';
+import { fetchWithTenant } from '@/lib/fetchWithTenant';
 
 const merriweather = Merriweather({
   weight: ['300', '400', '700', '900'],
@@ -21,29 +22,23 @@ const merriweather = Merriweather({
   display: 'swap',
 });
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
 async function getPostBySlug(slug) {
   try {
-    const res = await fetch(`${API_URL}/api/posts/${slug}`, { cache: 'no-store' });
+    const res = await fetchWithTenant(`/api/posts/slug/${slug}`, { cache: 'no-store' });
     if (res.ok) return res.json();
-  } catch (e) {
-    console.error(e);
-  }
+  } catch (e) { console.error(e); }
   return null;
 }
 
 async function getPostByPreviousSlug(slug) {
   try {
-    const res = await fetch(`${API_URL}/api/posts?previousSlug=${slug}`, { cache: 'no-store' });
+    const res = await fetchWithTenant(`/api/posts?previousSlug=${slug}`, { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
       const posts = Array.isArray(data) ? data : (data.articles || []);
       if (posts.length > 0) return posts[0];
     }
-  } catch (e) {
-    console.error(e);
-  }
+  } catch (e) { console.error(e); }
   return null;
 }
 
@@ -75,7 +70,7 @@ if (!post) {
   // Check if this was an old slug that changed — 301 redirect to new URL
   const oldPost = await getPostByPreviousSlug(lastSegment);
   if (oldPost) {
-    const config = await fetch(`${API_URL}/api/layout-config`, { cache: 'no-store' }).then(r => r.json()).catch(() => null);
+    const config = await fetchWithTenant('/api/layout-config', { cache: 'no-store' }).then(r => r.json()).catch(() => null);
     const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
     const { buildPostUrl } = await import('@/lib/urlBuilder');
     redirect(buildPostUrl(oldPost, urlStructure));

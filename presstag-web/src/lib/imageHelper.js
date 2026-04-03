@@ -54,19 +54,12 @@ export const uploadImage = async (file, metadata = {}) => {
   };
 };
 
-// ✅ ADD THIS
 export async function getFallbackImage() {
   try {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-
-    const res = await fetch(`${API_BASE}/api/layout-config`, {
-      cache: 'no-store',
-    });
-
+    const { fetchWithTenant } = await import('./fetchWithTenant');
+    const res = await fetchWithTenant('/api/layout-config', { cache: 'no-store' });
     if (!res.ok) return null;
-
     const data = await res.json();
-
     return getImageUrl(data?.branding?.fallbackImage) || null;
   } catch {
     return null;
