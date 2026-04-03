@@ -17,10 +17,9 @@ const Page = () => {
   const fetchData = () => {
     let url;
     if (status === 'pending-approval') {
-      url = `${process.env.NEXT_PUBLIC_API_URL}/posts/pending-approval/all?type=Web Story&limit=${limit}&page=${currentPage}`;
-
+      url = `${process.env.NEXT_PUBLIC_API_URL}/posts?status=pending&type=Gallery&limit=${limit}&page=${currentPage}`;
     } else {
-      url = `${process.env.NEXT_PUBLIC_API_URL}/posts/${status}?type=Gallery&limit=${limit}&page=${currentPage}`;
+      url = `${process.env.NEXT_PUBLIC_API_URL}/posts?status=${status}&type=Gallery&limit=${limit}&page=${currentPage}`;
     }
     fetchAllPostedData(url, 'Gallery');
   };

@@ -15,11 +15,9 @@ const Page = () => {
   const fetchData = () => {
     let url;
     if(status==='pending-approval'){
-      url = `${process.env.NEXT_PUBLIC_API_URL}/posts/pending-approval/all?type=Quiz&limit=${limit}&page=${currentPage}`;
-
-    }else{
-
-      url = `${process.env.NEXT_PUBLIC_API_URL}/posts/${status}?type=Quiz&limit=${limit}&page=${currentPage}`;
+      url = `${process.env.NEXT_PUBLIC_API_URL}/posts?status=pending&type=Quiz&limit=${limit}&page=${currentPage}`;
+    } else {
+      url = `${process.env.NEXT_PUBLIC_API_URL}/posts?status=${status}&type=Quiz&limit=${limit}&page=${currentPage}`;
     }
     fetchAllPostedData(url, 'Quiz');
   };

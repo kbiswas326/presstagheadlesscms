@@ -12,7 +12,7 @@ const Page = () => {
 
   // Function to update data when status or page changes
   const fetchData = () => {
-    const url = `${process.env.NEXT_PUBLIC_API_URL}/posts/${status}?type=Newsletter&limit=${limit}&page=${currentPage}`;
+    const url = `${process.env.NEXT_PUBLIC_API_URL}/posts?status=${status}&type=Newsletter&limit=${limit}&page=${currentPage}`;
     fetchAllPostedData(url, 'Newsletter');
   };
 

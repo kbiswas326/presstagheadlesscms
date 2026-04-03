@@ -20,7 +20,7 @@ const useAllPostDataStore = create((set, get) => ({
             }
 
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/posts/pending-approval/all?type=${type}&limit=1&page=1`,
+                `${process.env.NEXT_PUBLIC_API_URL}/posts?status=pending&type=${type}&limit=1&page=1`,
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,

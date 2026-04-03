@@ -278,41 +278,49 @@ router.get('/', async (req, res) => {
 });
 
 /* =====================================================
-   GET POST BY ID
+   DASHBOARD STATS - Accurate counts for Admin Dashboard
 ===================================================== */
-router.get('/:id', async (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
     const db = getDB(req.tenantId);
 
-    const mockPost = MOCK_POSTS.find(p => p.slug === req.params.id || p._id === req.params.id);
-    if (mockPost) {
-      console.log('⚠️ Serving MOCK data for:', req.params.id);
-      return res.json(mockPost);
-    }
+    const baseQuery = {};
 
-    if (!db) {
-      return res.status(404).json({ error: 'Post not found (Mock Mode)' });
-    }
+    const [
+      totalArticles,
+      published,
+      pending,
+      drafts,
+      archived,
+      articleTypes
+    ] = await Promise.all([
+      db.collection('posts').countDocuments(baseQuery),
+      db.collection('posts').countDocuments({ ...baseQuery, status: 'published' }),
+      db.collection('posts').countDocuments({ ...baseQuery, status: 'pending' }),
+      db.collection('posts').countDocuments({ ...baseQuery, status: 'draft' }),
+      db.collection('posts').countDocuments({ ...baseQuery, status: 'archived' }),
+      db.collection('posts').distinct('type', baseQuery)
+    ]);
 
-    const query = ObjectId.isValid(req.params.id) 
-      ? { _id: new ObjectId(req.params.id) } 
-      : { slug: req.params.id };
-
-    const post = await db.collection('posts').findOne(query);
-    if (!post) return res.status(404).json({ error: 'Post not found' });
-
-    const enrichedPost = await populatePost(post, db);
-    res.json(enrichedPost || post);
+    res.json({
+      totalArticles,
+      published,
+      pending,
+      drafts,
+      archived: archived || 0,
+      totalTypes: articleTypes.length,
+      types: articleTypes
+    });
   } catch (error) {
-    console.error('GET /posts/:id error:', error);
+    console.error('GET /posts/stats error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 /* =====================================================
-   DASHBOARD STATS - Accurate counts for Admin Dashboard
+   GET POST BY ID
 ===================================================== */
-router.get('/stats', async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const db = getDB(req.tenantId);
 
