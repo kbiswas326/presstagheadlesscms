@@ -52,9 +52,22 @@ export default function PublishedPosts() {
   const getCategoryNames = (categoriesArray) => {
     if (!Array.isArray(categoriesArray)) return 'Uncategorized';
     return categoriesArray
-      .map(cat => (typeof cat === 'object' && cat.name) ? cat.name : cat)
+      .map(cat => {
+        if (typeof cat === 'object' && cat) return cat.name || cat.title || cat.slug || '';
+        return String(cat || '');
+      })
       .filter(Boolean)
       .join(', ') || 'Uncategorized';
+  };
+
+  const getCategoryLabel = (post) => {
+    const fromCategories = getCategoryNames(post?.categories);
+    if (fromCategories !== 'Uncategorized') return fromCategories;
+    const primaryIds = Array.isArray(post?.primary_category) ? post.primary_category : (post?.primary_category ? [post.primary_category] : []);
+    if (primaryIds.length === 0) return 'Uncategorized';
+    const map = new Map((availableCategories || []).map((c) => [String(c._id), c.name || c.slug || String(c._id)]));
+    const labels = primaryIds.map((id) => map.get(String(id)) || String(id)).filter(Boolean);
+    return labels.join(', ') || 'Uncategorized';
   };
 
   // ✅ Fetch stats once for accurate total count
@@ -146,7 +159,8 @@ export default function PublishedPosts() {
   // Client-side search and author filter on current page only
   const filtered = posts.filter(p => {
     const title = p.title || '';
-    const authorMatch = filterAuthor === 'All' || p.authorName?.toLowerCase() === filterAuthor.toLowerCase();
+    const authorLabel = (p.author && typeof p.author === 'object') ? (p.author.name || '') : (p.authorName || '');
+    const authorMatch = filterAuthor === 'All' || authorLabel.toLowerCase() === filterAuthor.toLowerCase();
     const searchMatch = title.toLowerCase().includes(search.toLowerCase());
     return searchMatch && authorMatch;
   });
@@ -357,8 +371,8 @@ export default function PublishedPosts() {
                         {post.type || 'Article'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-700 dark:text-gray-300 text-sm">{getCategoryNames(post.categories)}</td>
-                    <td className="px-6 py-4 text-slate-700 dark:text-gray-300 text-sm">{post.authorName || 'Unknown'}</td>
+                    <td className="px-6 py-4 text-slate-700 dark:text-gray-300 text-sm">{getCategoryLabel(post)}</td>
+                    <td className="px-6 py-4 text-slate-700 dark:text-gray-300 text-sm">{(post.author && typeof post.author === 'object' ? post.author.name : post.authorName) || 'Unknown'}</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-gray-400 text-sm">
                       {post.publishedAt
                         ? new Date(post.publishedAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: '2-digit' })

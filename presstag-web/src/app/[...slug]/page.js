@@ -42,6 +42,23 @@ async function getPostByPreviousSlug(slug) {
   return null;
 }
 
+async function ensureCategories(post) {
+  if (!post) return post;
+  if (Array.isArray(post.categories) && post.categories.length > 0) return post;
+  const ids = Array.isArray(post.primary_category) ? post.primary_category : (post.primary_category ? [post.primary_category] : []);
+  if (ids.length === 0) return post;
+  try {
+    const res = await fetchWithTenant('/categories', { cache: 'no-store' });
+    if (!res.ok) return post;
+    const data = await res.json();
+    const cats = data.categories || data || [];
+    const map = new Map(cats.map((c) => [String(c?._id), c]));
+    const resolved = ids.map((id) => map.get(String(id))).filter(Boolean);
+    if (resolved.length > 0) return { ...post, categories: resolved };
+  } catch {}
+  return post;
+}
+
 export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const slugParts = resolvedParams.slug;
@@ -79,6 +96,7 @@ if (!post) {
 }
 
   if (post) post.gallery = post.gallery || post.images;
+  post = await ensureCategories(post);
 
   const cleanType = post.type?.toLowerCase().trim();
   const isGallery = cleanType === 'photo gallery' || cleanType === 'photo-gallery';
@@ -141,10 +159,10 @@ if (!post) {
                 <>
                   <span className="mx-2 text-gray-300 flex-shrink-0">/</span>
                   <Link
-                    href={`/category/${post.categories[0].slug}`}
+                    href={`/category/${post.categories[0].slug || post.categories[0].name || post.categories[0].title || ''}`}
                     className="transition-colors font-medium hover:text-[var(--primary-color)] flex-shrink-0"
                   >
-                    {post.categories[0].name?.replace(/Ãƒâ€"/g, "").replace(/Ã—/g, "").trim()}
+                    {String(post.categories[0].name || post.categories[0].title || post.categories[0].slug || '').replace(/Ãƒâ€"/g, "").replace(/Ã—/g, "").trim()}
                   </Link>
                 </>
               )}
@@ -156,11 +174,11 @@ if (!post) {
               {post.categories?.map((cat, index) => (
                 <Link
                   key={index}
-                  href={`/category/${cat.slug}`}
+                  href={`/category/${cat.slug || cat.name || cat.title || ''}`}
                   className="px-3 py-1 bg-gray-50 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-100 transition-colors cursor-pointer"
                   style={{ color: 'var(--primary-color)' }}
                 >
-                  {cat.name?.replace(/Ã—/g, "").replace(/×/g, "").trim()}
+                  {String(cat.name || cat.title || cat.slug || '').replace(/Ã—/g, "").replace(/×/g, "").trim()}
                 </Link>
               ))}
             </div>

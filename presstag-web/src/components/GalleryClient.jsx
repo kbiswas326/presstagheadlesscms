@@ -126,8 +126,8 @@ const GalleryClient = ({ post }) => {
                                 {post.categories?.[0] && (
                                     <>
                                         <span className="mx-2 text-gray-300 flex-shrink-0">/</span>
-                                        <Link href={`/category/${post.categories[0].slug}`} className="transition-colors font-medium hover:text-[var(--primary-color)] flex-shrink-0">
-                                            {post.categories[0].name?.replace(/Ãƒâ€”/g, "").replace(/Ã—/g, "").trim()}
+                                        <Link href={`/category/${post.categories[0].slug || post.categories[0].name || post.categories[0].title || ''}`} className="transition-colors font-medium hover:text-[var(--primary-color)] flex-shrink-0">
+                                            {String(post.categories[0].name || post.categories[0].title || post.categories[0].slug || '').replace(/Ãƒâ€”/g, "").replace(/Ã—/g, "").trim()}
                                         </Link>
                                     </>
                                 )}
@@ -137,8 +137,8 @@ const GalleryClient = ({ post }) => {
 
                             <div className="flex flex-wrap gap-2 mb-4">
                                 {post.categories?.map((cat, index) => (
-                                    <Link key={index} href={`/category/${cat.slug}`} className="px-3 py-1 bg-gray-50 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-100 transition-colors cursor-pointer text-rose-600">
-                                        {cat.name?.replace(/Ã—/g, "").replace(/×/g, "").trim()}
+                                    <Link key={index} href={`/category/${cat.slug || cat.name || cat.title || ''}`} className="px-3 py-1 bg-gray-50 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-100 transition-colors cursor-pointer text-rose-600">
+                                        {String(cat.name || cat.title || cat.slug || '').replace(/Ã—/g, "").replace(/×/g, "").trim()}
                                     </Link>
                                 ))}
                             </div>

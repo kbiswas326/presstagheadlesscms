@@ -78,3 +78,23 @@ export async function getPostById(id, options = {}) {
     return null;
   }
 }
+
+export async function getCategories(options = {}) {
+  try {
+    const cache = options.cache || 'no-store';
+    const revalidate = options.revalidate ?? 300;
+
+    const fetchOptions =
+      cache === 'no-store'
+        ? { cache: 'no-store', headers: { 'x-tenant-id': resolveTenantId() } }
+        : { next: { revalidate }, headers: { 'x-tenant-id': resolveTenantId() } };
+
+    const res = await fetch(`${API_BASE}/categories`, fetchOptions);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.categories || data || [];
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}

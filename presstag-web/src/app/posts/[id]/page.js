@@ -2,7 +2,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getPostById } from '../../../lib/api';
+import { getCategories, getPostById } from '../../../lib/api';
 import { notFound, redirect } from 'next/navigation';
 import { FaFacebook, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 import { Inter, Merriweather } from 'next/font/google';
@@ -44,11 +44,19 @@ export async function generateMetadata({ params }) {
 export default async function PostPage({ params }) {
   const resolvedParams = await params;
   // Don't cache post pages - always fetch fresh to get latest publish time
-  const post = await getPostById(resolvedParams.id, { cache: 'no-store' });
+  let post = await getPostById(resolvedParams.id, { cache: 'no-store' });
   if (post) post.gallery = post.gallery || post.images;
 
   if (!post) {
     notFound();
+  }
+
+  if ((!post.categories || post.categories.length === 0) && (Array.isArray(post.primary_category) ? post.primary_category.length > 0 : !!post.primary_category)) {
+    const ids = Array.isArray(post.primary_category) ? post.primary_category : [post.primary_category];
+    const cats = await getCategories({ cache: 'no-store' });
+    const map = new Map(cats.map((c) => [String(c?._id), c]));
+    const resolved = ids.map((id) => map.get(String(id))).filter(Boolean);
+    if (resolved.length > 0) post = { ...post, categories: resolved };
   }
 
   // Determine post type
@@ -150,10 +158,13 @@ export default async function PostPage({ params }) {
           <>
             <span className="mx-2 text-gray-300 flex-shrink-0">/</span>
             <Link 
-              href={`/category/${post.categories[0].slug}`} 
+              href={`/category/${post.categories[0].slug || post.categories[0].name || post.categories[0].title || ''}`} 
               className="transition-colors font-medium hover:text-[var(--primary-color)] flex-shrink-0"
             >
-              {post.categories[0].name?.replace(/Ãƒâ€”/g, "").replace(/Ã—/g, "").trim()}
+              {String(post.categories[0].name || post.categories[0].title || post.categories[0].slug || '')
+                .replace(/Ãƒâ€”/g, "")
+                .replace(/Ã—/g, "")
+                .trim()}
             </Link>
           </>
         )}
@@ -167,11 +178,14 @@ export default async function PostPage({ params }) {
           {post.categories?.map((cat, index) => (
             <Link 
                 key={index} 
-                href={`/category/${cat.slug}`} 
+                href={`/category/${cat.slug || cat.name || cat.title || ''}`} 
                 className="px-3 py-1 bg-gray-50 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-100 transition-colors cursor-pointer"
                 style={{ color: 'var(--primary-color)' }}
             >
-              {cat.name?.replace(/Ã—/g, "").replace(/×/g, "").trim()}
+              {String(cat.name || cat.title || cat.slug || '')
+                .replace(/Ã—/g, "")
+                .replace(/×/g, "")
+                .trim()}
             </Link>
           ))}
         </div>

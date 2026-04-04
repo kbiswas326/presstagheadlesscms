@@ -15,46 +15,128 @@ const { generateKeyTakeaways, generateImageCaption } = require('../utils/ai');
 async function populatePost(post, db) {
   if (!post) return null;
 
+  const toObjectId = (value) => {
+    if (!value) return null;
+    if (value instanceof ObjectId) return value;
+    if (typeof value === 'string' && ObjectId.isValid(value)) return new ObjectId(value);
+    if (typeof value === 'object') {
+      const candidate = value._id || value.id;
+      if (candidate instanceof ObjectId) return candidate;
+      if (typeof candidate === 'string' && ObjectId.isValid(candidate)) return new ObjectId(candidate);
+    }
+    return null;
+  };
+
+  const primaryCategoryIds = Array.isArray(post.primary_category)
+    ? post.primary_category.map((v) => (v ? String(v._id || v) : '')).filter(Boolean)
+    : post.primary_category
+      ? [String(post.primary_category._id || post.primary_category)]
+      : [];
+
   // categories
   let categories = [];
-  if (post.categories && post.categories.length > 0) {
-    const categoryIds = post.categories
-      .map(id => (id && typeof id === 'object' && id._id) ? id : 
-                 (typeof id === 'string' && ObjectId.isValid(id)) ? new ObjectId(id) : null)
-      .filter(Boolean);
+  const rawCategories = Array.isArray(post.categories) ? post.categories : [];
+  if (rawCategories.length > 0) {
+    const categoryIds = [];
+    const categorySlugs = [];
+    const categoryObjects = [];
 
-    if (categoryIds.length > 0) {
-      categories = await db.collection('categories')
-        .find({ _id: { $in: categoryIds } })
-        .toArray();
+    for (const c of rawCategories) {
+      if (c && typeof c === 'object' && (c.name || c.slug) && !c._id) {
+        categoryObjects.push(c);
+        continue;
+      }
+      const oid = toObjectId(c);
+      if (oid) {
+        categoryIds.push(oid);
+        continue;
+      }
+      if (typeof c === 'string') categorySlugs.push(c);
+      else if (c && typeof c === 'object' && typeof c.slug === 'string') categorySlugs.push(c.slug);
+    }
+
+    const fetchedById = categoryIds.length > 0
+      ? await db.collection('categories').find({ _id: { $in: categoryIds } }).toArray()
+      : [];
+
+    const fetchedBySlug = categorySlugs.length > 0
+      ? await db.collection('categories').find({ slug: { $in: categorySlugs } }).toArray()
+      : [];
+
+    categories = [...fetchedById, ...fetchedBySlug];
+    if (categories.length === 0 && categoryObjects.length > 0) categories = categoryObjects;
+    if (categories.length === 0 && categorySlugs.length > 0) {
+      categories = categorySlugs.map((slug) => ({ slug, name: slug }));
+    }
+  }
+
+  let primaryCategory = null;
+  const rawPrimary = Array.isArray(post.primary_category) ? post.primary_category[0] : post.primary_category;
+  const primaryCategoryId = toObjectId(rawPrimary);
+  if (primaryCategoryId) {
+    primaryCategory = await db.collection('categories').findOne({ _id: primaryCategoryId });
+  } else if (typeof rawPrimary === 'string') {
+    primaryCategory = await db.collection('categories').findOne({ slug: rawPrimary });
+  }
+
+  if ((!categories || categories.length === 0) && primaryCategory) {
+    categories = [primaryCategory];
+  }
+
+  if ((!categories || categories.length === 0) && post.category) {
+    const categoryId = toObjectId(post.category);
+    if (categoryId) {
+      const c = await db.collection('categories').findOne({ _id: categoryId });
+      if (c) categories = [c];
+    } else if (typeof post.category === 'string') {
+      const c = await db.collection('categories').findOne({ slug: post.category });
+      if (c) categories = [c];
     }
   }
 
   // tags
   let tags = [];
-  if (post.tags && post.tags.length > 0) {
-    const tagIds = post.tags
-      .map(id => (id && typeof id === 'object' && id._id) ? id : 
-                 (typeof id === 'string' && ObjectId.isValid(id)) ? new ObjectId(id) : null)
-      .filter(Boolean);
+  const rawTags = Array.isArray(post.tags) ? post.tags : [];
+  if (rawTags.length > 0) {
+    const tagIds = [];
+    const tagSlugs = [];
 
-    if (tagIds.length > 0) {
-      tags = await db.collection('tags')
-        .find({ _id: { $in: tagIds } })
-        .toArray();
+    for (const t of rawTags) {
+      const oid = toObjectId(t);
+      if (oid) {
+        tagIds.push(oid);
+        continue;
+      }
+      if (typeof t === 'string') tagSlugs.push(t);
+      else if (t && typeof t === 'object' && typeof t.slug === 'string') tagSlugs.push(t.slug);
+    }
+
+    const fetchedById = tagIds.length > 0
+      ? await db.collection('tags').find({ _id: { $in: tagIds } }).toArray()
+      : [];
+
+    const fetchedBySlug = tagSlugs.length > 0
+      ? await db.collection('tags').find({ slug: { $in: tagSlugs } }).toArray()
+      : [];
+
+    tags = [...fetchedById, ...fetchedBySlug];
+    if (tags.length === 0 && tagSlugs.length > 0) {
+      tags = tagSlugs.map((slug) => ({ slug, name: slug }));
     }
   }
 
   // author
   let author = null;
-  if (post.author) {
-    const authorId = typeof post.author === 'string' && ObjectId.isValid(post.author) 
-      ? new ObjectId(post.author) 
-      : post.author instanceof ObjectId ? post.author : post.author?._id ? post.author._id : null;
+  const rawAuthor = post.author || post.authorId || post.userId || post.createdBy;
+  if (rawAuthor) {
+    const authorId = toObjectId(rawAuthor);
 
     if (authorId) {
       author = await db.collection('users')
         .findOne({ _id: authorId }, { projection: { password: 0 } });
+    } else if (typeof rawAuthor === 'string') {
+      author = await db.collection('users')
+        .findOne({ slug: rawAuthor }, { projection: { password: 0 } });
     }
   }
 
@@ -62,6 +144,7 @@ async function populatePost(post, db) {
     ...post,
     categories,
     tags,
+    primary_category: primaryCategoryIds,
     author: author || post.author,
   };
 }
@@ -69,6 +152,27 @@ async function populatePost(post, db) {
 /* =====================================================
    ROUTES
 ===================================================== */
+
+router.get('/__debug/raw/:id', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') return res.status(404).end();
+  try {
+    const db = getDB(req.tenantId);
+    const post = await db.collection('posts').findOne({ _id: new ObjectId(req.params.id) });
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+    res.json({
+      _id: post._id,
+      slug: post.slug,
+      categories: post.categories,
+      primary_category: post.primary_category,
+      category: post.category,
+      author: post.author,
+      authorName: post.authorName,
+      tags: post.tags,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // GET post by slug
 router.get('/slug/:slug', async (req, res) => {
@@ -127,17 +231,30 @@ router.get('/', async (req, res) => {
     // ✅ 1. Get accurate total count for the SPECIFIC query (Crucial for 14k+ articles)
     const total = await db.collection('posts').countDocuments(query);
 
-    // ✅ 2. Fetch only the requested page
-    const posts = await db.collection('posts')
-      .find(query)
-      .sort(sortConfig)
-      .skip(skip)
-      .limit(limitNum)
-      .toArray();
-
-    const postsWithRelations = await Promise.all(
-      posts.map(async (post) => await populatePost(post, db))
-    );
+    const postsWithRelations = await db.collection('posts').aggregate([
+      { $match: query },
+      { $sort: sortConfig },
+      { $skip: skip },
+      { $limit: limitNum },
+      { $lookup: { from: 'categories', localField: 'categories', foreignField: '_id', as: 'categoriesPop' } },
+      { $lookup: { from: 'categories', localField: 'primary_category', foreignField: '_id', as: 'primaryCategoryPop' } },
+      { $lookup: { from: 'tags', localField: 'tags', foreignField: '_id', as: 'tagsPop' } },
+      { $lookup: { from: 'users', localField: 'author', foreignField: '_id', as: 'authorPop' } },
+      {
+        $addFields: {
+          categories: {
+            $cond: [
+              { $gt: [{ $size: '$categoriesPop' }, 0] },
+              '$categoriesPop',
+              '$primaryCategoryPop',
+            ],
+          },
+          tags: '$tagsPop',
+          author: { $arrayElemAt: ['$authorPop', 0] },
+        },
+      },
+      { $project: { categoriesPop: 0, primaryCategoryPop: 0, tagsPop: 0, authorPop: 0, 'author.password': 0 } },
+    ]).toArray();
 
     res.json({
       posts: postsWithRelations.filter(Boolean),
@@ -204,10 +321,32 @@ router.get('/:id', async (req, res) => {
   try {
     const db = getDB(req.tenantId);
     const query = ObjectId.isValid(req.params.id) ? { _id: new ObjectId(req.params.id) } : { slug: req.params.id };
-    const post = await db.collection('posts').findOne(query);
+    const rows = await db.collection('posts').aggregate([
+      { $match: query },
+      { $limit: 1 },
+      { $lookup: { from: 'categories', localField: 'categories', foreignField: '_id', as: 'categoriesPop' } },
+      { $lookup: { from: 'categories', localField: 'primary_category', foreignField: '_id', as: 'primaryCategoryPop' } },
+      { $lookup: { from: 'tags', localField: 'tags', foreignField: '_id', as: 'tagsPop' } },
+      { $lookup: { from: 'users', localField: 'author', foreignField: '_id', as: 'authorPop' } },
+      {
+        $addFields: {
+          categories: {
+            $cond: [
+              { $gt: [{ $size: '$categoriesPop' }, 0] },
+              '$categoriesPop',
+              '$primaryCategoryPop',
+            ],
+          },
+          tags: '$tagsPop',
+          author: { $arrayElemAt: ['$authorPop', 0] },
+        },
+      },
+      { $project: { categoriesPop: 0, primaryCategoryPop: 0, tagsPop: 0, authorPop: 0, 'author.password': 0 } },
+    ]).toArray();
+
+    const post = rows[0];
     if (!post) return res.status(404).json({ error: 'Post not found' });
-    const enrichedPost = await populatePost(post, db);
-    res.json(enrichedPost || post);
+    res.json(post);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
