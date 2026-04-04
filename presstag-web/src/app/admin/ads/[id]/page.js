@@ -16,7 +16,8 @@ export default function EditAdPage() {
 
   const fetchAd = async (adId) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/ad-blocks/${adId}`);
+      const { fetchWithTenant } = await import('../../../../lib/fetchWithTenant');
+      const res = await fetchWithTenant(`/ad-blocks/${adId}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setAd(data);

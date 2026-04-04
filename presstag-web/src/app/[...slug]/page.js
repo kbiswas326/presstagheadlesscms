@@ -70,7 +70,7 @@ if (!post) {
   // Check if this was an old slug that changed — 301 redirect to new URL
   const oldPost = await getPostByPreviousSlug(lastSegment);
   if (oldPost) {
-    const config = await fetchWithTenant('/api/layout-config', { cache: 'no-store' }).then(r => r.json()).catch(() => null);
+    const config = await fetchWithTenant('/layout-config', { cache: 'no-store' }).then(r => r.json()).catch(() => null);
     const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
     const { buildPostUrl } = await import('@/lib/urlBuilder');
     redirect(buildPostUrl(oldPost, urlStructure));
@@ -297,7 +297,7 @@ if (!post) {
         </main>
 
         <aside className="w-full lg:w-[28%] space-y-8 lg:sticky lg:top-0">
-          <Sidebar />
+          <Sidebar currentPostId={post?.slug || post?._id} categorySlug={post?.categories?.[0]?.slug} excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)} />
         </aside>
       </div>
 

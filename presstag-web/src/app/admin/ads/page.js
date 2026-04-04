@@ -14,7 +14,8 @@ export default function AdAdminPage() {
 
   const fetchAds = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/ad-blocks`);
+      const { fetchWithTenant } = await import('../../../lib/fetchWithTenant');
+      const res = await fetchWithTenant('/ad-blocks', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setAds(data);
@@ -36,11 +37,11 @@ export default function AdAdminPage() {
     }
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/ad-blocks/${id}`, {
+      const { fetchWithTenant } = await import('../../../lib/fetchWithTenant');
+      const res = await fetchWithTenant(`/ad-blocks/${id}`, {
         method: 'DELETE',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
+        cache: 'no-store',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         setAds(ads.filter(ad => ad._id !== id));

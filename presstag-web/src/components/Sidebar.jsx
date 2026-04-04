@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import SidebarWidget from './SidebarWidget';
 import AdSpot from './AdSpot';
 
-const Sidebar = ({ currentPostId, categorySlug }) => {
+const Sidebar = ({ currentPostId, categorySlug, excludePostKeys = [] }) => {
   const [widgets, setWidgets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [primaryColor, setPrimaryColor] = useState('#006356'); // Default color
@@ -14,9 +14,8 @@ const Sidebar = ({ currentPostId, categorySlug }) => {
   useEffect(() => {
     const fetchConfig = async () => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
             const { fetchWithTenant } = await import('../lib/fetchWithTenant');
-            const res = await fetchWithTenant('/api/layout-config');
+            const res = await fetchWithTenant('/layout-config');
             if (res.ok) {
                 const data = await res.json();
                 
@@ -77,6 +76,7 @@ const Sidebar = ({ currentPostId, categorySlug }) => {
                 categorySlug={categorySlug} 
                 primaryColor={primaryColor}
                 fallbackImage={fallbackImage}
+                excludePostKeys={excludePostKeys}
             />
         ))}
         <AdSpot position="sidebar_bottom" />

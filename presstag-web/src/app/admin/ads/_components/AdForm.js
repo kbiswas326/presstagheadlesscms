@@ -61,18 +61,13 @@ export default function AdForm({ initialData = {}, isEdit = false }) {
     };
 
     try {
-      const url = isEdit 
-        ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/ad-blocks/${initialData._id}`
-        : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/ad-blocks`;
-      
       const method = isEdit ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const { fetchWithTenant } = await import('../../../../lib/fetchWithTenant');
+      const res = await fetchWithTenant(isEdit ? `/ad-blocks/${initialData._id}` : '/ad-blocks', {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        cache: 'no-store',
+        headers: { 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
       });
 

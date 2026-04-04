@@ -53,7 +53,7 @@ async function getLayoutConfig() {
 
 async function getAds() {
   try {
-    const res = await fetchWithTenant('/api/ad-blocks', { cache: 'no-store' });
+    const res = await fetchWithTenant('/ad-blocks', { cache: 'no-store' });
     if (res.ok) return res.json();
   } catch(e) { console.error(e); }
   return [];

@@ -7,18 +7,17 @@ import { FaFacebook, FaTwitter, FaInstagram, FaYoutube, FaLinkedin, FaTiktok, Fa
 import usePostStore from '../store/postStore';
 import { getImageUrl } from '@/lib/imageHelper';
 
-const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#ef4444', fallbackImage = null }) => {
+const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#ef4444', fallbackImage = null, excludePostKeys = [] }) => {
     
     const getImageUrl = (input) => {
         if (!input) return fallbackImage || '/placeholder.jpg';
         const url = typeof input === 'string' ? input : input?.url;
         if (!url) return fallbackImage || '/placeholder.jpg';
         if (url.startsWith('http')) {
-            // Fix port compatibility: replace localhost:5000 with localhost:5001
-            return url.replace('localhost:5000', 'localhost:5001');
+            return url;
         }
         if (url.startsWith('/uploads')) {
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001').replace(/\/api$/, '');
             return baseUrl + url;
         }
         return '/uploads/' + url;
@@ -46,16 +45,78 @@ const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#e
         useEffect(() => {
             const fetchTrending = async () => {
                 try {
-                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-                    const res = await fetch(apiUrl + '/posts?sort=trending&status=published&limit=' + (widget.limit || 5));
+                    const desiredCount = Math.max(5, widget.limit || 5);
+                    const excluded = new Set(
+                      [currentPostId, ...(Array.isArray(excludePostKeys) ? excludePostKeys : [])]
+                        .filter(Boolean)
+                        .map((v) => String(v))
+                    );
+
+                    const appendUnique = (out, seen, items) => {
+                      for (const p of items) {
+                        if (!p) continue;
+                        const title = String(p.title || '').trim();
+                        if (!title) continue;
+                        const key = String(p.slug || p._id || '');
+                        if (!key) continue;
+                        if (excluded.has(key)) continue;
+                        if (seen.has(key)) continue;
+                        seen.add(key);
+                        out.push(p);
+                        if (out.length >= desiredCount) break;
+                      }
+                    };
+
+                    const { fetchWithTenant } = await import('../lib/fetchWithTenant');
+
+                    const isHomeSidebar = !currentPostId && excluded.size > 0;
+                    const out = [];
+                    const seen = new Set();
+
+                    if (isHomeSidebar) {
+                      const recentRes = await fetchWithTenant(
+                        `/posts?status=published&limit=${desiredCount * 10}`,
+                        { cache: 'no-store' }
+                      );
+                      if (recentRes.ok) {
+                        const recentData = await recentRes.json();
+                        const recentItems = Array.isArray(recentData) ? recentData : (recentData.posts || []);
+                        appendUnique(out, seen, recentItems);
+                        if (out.length >= desiredCount) {
+                          setTrendingPosts(out);
+                          return;
+                        }
+                      }
+                    }
+
+                    const res = await fetchWithTenant(
+                      `/posts?sort=trending&status=published&limit=${desiredCount * 3}`,
+                      { cache: 'no-store' }
+                    );
                     if (res.ok) {
                         const data = await res.json();
-                        setTrendingPosts(Array.isArray(data) ? data : (data.posts || []));
+                        const items = Array.isArray(data) ? data : (data.posts || []);
+                        appendUnique(out, seen, items);
+                        if (out.length >= desiredCount) {
+                          setTrendingPosts(out);
+                          return;
+                        }
+                    }
+
+                    const fallbackRes = await fetchWithTenant(
+                      `/posts?status=published&limit=${desiredCount * 10}`,
+                      { cache: 'no-store' }
+                    );
+                    if (fallbackRes.ok) {
+                      const fallbackData = await fallbackRes.json();
+                      const fallbackItems = Array.isArray(fallbackData) ? fallbackData : (fallbackData.posts || []);
+                      appendUnique(out, seen, fallbackItems);
+                      setTrendingPosts(out);
                     }
                 } catch(e) { console.error(e); }
             };
             fetchTrending();
-        }, [widget.limit]);
+        }, [widget.limit, currentPostId, excludePostKeys]);
 
         const title = widget.title || "Trending Now";
 
@@ -206,8 +267,11 @@ const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#e
             const fetchRelated = async () => {
                 if (!categorySlug) return;
                 try {
-                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-                    const res = await fetch(apiUrl + '/posts?category=' + categorySlug + '&limit=' + (widget.limit || 5));
+                    const { fetchWithTenant } = await import('../lib/fetchWithTenant');
+                    const res = await fetchWithTenant(
+                      `/posts?status=published&category=${categorySlug}&limit=${widget.limit || 5}`,
+                      { cache: 'no-store' }
+                    );
                     if (res.ok) {
                         const data = await res.json();
                         let p = Array.isArray(data) ? data : (data.posts || []);
@@ -361,11 +425,11 @@ const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#e
         useEffect(() => {
             const fetchCategories = async () => {
                 try {
-                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-                    const res = await fetch(apiUrl + '/api/categories');
+                    const { fetchWithTenant } = await import('../lib/fetchWithTenant');
+                    const res = await fetchWithTenant('/categories', { cache: 'no-store' });
                     if (res.ok) {
                         const data = await res.json();
-                        setCategories(data);
+                        setCategories(data.categories || data || []);
                     }
                 } catch(e) { console.error(e); }
             };

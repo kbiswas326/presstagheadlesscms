@@ -1,15 +1,13 @@
 import React from 'react';
 import ArticleGridCard from '../../../components/ArticleGridCard';
 import Pagination from '../../../components/Pagination';
+import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 
 async function getTagPosts(slug, page = 1) {
   if (!slug) return { articles: [], totalPages: 0 };
   const limit = 20;
   try {
-    // API ignores limit for tags, returning all posts. We handle pagination client-side.
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts?tag=${slug}`, {
-      cache: 'no-store'
-    });
+    const res = await fetchWithTenant(`/posts?tag=${slug}&page=${page}&limit=${limit}`, { cache: 'no-store' });
     if (!res.ok) {
       throw new Error('Failed to fetch posts');
     }
@@ -19,7 +17,6 @@ async function getTagPosts(slug, page = 1) {
     let totalPages = 1;
     
     if (Array.isArray(data)) {
-        // API returns all posts as an array
         const totalCount = data.length;
         totalPages = Math.ceil(totalCount / limit);
         
@@ -28,14 +25,8 @@ async function getTagPosts(slug, page = 1) {
         articles = data.slice(startIndex, startIndex + limit);
         
     } else if (data.posts && Array.isArray(data.posts)) {
-        // Fallback for standard pagination structure
         articles = data.posts;
-        const totalCount = data.Count || data.total || 0;
-        if (totalCount > 0) {
-            totalPages = Math.ceil(totalCount / limit);
-        } else if (data.pagination && data.pagination.totalPages) {
-            totalPages = data.pagination.totalPages;
-        }
+        totalPages = data.pagination?.totalPages || Math.ceil((data.pagination?.total || articles.length) / limit);
     }
     
     return { articles, totalPages };

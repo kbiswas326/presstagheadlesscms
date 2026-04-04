@@ -4,12 +4,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import ArticleGridCard from '@/components/ArticleGridCard';
 import Pagination from '@/components/Pagination';
+import { fetchWithTenant } from '@/lib/fetchWithTenant';
+import { getImageUrl } from '@/lib/imageHelper';
 
 async function getAuthor(slug) {
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/users/public/${slug}`, {
-            cache: 'no-store'
-        });
+        const res = await fetchWithTenant(`/users/public/${slug}`, { cache: 'no-store' });
         if (!res.ok) return null;
         return await res.json();
     } catch (error) {
@@ -20,9 +20,7 @@ async function getAuthor(slug) {
 
 async function getAuthorPosts(authorId, page = 1) {
     try {
-        const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')}/posts?author=${authorId}&limit=20&page=${page}`, {
-            cache: 'no-store'
-        });
+        const res = await fetchWithTenant(`/posts?author=${authorId}&limit=20&page=${page}`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Failed to fetch posts');
         const data = await res.json();
         
@@ -74,14 +72,7 @@ export default async function AuthorPage({ params, searchParams }) {
     const { articles, totalPages } = await getAuthorPosts(author._id, page);
 
     // Image logic
-    let authorImageSrc = null;
-    if (author.image) {
-        if (author.image.startsWith('http')) {
-            authorImageSrc = author.image;
-        } else {
-            authorImageSrc = `${process.env.NEXT_PUBLIC_API_URL}${author.image.startsWith('/') ? '' : '/'}${author.image}`;
-        }
-    }
+    const authorImageSrc = getImageUrl(author.image);
 
     return (
         <div className="bg-white min-h-screen pb-16">

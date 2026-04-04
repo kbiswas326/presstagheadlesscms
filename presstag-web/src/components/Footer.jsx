@@ -42,9 +42,7 @@ const Footer = ({ config }) => {
   const socialLinks = socialWidget?.socialLinks || [];
 
   const fetchStories = useCallback(async () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-    const url = `${apiUrl}/posts?limit=10`; // Increased limit to 10
-    await fetchLatestStory(url);
+    await fetchLatestStory();
   }, [fetchLatestStory]);
 
   useEffect(() => {

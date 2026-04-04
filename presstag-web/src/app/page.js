@@ -1,104 +1,135 @@
+/// web> src> app> page.js | Main homepage component for the Presstag web app. This component fetches the layout configuration and posts from the backend API to dynamically render the homepage sections based on the admin-defined settings. It includes a hero section with featured posts, followed by multiple sections that can be customized to display posts from specific categories, tags, authors, or content types. The component also handles fallback images for posts that do not have a specific image set, ensuring a consistent visual experience. The sidebar is included for additional widgets and content as defined in the layout configuration. //
 import React from "react";
 import FeaturedHero from "../components/FeaturedHero";
 import HorizontalCard from "../components/HorizontalCard";
+import ArticleGridCard from "../components/ArticleGridCard";
 import Sidebar from "../components/Sidebar";
 import ResponsivePostGrid from "../components/ResponsivePostGrid";
 import { getFallbackImage, resolvePostImage } from '../lib/imageHelper';
 import { fetchWithTenant, fetchLayoutConfig } from '../lib/fetchWithTenant';
 
-// Force dynamic rendering to ensure admin changes reflect immediately
+// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-/**
- * Fetches the layout configuration (branding, colors, sections) for the tenant.
- * Uses 'no-store' to bypass Next.js cache for real-time updates.
- */
 async function getLayoutConfig() {
   try {
-    const res = await fetchLayoutConfig({ cache: 'no-store' });
+    const res = await fetchLayoutConfig();
     if (res.ok) return res.json();
-  } catch (e) { 
-    console.error("❌ Layout Config Fetch Error:", e); 
-  }
+  } catch (e) { console.error(e); }
   return null;
 }
 
-/**
- * Fetches published posts from the backend.
- */
 async function getPosts(params = {}) {
-  const { limit = 10, type = 'latest' } = params;
+  const { type = 'latest', value, limit = 10 } = params;
   let path = `/posts?status=published&limit=${limit}`;
-  
-  if (type === 'trending') path += '&sort=trending';
-
+  if (type === 'category' && value) path += '&category=' + value;
+  else if (type === 'tag' && value) path += '&tag=' + value;
+  else if (type === 'author' && value) path += '&author=' + value;
+  else if ((type === 'content_type' || type === 'type') && value) path += '&type=' + value;
   try {
-    // ✅ FIXED: Using fetchWithTenant with no-cache
-    const res = await fetchWithTenant(path, { cache: 'no-store' }); 
+    const res = await fetchWithTenant(path); // ✅ FIXED: was fetchLayoutConfig()
     if (!res.ok) return [];
-    
     const data = await res.json();
-    return data.posts || [];
-  } catch (e) { 
-    console.error("❌ Posts Fetch Error:", e);
-    return []; 
-  }
+    return Array.isArray(data) ? data : (data.posts || []);
+  } catch (e) { return []; }
 }
 
 export default async function Page() {
-  // 1. Load Configuration & Assets
   const config = await getLayoutConfig();
   const fallbackImage = await getFallbackImage();
 
-  // 2. Extract Branding from Admin Settings
-  const primaryColor = config?.branding?.primaryColor || '#e11d48'; // Default SportzPoint Red
-  const siteName = config?.branding?.navbarTitle || 'SportzPoint';
+  const primaryColor = config?.branding?.primaryColor || '#006356';
+  const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
 
-  // 3. Fetch Content
-  const posts = await getPosts({ limit: 15 });
-  const featuredPost = posts[0];
-  const sidePosts = posts.slice(1, 5);
-  const gridPosts = posts.slice(5);
+  // HERO POSTS
+  const heroPosts = await getPosts({ limit: 5 });
+  const featuredPost = heroPosts[0];
+  const sidePosts = heroPosts.slice(1, 5);
 
-  // 4. Render
-  if (!featuredPost && !config) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-500 font-bold uppercase tracking-widest">Loading {siteName}...</p>
-        </div>
-      </div>
-    );
+  // DYNAMIC SECTIONS
+  let sectionsData = [];
+
+  if (config?.homepage?.sections) {
+    const sectionsPromise = config.homepage.sections
+      .filter(section => section.enabled)
+      .sort((a, b) => a.order - b.order)
+      .map(async (section) => {
+        let posts = [];
+        const limit = section.limit || 12;
+        let viewAllUrl = null;
+
+        if (section.type === 'system') {
+          if (section.id === 'latest') {
+            posts = await getPosts({ limit });
+            viewAllUrl = '/posts';
+          } else if (section.id === 'trending') {
+            posts = await getPosts({ limit });
+            viewAllUrl = '/posts?sort=trending';
+          }
+        } else if (section.type === 'custom') {
+          posts = await getPosts({
+            type: section.sourceType,
+            value: section.sourceValue,
+            limit
+          });
+
+          if (section.sourceType === 'category') viewAllUrl = `/category/${section.sourceValue}`;
+          else if (section.sourceType === 'tag') viewAllUrl = `/tag/${section.sourceValue}`;
+          else if (section.sourceType === 'author') viewAllUrl = `/author/${section.sourceValue}`;
+        }
+
+        return {
+          ...section,
+          posts,
+          viewAllUrl
+        };
+      });
+
+    sectionsData = await Promise.all(sectionsPromise);
+  } else {
+    const latestNews = await getPosts({ limit: 12 });
+    sectionsData = [
+      { name: 'Latest News', posts: latestNews, viewAllUrl: '/posts' }
+    ];
   }
 
-  return (
-    <div className="bg-white min-h-screen pb-20 font-sans" style={{ '--primary': primaryColor }}>
-      <div className="container mx-auto px-4 pt-8">
+  const excludePostKeys = Array.from(
+    new Set(
+      [...heroPosts]
+        .map((p) => String(p?.slug || p?._id || ''))
+        .filter(Boolean)
+    )
+  );
 
-        {/* --- HERO SECTION --- */}
+  return (
+    <div className="bg-white min-h-screen pb-16">
+      <div className="container mx-auto px-4 pt-6">
+
+        {/* HERO SECTION */}
         {featuredPost && (
-          <section className="mb-16">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              {/* Main Featured Post */}
-              <div className="lg:col-span-8">
+          <section className="mb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+
+              <div className="lg:col-span-2">
                 <FeaturedHero
                   post={{
                     ...featuredPost,
                     image: resolvePostImage(featuredPost, fallbackImage)
                   }}
-                  primaryColor={primaryColor}
                 />
               </div>
 
-              {/* Side Trending List */}
-              <div className="lg:col-span-4 flex flex-col">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight border-l-4 pl-4" style={{ borderColor: primaryColor }}>
+              <div className="lg:col-span-1 flex flex-col h-full">
+                <div className="flex items-center justify-between mb-4">
+                  <h2
+                    className="text-lg font-bold text-gray-900 border-l-4 pl-3"
+                    style={{ borderColor: primaryColor }}
+                  >
                     Top Stories
                   </h2>
                 </div>
-                <div className="space-y-6">
+
+                <div className="flex flex-col gap-4 flex-grow">
                   {sidePosts.map((post, i) => (
                     <HorizontalCard
                       key={i}
@@ -106,36 +137,38 @@ export default async function Page() {
                         ...post,
                         image: resolvePostImage(post, fallbackImage)
                       }}
+                      urlStructure={urlStructure}
                     />
                   ))}
                 </div>
               </div>
+
             </div>
           </section>
         )}
 
-        {/* --- MAIN CONTENT AREA --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          
-          {/* Main Feed */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+
           <div className="lg:col-span-8">
-            <ResponsivePostGrid
-              posts={gridPosts.map(post => ({
-                ...post,
-                image: resolvePostImage(post, fallbackImage)
-              }))}
-              sectionName="Latest News"
-              primaryColor={primaryColor}
-              viewAllUrl="/posts"
-            />
+            {sectionsData.map((section, index) => (
+              <ResponsivePostGrid
+                key={index}
+                posts={section.posts.map(post => ({
+                  ...post,
+                  image: resolvePostImage(post, fallbackImage)
+                }))}
+                sectionName={section.name}
+                primaryColor={primaryColor}
+                viewAllUrl={section.viewAllUrl}
+                urlStructure={urlStructure}
+              />
+            ))}
           </div>
 
-          {/* Sidebar */}
-          <aside className="lg:col-span-4">
-            <div className="sticky top-24">
-              <Sidebar primaryColor={primaryColor} />
-            </div>
-          </aside>
+          {/* SIDEBAR */}
+          <div className="lg:col-span-4 lg:sticky lg:top-0">
+            <Sidebar excludePostKeys={excludePostKeys} />
+          </div>
 
         </div>
       </div>

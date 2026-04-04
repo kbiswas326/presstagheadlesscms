@@ -1,5 +1,32 @@
 import { create } from "zustand";
 
+const normalizeApiBase = (raw) => {
+  const trimmed = String(raw || '').trim().replace(/\/+$/, '');
+  if (!trimmed) return 'http://localhost:5000/api';
+  if (trimmed.endsWith('/api')) return trimmed;
+  return `${trimmed}/api`;
+};
+
+const API_BASE = normalizeApiBase(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
+
+const resolveTenantId = () => {
+  const envTenant = String(process.env.NEXT_PUBLIC_TENANT_ID || '').trim();
+  if (envTenant) return envTenant;
+
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname.toLowerCase();
+    if (host.includes('sportzpoint')) return 'sportzpoint';
+    if (host.includes('presstag')) return 'presstag';
+  }
+
+  return 'presstag';
+};
+
+const withHeaders = (headers = {}) => ({
+  ...headers,
+  'x-tenant-id': resolveTenantId(),
+});
+
 // Helper function to process article data
 const processArticle = (article) => {
   // Process article
@@ -56,9 +83,11 @@ const usePostStore = create((set, get) => ({
   fetchPosts: async (url) => {
     set({ loading: true, error: null });
     try {
-      const targetUrl = url; // Ensure targetUrl is defined
+      const targetUrl = (typeof url === 'string' && url)
+        ? (url.startsWith('http') ? url : `${API_BASE}${url.startsWith('/') ? url : `/${url}`}`)
+        : `${API_BASE}/posts?status=published&limit=20&page=1`;
       console.log('[PostStore] Fetching posts from:', targetUrl);
-      const response = await fetch(targetUrl);
+      const response = await fetch(targetUrl, { cache: 'no-store', headers: withHeaders() });
       if (!response.ok) throw new Error("Failed to fetch posts");
       const data = await response.json();
 
@@ -90,11 +119,13 @@ const usePostStore = create((set, get) => ({
   },
 
   fetchLatestStory: async (url) => {
-    const targetUrl = (typeof url === 'string' && url) ? url : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/posts?limit=5&status=published`;
+    const targetUrl = (typeof url === 'string' && url)
+      ? (url.startsWith('http') ? url : `${API_BASE}${url.startsWith('/') ? url : `/${url}`}`)
+      : `${API_BASE}/posts?limit=10&status=published`;
     console.log('[PostStore] Fetching latest stories from:', targetUrl);
     set({ loading: true, error: null });
     try {
-      const response = await fetch(targetUrl);
+      const response = await fetch(targetUrl, { cache: 'no-store', headers: withHeaders() });
       if (!response.ok) throw new Error("Failed to fetch latest stories");
       const data = await response.json();
 
