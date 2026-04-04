@@ -200,8 +200,12 @@ export const deleteUser = async (id) => {
   return json;
 };
 
-export const getCategories = async () => {
-  const res = await fetch(`${API_BASE}/categories`, { headers: getHeaders() });
+export const getCategories = async (options = {}) => {
+  const withCounts = options?.withCounts !== false;
+  const params = new URLSearchParams();
+  if (!withCounts) params.set('withCounts', '0');
+  const suffix = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${API_BASE}/categories${suffix}`, { headers: getHeaders() });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || json.message || 'Failed to fetch categories');
   return json;

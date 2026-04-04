@@ -1,7 +1,7 @@
 ///admin/app/posts/pending-approval/page.js | Pending Approval Posts Management Page ///
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { MoreVertical, Clock, Eye, Loader, CheckCircle, BarChart3, Film, Image as ImageIcon, Smartphone, CircleDot, FileText } from "lucide-react";
 import { getTenantId, getUsers, posts as postsAPI } from "../../../lib/api";
 import { useRouter } from 'next/navigation';
@@ -92,7 +92,7 @@ export default function PendingPosts() {
         const token = localStorage.getItem('token');
         const headers = { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() };
         try {
-          const catRes = await fetch(`${BASE}/api/categories`, { headers });
+          const catRes = await fetch(`${BASE}/api/categories?withCounts=0`, { headers });
           if (catRes.ok) {
             const catData = await catRes.json();
             setAvailableCategories(catData.categories || catData || []);
@@ -114,16 +114,15 @@ export default function PendingPosts() {
               if (host.startsWith('cms.')) return `https://${host.slice(4)}`;
               return '';
             };
-            const fromEnv = normalizeOrigin(process.env.NEXT_PUBLIC_PUBLIC_ORIGIN);
             const fromConfig = normalizeOrigin(
               cfg?.seo?.publicOrigin ||
+              cfg?.seo?.publicOriginUrl ||
               cfg?.seo?.siteUrl ||
               cfg?.seo?.frontendUrl ||
               cfg?.branding?.siteUrl
             );
-            const rawOrigin = fromEnv || fromConfig || inferFromHost();
-            const origin = rawOrigin.includes('-admin-') ? rawOrigin.replace('-admin-', '-frontend-') : (rawOrigin.includes('sportzpoint-admin') ? rawOrigin.replace('sportzpoint-admin', 'sportzpoint-frontend') : rawOrigin);
-            setPublicOrigin(origin);
+            const fromEnv = normalizeOrigin(process.env.NEXT_PUBLIC_PUBLIC_ORIGIN);
+            setPublicOrigin(fromConfig || fromEnv || inferFromHost());
             setUrlStructure(cfg?.seo?.postUrlStructure || '/{category}/{slug}');
           })
           .catch(() => {});
@@ -193,7 +192,43 @@ export default function PendingPosts() {
     };
 
     fetchPage();
-  }, [currentPage, postsPerPage, search, filterType, filterCategory]);
+  }, [currentPage, postsPerPage, search, filterType, filterCategory, filterAuthor]);
+
+  const categoryOptions = useMemo(() => {
+    const slugify = (value) =>
+      String(value || '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+    const map = new Map();
+
+    for (const c of (availableCategories || [])) {
+      const slug = c?.slug || slugify(c?.name);
+      if (!slug) continue;
+      map.set(slug, { _id: c?._id || slug, slug, name: c?.name || slug });
+    }
+
+    for (const p of (posts || [])) {
+      const cats = Array.isArray(p?.categories) ? p.categories : [];
+      for (const cat of cats) {
+        if (!cat) continue;
+        if (typeof cat === 'string') {
+          const slug = slugify(cat);
+          if (!slug) continue;
+          if (!map.has(slug)) map.set(slug, { _id: slug, slug, name: cat });
+          continue;
+        }
+        const name = cat?.name || cat?.title || cat?.slug;
+        const slug = cat?.slug || slugify(name);
+        if (!slug) continue;
+        if (!map.has(slug)) map.set(slug, { _id: cat?._id || slug, slug, name: name || slug });
+      }
+    }
+
+    return Array.from(map.values()).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  }, [availableCategories, posts]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -376,8 +411,8 @@ export default function PendingPosts() {
               className="px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 dark:text-white font-medium transition cursor-pointer"
             >
               <option value="All">All Categories</option>
-              {availableCategories.map((cat) => (
-                <option key={cat._id} value={cat.slug || cat.name}>{cat.name}</option>
+              {categoryOptions.map((cat) => (
+                <option key={cat._id} value={cat.slug}>{cat.name}</option>
               ))}
             </select>
 

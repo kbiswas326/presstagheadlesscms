@@ -1,7 +1,7 @@
 /// app/posts/published/page.js | Published Posts Management Page — server-side pagination
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { MoreVertical, TrendingUp, Eye, Loader, BarChart3, FileText, Film, Image as ImageIcon, Smartphone, CircleDot } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { getEditPath } from '@/utils/getEditPath';
@@ -65,20 +65,21 @@ export default function PublishedPosts() {
       return '';
     };
 
-    Promise.allSettled([getLayoutConfig(), getCategories(), getUsers()]).then((results) => {
+    Promise.allSettled([getLayoutConfig(), getCategories({ withCounts: false }), getUsers()]).then((results) => {
       const [layoutRes, categoriesRes, usersRes] = results;
       const cfg = layoutRes.status === 'fulfilled' ? layoutRes.value : null;
 
       setUrlStructure(cfg?.seo?.postUrlStructure || '/{category}/{slug}');
 
-      const fromEnv = normalizeOrigin(process.env.NEXT_PUBLIC_PUBLIC_ORIGIN);
       const fromConfig = normalizeOrigin(
         cfg?.seo?.publicOrigin ||
+        cfg?.seo?.publicOriginUrl ||
         cfg?.seo?.siteUrl ||
         cfg?.seo?.frontendUrl ||
         cfg?.branding?.siteUrl
       );
-      const rawOrigin = fromEnv || fromConfig || inferFromHost();
+      const fromEnv = normalizeOrigin(process.env.NEXT_PUBLIC_PUBLIC_ORIGIN);
+      const rawOrigin = fromConfig || fromEnv || inferFromHost();
       const origin = rawOrigin.includes('-admin-')
         ? rawOrigin.replace('-admin-', '-frontend-')
         : (rawOrigin.includes('sportzpoint-admin') ? rawOrigin.replace('sportzpoint-admin', 'sportzpoint-frontend') : rawOrigin);
@@ -199,6 +200,42 @@ export default function PublishedPosts() {
     const searchMatch = title.toLowerCase().includes(search.toLowerCase());
     return searchMatch && authorMatch;
   });
+
+  const categoryOptions = useMemo(() => {
+    const slugify = (value) =>
+      String(value || '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+    const map = new Map();
+
+    for (const c of (availableCategories || [])) {
+      const slug = c?.slug || slugify(c?.name);
+      if (!slug) continue;
+      map.set(slug, { _id: c?._id || slug, slug, name: c?.name || slug });
+    }
+
+    for (const p of (posts || [])) {
+      const cats = Array.isArray(p?.categories) ? p.categories : [];
+      for (const cat of cats) {
+        if (!cat) continue;
+        if (typeof cat === 'string') {
+          const slug = slugify(cat);
+          if (!slug) continue;
+          if (!map.has(slug)) map.set(slug, { _id: slug, slug, name: cat });
+          continue;
+        }
+        const name = cat?.name || cat?.title || cat?.slug;
+        const slug = cat?.slug || slugify(name);
+        if (!slug) continue;
+        if (!map.has(slug)) map.set(slug, { _id: cat?._id || slug, slug, name: name || slug });
+      }
+    }
+
+    return Array.from(map.values()).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  }, [availableCategories, posts]);
 
   const handleMenuClick = (e, key) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -372,8 +409,8 @@ export default function PublishedPosts() {
             <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
               className="px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl text-slate-900 dark:text-white">
               <option value="All">All Categories</option>
-              {availableCategories.map(cat => (
-                <option key={cat._id} value={cat.slug || cat.name}>{cat.name}</option>
+              {categoryOptions.map(cat => (
+                <option key={cat._id} value={cat.slug}>{cat.name}</option>
               ))}
             </select>
             <select value={filterAuthor} onChange={(e) => setFilterAuthor(e.target.value)}
