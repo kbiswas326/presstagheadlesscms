@@ -6,7 +6,7 @@ const User = require('../models/User');
 const authMiddleware = require('../middleware/auth');
 const { Resend } = require('resend');
 const crypto = require('crypto');
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 router.post('/register', async (req, res) => {
   try {
@@ -79,22 +79,24 @@ router.post('/forgot-password', async (req, res) => {
     // Build reset URL matching /reset-password/[slug] page structure
     const resetUrl = `${process.env.ADMIN_URL}/reset-password/${resetToken}`;
 
-    await resend.emails.send({
-      from: 'PressTag <onboarding@resend.dev>',
-      to: email,
-      subject: 'Reset your PressTag password',
-      html: `
-        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-          <h2 style="color: #1d4ed8;">Reset your password</h2>
-          <p>Hi ${user.name || 'there'},</p>
-          <p>Click the button below to reset your password. This link expires in 1 hour.</p>
-          <a href="${resetUrl}" style="display:inline-block;margin:16px 0;padding:12px 24px;background:#2563eb;color:white;border-radius:8px;text-decoration:none;font-weight:600;">
-            Reset Password
-          </a>
-          <p style="color:#6b7280;font-size:13px;">If you didn't request this, ignore this email.</p>
-        </div>
-      `
-    });
+    if (resend) {
+      await resend.emails.send({
+        from: 'PressTag <onboarding@resend.dev>',
+        to: email,
+        subject: 'Reset your PressTag password',
+        html: `
+          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+            <h2 style="color: #1d4ed8;">Reset your password</h2>
+            <p>Hi ${user.name || 'there'},</p>
+            <p>Click the button below to reset your password. This link expires in 1 hour.</p>
+            <a href="${resetUrl}" style="display:inline-block;margin:16px 0;padding:12px 24px;background:#2563eb;color:white;border-radius:8px;text-decoration:none;font-weight:600;">
+              Reset Password
+            </a>
+            <p style="color:#6b7280;font-size:13px;">If you didn't request this, ignore this email.</p>
+          </div>
+        `
+      });
+    }
 
     res.json({ message: 'If that email exists, a reset link has been sent.' });
   } catch (error) {

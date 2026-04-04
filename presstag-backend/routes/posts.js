@@ -190,7 +190,7 @@ router.post('/', authMiddleware, async (req, res) => {
       status,
       publishedAt: status === 'published' ? now : null,
     };
-    const post = await Post.create(payload);
+    const post = await Post.create(payload, req.tenantId);
     const db = getDB(req.tenantId);
     const enrichedPost = await populatePost(post, db);
     res.status(201).json(enrichedPost || post);
@@ -223,7 +223,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       if (!found) return res.status(404).json({ error: 'Post not found' });
       targetId = found._id.toString();
     }
-    const post = await Post.update(targetId, req.body);
+    const post = await Post.update(targetId, req.body, req.tenantId);
     const enrichedPost = await populatePost(post, db);
     res.json(enrichedPost || post);
   } catch (error) {
@@ -243,7 +243,7 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
       targetId = found._id.toString();
     }
     const updateData = { status, updatedAt: new Date(), publishedAt: status === 'published' ? new Date() : null };
-    const updated = await Post.update(targetId, updateData);
+    const updated = await Post.update(targetId, updateData, req.tenantId);
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -260,7 +260,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       if (!found) return res.status(404).json({ error: 'Post not found' });
       targetId = found._id.toString();
     }
-    await Post.delete(targetId);
+    await Post.delete(targetId, req.tenantId);
     res.json({ message: 'Post deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
