@@ -3,6 +3,7 @@
 import React, { useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import usePostStore from '../store/postStore';
+import { buildPostUrl } from '@/lib/urlBuilder';
 import { 
   FaFacebookF, FaTwitter, FaInstagram, FaYoutube, FaLinkedinIn, 
   FaTiktok, FaPinterest, FaReddit, FaWhatsapp, FaTelegram 
@@ -33,6 +34,7 @@ const Footer = ({ config }) => {
   const branding = config?.branding || {};
   const footerConfig = config?.footer || {};
   const sidebarConfig = config?.sidebar || {};
+  const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
   
   const primaryColor = branding?.primaryColor || '#006356';
   const siteTitle = branding?.siteTitle || 'PressTag';
@@ -196,7 +198,7 @@ const Footer = ({ config }) => {
             {latestStory && latestStory.slice(0, 10).map((story, index) => (
               <Link 
                 key={index}
-                href={`/posts/${story.slug || story._id}`}
+                href={buildPostUrl(story, urlStructure)}
                 className="group flex items-start gap-3 p-2 rounded hover:bg-white/5 transition-colors"
               >
                 <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-white/50 group-hover:bg-white transition-colors flex-shrink-0"></span>

@@ -7,19 +7,13 @@ import Image from "next/image";
 import React from "react";
 import Link from "next/link";
 import { getImageUrl } from '@/lib/imageHelper';
+import { buildPostUrl } from '@/lib/urlBuilder';
 
-const FeaturedHero = ({ post }) => {
+const FeaturedHero = ({ post, urlStructure }) => {
 
   if (!post) return null;
   console.log('hero image:', post.image, 'featuredImage:', post.featuredImage);
-
-  const isWebStory = post.type?.toLowerCase().trim() === 'web story' || 
-                     post.type?.toLowerCase().trim() === 'web-story' || 
-                     post.type?.toLowerCase().trim() === 'story';
-  
-  const postUrl = isWebStory 
-      ? `/web-stories/${post.slug || post._id}`
-      : `/posts/${post.slug || post._id}`;
+  const postUrl = buildPostUrl(post, urlStructure);
 
 // Use pre-resolved image from page.js, or fall back to deriving it
 const imageUrl = post.image || getImageUrl(post.featuredImage?.url || post.featuredImage || post.banner_image);

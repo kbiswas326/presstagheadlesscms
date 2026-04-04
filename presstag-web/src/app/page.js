@@ -116,6 +116,7 @@ export default async function Page() {
                     ...featuredPost,
                     image: resolvePostImage(featuredPost, fallbackImage)
                   }}
+                  urlStructure={urlStructure}
                 />
               </div>
 

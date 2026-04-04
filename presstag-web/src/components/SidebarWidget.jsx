@@ -6,8 +6,9 @@ import Image from 'next/image';
 import { FaFacebook, FaTwitter, FaInstagram, FaYoutube, FaLinkedin, FaTiktok, FaGlobe, FaPinterest, FaReddit, FaWhatsapp, FaTelegram } from 'react-icons/fa';
 import usePostStore from '../store/postStore';
 import { getImageUrl } from '@/lib/imageHelper';
+import { buildPostUrl } from '@/lib/urlBuilder';
 
-const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#ef4444', fallbackImage = null, excludePostKeys = [] }) => {
+const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#ef4444', fallbackImage = null, excludePostKeys = [], urlStructure }) => {
     
     const getImageUrl = (input) => {
         if (!input) return fallbackImage || '/placeholder.jpg';
@@ -130,10 +131,7 @@ const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#e
                 </h3>
                 <div className="space-y-4">
                     {trendingPosts.map((story, i) => {
-                         const isWebStory = story.type?.toLowerCase().trim() === 'web story' || 
-                                            story.type?.toLowerCase().trim() === 'web-story' || 
-                                            story.type?.toLowerCase().trim() === 'story';
-                         const linkUrl = isWebStory ? '/web-stories/' + (story.slug || story._id) : '/posts/' + (story.slug || story._id);
+                         const linkUrl = buildPostUrl(story, urlStructure);
                          const category = story.categories && story.categories.length > 0 ? story.categories[0] : null;
                          const categoryName = category ? (category.name || category.title) : '';
                          
@@ -206,10 +204,7 @@ const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#e
                 </h3>
                 <div className="space-y-4">
                     {latestStory.slice(0, widget.limit || 5).map((story, i) => {
-                         const isWebStory = story.type?.toLowerCase().trim() === 'web story' || 
-                                            story.type?.toLowerCase().trim() === 'web-story' || 
-                                            story.type?.toLowerCase().trim() === 'story';
-                         const linkUrl = isWebStory ? '/web-stories/' + (story.slug || story._id) : '/posts/' + (story.slug || story._id);
+                         const linkUrl = buildPostUrl(story, urlStructure);
                          const category = story.categories && story.categories.length > 0 ? story.categories[0] : null;
                          const categoryName = category ? (category.name || category.title) : '';
                          
@@ -296,7 +291,7 @@ const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#e
                 </h3>
                 <div className="space-y-4">
                     {posts.map((post, i) => (
-                         <Link href={'/posts/' + (post.slug || post._id)} key={i} className="flex items-start gap-3 group">
+                        <Link href={buildPostUrl(post, urlStructure)} key={i} className="flex items-start gap-3 group">
                             <div className="relative w-24 h-16 flex-shrink-0 overflow-hidden rounded-md">
                                 <Image 
                                     src={getImageUrl(post.featuredImage || post.banner_image || post.coverImage)} 

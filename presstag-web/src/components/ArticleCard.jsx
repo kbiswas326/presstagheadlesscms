@@ -1,4 +1,4 @@
-﻿/// web>src>components>ArticleCard.jsx | used for article cards in various sections like latest news, featured, etc. ///
+/// web>src>components>ArticleCard.jsx | used for article cards in various sections like latest news, featured, etc. ///
 "use client";
 
 import { formatDate } from "../util/timeFormat";
@@ -7,24 +7,15 @@ import Image from "next/image";
 import React from "react";
 import { useRouter } from "next/navigation";
 import { getImageUrl } from '@/lib/imageHelper';
+import { buildPostUrl } from '@/lib/urlBuilder';
 
-const ArticleCard = ({ mainPost, secondaryPost }) => {
+const ArticleCard = ({ mainPost, secondaryPost, urlStructure }) => {
   const router = useRouter();
 
   if (!mainPost) return null;
 
   const handleClick = (post) => {
-    // Handle article click
-    const slug = post.slug || post._id;
-    const isWebStory = post.type?.toLowerCase().trim() === 'web story' || 
-                       post.type?.toLowerCase().trim() === 'web-story' || 
-                       post.type?.toLowerCase().trim() === 'story';
-    
-    if (isWebStory) {
-        router.push(`/web-stories/${slug}`);
-    } else {
-        router.push(`/posts/${slug}`);
-    }
+    router.push(buildPostUrl(post, urlStructure));
   };
 
   const ArticleContent = ({ post }) => {
@@ -123,4 +114,3 @@ const ArticleCard = ({ mainPost, secondaryPost }) => {
 };
 
 export default ArticleCard;
-

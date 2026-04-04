@@ -24,6 +24,19 @@ export default function AdSpot({ position, className = '', index }) {
       if (pathname.startsWith('/tag/') && pageTypes.includes('tag')) return true;
       if (pathname.startsWith('/author/') && pageTypes.includes('author')) return true;
       if (pathname.startsWith('/search') && pageTypes.includes('search')) return true;
+
+      const parts = pathname.split('/').filter(Boolean);
+      const isCatchAllRoute = parts.length > 0 && !(
+        pathname.startsWith('/posts/') ||
+        pathname.startsWith('/category/') ||
+        pathname.startsWith('/tag/') ||
+        pathname.startsWith('/author/') ||
+        pathname.startsWith('/search') ||
+        pathname.startsWith('/web-stories/') ||
+        pathname.startsWith('/admin/')
+      );
+
+      if (isCatchAllRoute && parts.length >= 2 && pageTypes.includes('post')) return true;
       
       // Static page check
       const isSpecialRoute = pathname.startsWith('/posts/') || 

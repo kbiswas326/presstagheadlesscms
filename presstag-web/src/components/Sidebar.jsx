@@ -10,6 +10,7 @@ const Sidebar = ({ currentPostId, categorySlug, excludePostKeys = [] }) => {
   const [loading, setLoading] = useState(true);
   const [primaryColor, setPrimaryColor] = useState('#006356'); // Default color
   const [fallbackImage, setFallbackImage] = useState(null);
+  const [urlStructure, setUrlStructure] = useState('/{category}/{slug}');
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -26,6 +27,10 @@ const Sidebar = ({ currentPostId, categorySlug, excludePostKeys = [] }) => {
 
                 if (data.branding?.fallbackImage) {
                 setFallbackImage(data.branding.fallbackImage);
+                }
+
+                if (data?.seo?.postUrlStructure) {
+                    setUrlStructure(data.seo.postUrlStructure);
                 }
 
                 if (data && data.sidebar && data.sidebar.widgets && data.sidebar.widgets.length > 0) {
@@ -77,6 +82,7 @@ const Sidebar = ({ currentPostId, categorySlug, excludePostKeys = [] }) => {
                 primaryColor={primaryColor}
                 fallbackImage={fallbackImage}
                 excludePostKeys={excludePostKeys}
+                urlStructure={urlStructure}
             />
         ))}
         <AdSpot position="sidebar_bottom" />
