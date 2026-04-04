@@ -5,8 +5,10 @@ import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import ImageGallaryPagination from "../../components/ImagegalleryPagination";
 import { getImageUrl } from '@/lib/imageHelper';
+import { getTenantId } from "../../lib/api";
 
 const Page = () => {
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [image, setImage] = useState(null);
@@ -33,7 +35,7 @@ const Page = () => {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
-            "x-tenant-id": "sportzpoint"
+            "x-tenant-id": getTenantId()
           },
         }
       );
@@ -54,12 +56,12 @@ const Page = () => {
 
     if (searchQuery === "") {
       // If searchQuery is empty, call the main API immediately
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/media/img?limit=12&page=${currentPage}`;
+      const url = `${BASE}/api/media/img?limit=12&page=${currentPage}`;
       fetchImages(url);
     } else {
       // If searchQuery changes, delay the API call by 800ms
       debounceTimeout = setTimeout(() => {
-        const url = `${process.env.NEXT_PUBLIC_API_URL}/media/search?alt=${searchQuery}&limit=12&page=${currentPage}`;
+        const url = `${BASE}/api/media/search?alt=${searchQuery}&limit=12&page=${currentPage}`;
         fetchImages(url);
       }, 800);
     }
@@ -70,8 +72,8 @@ const Page = () => {
   useEffect(() => {
     // Fetch images immediately when currentPage changes
     const url = searchQuery === ""
-      ? `${process.env.NEXT_PUBLIC_API_URL}/media/img?limit=12&page=${currentPage}`
-      : `${process.env.NEXT_PUBLIC_API_URL}/media/search?alt=${searchQuery}&limit=12&page=${currentPage}`;
+      ? `${BASE}/api/media/img?limit=12&page=${currentPage}`
+      : `${BASE}/api/media/search?alt=${searchQuery}&limit=12&page=${currentPage}`;
 
     fetchImages(url);
   }, [currentPage]);
@@ -125,11 +127,12 @@ const Page = () => {
     try {
       const token = Cookies.get("token");
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/media/upload`,
+        `${BASE}/api/media/upload`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
+            "x-tenant-id": getTenantId(),
           },
           body: formData,
         }
@@ -196,11 +199,12 @@ const Page = () => {
           setIsLoading(true);
           const token = Cookies.get("token");
           const response = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/media/upload`,
+            `${BASE}/api/media/upload`,
             {
               method: "POST",
               headers: {
                 Authorization: `Bearer ${token}`,
+                "x-tenant-id": getTenantId(),
               },
               body: formData,
             }
@@ -213,7 +217,7 @@ const Page = () => {
           setImage(null)
           setImageAltTexts("")
           setCurrentPage(1);
-          fetchImages(`${process.env.NEXT_PUBLIC_API_URL}/media/img?limit=12&page=${currentPage}`)
+          fetchImages(`${BASE}/api/media/img?limit=12&page=${currentPage}`)
           
         } catch (error) {
           console.error("Error uploading file:", error);

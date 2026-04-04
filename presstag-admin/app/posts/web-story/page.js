@@ -9,6 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 const Page = () => {
   const { isDark } = useTheme();
   const { fetchAllPostedData, allPosts, totalPages, loading } = useAllPostDataStore();
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
   const [currentPage, setCurrentPage] = useState(1);
   const [status, setStatus] = useState('published'); // Default status
   const limit = 15;
@@ -17,9 +18,9 @@ const Page = () => {
   const fetchData = () => {
     let url;
     if (status === 'pending-approval') {
-      url = `${process.env.NEXT_PUBLIC_API_URL}/api/posts?status=pending&type=Web Story&limit=${limit}&page=${currentPage}`;
+      url = `${BASE}/api/posts?status=pending&type=Web Story&limit=${limit}&page=${currentPage}`;
     } else {
-      url = `${process.env.NEXT_PUBLIC_API_URL}/api/posts?status=${status}&type=Web Story&limit=${limit}&page=${currentPage}`;
+      url = `${BASE}/api/posts?status=${status}&type=Web Story&limit=${limit}&page=${currentPage}`;
     }
     fetchAllPostedData(url, 'Web Story');
   };

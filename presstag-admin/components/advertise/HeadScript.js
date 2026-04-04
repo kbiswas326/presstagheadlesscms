@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
+import { getTenantId } from "../../lib/api";
 
 const HeadScript = ({ initialHeadScript = [] }) => {
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
   // Initialize the state with an array of strings
   const [headScript, setHeadScript] = useState([]);
 
@@ -37,12 +39,13 @@ const HeadScript = ({ initialHeadScript = [] }) => {
     const token = Cookies.get("token");
     try {
       const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/admin/customize`,
+          `${BASE}/admin/customize`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            "x-tenant-id": getTenantId(),
           },
           body: JSON.stringify({ html_head: headScript }),
         }

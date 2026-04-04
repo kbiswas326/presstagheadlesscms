@@ -8,7 +8,7 @@ import {
   Clock, CheckCircle, FileEdit, Plus, BarChart2,
   ArrowRight, TrendingUp
 } from "lucide-react";
-import { auth as authAPI } from "../lib/api";
+import { auth as authAPI, getTenantId } from "../lib/api";
 import { useRouter } from "next/navigation";
 import { getEditPath } from '../utils/getEditPath';
 import useDropDownDataStore from "../store/dropDownDataStore";
@@ -27,7 +27,7 @@ export default function HomePage() {
 
   // ✅ FIX: NEXT_PUBLIC_API_URL already ends without /api in some setups.
   // The stats endpoint is at /api/posts/stats — build the URL carefully.
-  const BASE = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api$/, '');
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
 
   useEffect(() => {
     fetchDropDownData(`${BASE}/api/categories`, 'category');
@@ -44,6 +44,7 @@ export default function HomePage() {
         const headers = {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'x-tenant-id': getTenantId(),
         };
 
         // ✅ FIX: Use BASE so URL is never /api/api/posts/stats

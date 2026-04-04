@@ -6,6 +6,7 @@ import { MoreVertical, Loader } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { getEditPath } from '@/utils/getEditPath';
 import { useTheme } from '../context/ThemeContext';
+import { getTenantId, posts as postsAPI } from "../../lib/api";
 
 const LIMIT = 20;
 
@@ -13,7 +14,7 @@ export default function PostsPage() {
   const router = useRouter();
   const { isDark } = useTheme();
 
-  const BASE = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api$/, '');
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
 
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,7 +46,7 @@ export default function PostsPage() {
   // Fetch stats + categories once
   useEffect(() => {
     const token = localStorage.getItem('token') || '';
-    const headers = { 'Authorization': `Bearer ${token}` };
+    const headers = { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() };
 
     fetch(`${BASE}/api/categories`, { headers })
       .then(r => r.ok ? r.json() : null)
@@ -76,34 +77,24 @@ export default function PostsPage() {
       setIsLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('token') || '';
-      const skip = (page - 1) * LIMIT;
-
-      let url = `${BASE}/api/posts?limit=${LIMIT}&skip=${skip}`;
-      if (filterStatus !== 'All') url += `&status=${filterStatus}`;
-      if (filterType !== 'All') url += `&type=${filterType}`;
-      if (filterCategory !== 'All') url += `&category=${filterCategory}`;
-
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` },
+      const statusParam = filterStatus === 'All' ? 'All' : filterStatus;
+      const res = await postsAPI.getByStatus(statusParam, {
+        page,
+        limit: LIMIT,
+        type: filterType,
+        category: filterCategory,
       });
 
-      if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
+      if (res?.error) throw new Error(res.error);
 
-      const data = await res.json();
-      const fetchedPosts = Array.isArray(data) ? data : (data.posts || []);
+      const fetchedPosts = Array.isArray(res) ? res : (res.posts || []);
       setPosts(fetchedPosts);
 
-      // Update total pages based on current filter
-      if (filterStatus !== 'All') {
-        const statusTotal =
-          filterStatus === 'published' ? totalStats.published :
-          filterStatus === 'pending' ? totalStats.pending :
-          totalStats.drafts;
-        setTotalPages(Math.ceil(statusTotal / LIMIT));
-      } else {
-        setTotalPages(Math.ceil(totalStats.total / LIMIT));
-      }
+      const nextTotalPages =
+        (!Array.isArray(res) && res?.pagination?.totalPages)
+          ? res.pagination.totalPages
+          : totalPages;
+      setTotalPages(nextTotalPages);
     } catch (err) {
       console.error('❌ Fetch error:', err);
       setError('Failed to fetch posts: ' + err.message);
@@ -158,7 +149,7 @@ export default function PostsPage() {
       const token = localStorage.getItem('token') || '';
       const res = await fetch(`${BASE}/api/posts/${post._id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() },
       });
       if (res.ok) {
         setPosts(posts.filter(p => p._id !== post._id));

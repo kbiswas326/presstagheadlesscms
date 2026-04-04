@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Cookies from 'js-cookie';
+import { getTenantId } from "../../lib/api";
 
 const Home = ({ home_page }) => {
+    const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
     const [homePageData, setHomePageData] = useState({
         article_card: {
             before: "",
@@ -68,12 +70,12 @@ const Home = ({ home_page }) => {
         const updatedCardAdd = homePageData.card_add.filter((_, i) => i !== index);
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/customize`, {
+            const response = await fetch(`${BASE}/admin/customize`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
-                    'x-tenant-id': 'sportzpoint'
+                    'x-tenant-id': getTenantId()
                 },
                 body: JSON.stringify({
                     home_page: {
@@ -103,11 +105,12 @@ const Home = ({ home_page }) => {
     const handleSaveAll = async () => {
         const token = Cookies.get('token');
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/customize`, {
+            const response = await fetch(`${BASE}/admin/customize`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
+                    'x-tenant-id': getTenantId(),
                 },
                 body: JSON.stringify({
                     home_page: {

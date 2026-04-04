@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, ChevronDown, CheckCircle2, XCircle, AlertCircle, X, Wand2, Upload } from 'lucide-react';
-import { posts } from '../../../../../lib/api';
+import { getTenantId, posts } from '../../../../../lib/api';
 import { useUser } from '../../../../context/UserContext';
 import { useTheme } from '../../../../context/ThemeContext';
 import MediaImagesSelector from '../../../../media/MediaImagesSelector'; // Ensure this is imported if not already
@@ -20,6 +20,7 @@ export default function ArticleEditorPage() {
   const router = useRouter();
   const params = useParams();
   const [postId, setPostId] = useState(params?.id);
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
   const [showMediaSelector, setShowMediaSelector] = useState(false); // Add this for media selector
   const [generatingCaption, setGeneratingCaption] = useState(false); // AI State
 
@@ -107,10 +108,10 @@ export default function ArticleEditorPage() {
     const fetchAllData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const headers = { 'Authorization': `Bearer ${token}` };
+        const headers = { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() };
 
         // Fetch authors/users
-        const usersRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, { headers });
+        const usersRes = await fetch(`${BASE}/api/users`, { headers });
         if (usersRes.ok) {
           const usersData = await usersRes.json();
           const usersList = Array.isArray(usersData.users) ? usersData.users : (Array.isArray(usersData.data) ? usersData.data : (Array.isArray(usersData) ? usersData : []));
@@ -123,7 +124,7 @@ export default function ArticleEditorPage() {
         }
 
         // Fetch categories
-        const catRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`, { headers });
+        const catRes = await fetch(`${BASE}/api/categories`, { headers });
         if (catRes.ok) {
           const catData = await catRes.json();
           const categories = Array.isArray(catData.categories) ? catData.categories : (Array.isArray(catData.data) ? catData.data : (Array.isArray(catData) ? catData : []));
@@ -131,7 +132,7 @@ export default function ArticleEditorPage() {
         }
 
         // Fetch tags
-        const tagRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tags`, { headers });
+        const tagRes = await fetch(`${BASE}/api/tags`, { headers });
         if (tagRes.ok) {
           const tagData = await tagRes.json();
           const tags = Array.isArray(tagData.tags) ? tagData.tags : (Array.isArray(tagData.data) ? tagData.data : (Array.isArray(tagData) ? tagData : []));

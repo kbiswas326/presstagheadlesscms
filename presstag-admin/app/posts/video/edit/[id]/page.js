@@ -1,4 +1,4 @@
-﻿///posts/video/edit/[id]/page.js | Main page component for creating and editing video posts in the PressTag CMS admin panel. Handles form state, API interactions, auto-saving, SEO analysis, YouTube video management, and media selection.///
+///posts/video/edit/[id]/page.js | Main page component for creating and editing video posts in the PressTag CMS admin panel. Handles form state, API interactions, auto-saving, SEO analysis, YouTube video management, and media selection.///
 'use client';
 
 import { useRouter, useParams } from 'next/navigation';
@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import MediaImagesSelector from '../../../../media/MediaImagesSelector';
 import { ArrowLeft, ChevronDown, CheckCircle2, XCircle, AlertCircle, X } from 'lucide-react';
-import { posts } from '../../../../../lib/api';
+import { getTenantId, posts } from '../../../../../lib/api';
 import { useUser } from '../../../../context/UserContext';
 import { useTheme } from '../../../../context/ThemeContext';
 
@@ -20,6 +20,7 @@ export default function VideoEditorPage() {
   const router = useRouter();
   const params = useParams();
   const [postId, setPostId] = useState(params?.id);
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
 
   useEffect(() => {
     setPostId(params?.id);
@@ -110,10 +111,10 @@ export default function VideoEditorPage() {
     const fetchAllData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const headers = { 'Authorization': `Bearer ${token}` };
+        const headers = { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() };
 
         // Fetch authors/users
-        const usersRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, { headers });
+        const usersRes = await fetch(`${BASE}/api/users`, { headers });
         if (usersRes.ok) {
           const usersData = await usersRes.json();
           const usersList = Array.isArray(usersData.users) ? usersData.users : (Array.isArray(usersData.data) ? usersData.data : (Array.isArray(usersData) ? usersData : []));
@@ -126,7 +127,7 @@ export default function VideoEditorPage() {
         }
 
         // Fetch categories
-        const catRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`, { headers });
+        const catRes = await fetch(`${BASE}/api/categories`, { headers });
         if (catRes.ok) {
           const catData = await catRes.json();
           const categories = Array.isArray(catData.categories) ? catData.categories : (Array.isArray(catData.data) ? catData.data : (Array.isArray(catData) ? catData : []));
@@ -134,7 +135,7 @@ export default function VideoEditorPage() {
         }
 
         // Fetch tags
-        const tagRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tags`, { headers });
+        const tagRes = await fetch(`${BASE}/api/tags`, { headers });
         if (tagRes.ok) {
           const tagData = await tagRes.json();
           const tags = Array.isArray(tagData.tags) ? tagData.tags : (Array.isArray(tagData.data) ? tagData.data : (Array.isArray(tagData) ? tagData : []));

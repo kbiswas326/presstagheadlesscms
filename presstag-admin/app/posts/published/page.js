@@ -1,4 +1,4 @@
-﻿/// app/posts/published/page.js | Published Posts Management Page — server-side pagination
+/// app/posts/published/page.js | Published Posts Management Page — server-side pagination
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -6,6 +6,7 @@ import { MoreVertical, TrendingUp, Eye, Loader, BarChart3, FileText, Film, Image
 import { useRouter } from 'next/navigation';
 import { getEditPath } from '@/utils/getEditPath';
 import { useTheme } from "../../context/ThemeContext";
+import { getTenantId, posts as postsAPI } from "../../../lib/api";
 
 const LIMIT = 20;
 
@@ -13,7 +14,7 @@ export default function PublishedPosts() {
   const router = useRouter();
   const { isDark } = useTheme();
 
-  const BASE = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api$/, '');
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
 
   function handleEdit(post) {
     const path = getEditPath(post);
@@ -28,6 +29,13 @@ export default function PublishedPosts() {
   const [totalPublished, setTotalPublished] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
+  const [publishedTypeTotals, setPublishedTypeTotals] = useState({
+    article: 0,
+    video: 0,
+    gallery: 0,
+    webStory: 0,
+    liveBlog: 0,
+  });
 
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("All");
@@ -52,7 +60,7 @@ export default function PublishedPosts() {
   // ✅ Fetch stats once for accurate total count
   useEffect(() => {
     const token = localStorage.getItem('token') || '';
-    const headers = { 'Authorization': `Bearer ${token}` };
+    const headers = { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() };
 
     // Categories
     fetch(`${BASE}/api/categories`, { headers })
@@ -61,17 +69,37 @@ export default function PublishedPosts() {
         if (data) setAvailableCategories(data.categories || data || []);
       })
       .catch(() => {});
+  }, []);
 
-    // Stats for accurate total
-    fetch(`${BASE}/api/posts/stats`, { headers })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data) {
-          setTotalPublished(data.published || 0);
-          setTotalPages(Math.ceil((data.published || 0) / LIMIT));
-        }
-      })
-      .catch(() => {});
+  useEffect(() => {
+    const fetchTypeTotals = async () => {
+      const getTotalForType = async (typeVariants) => {
+        const results = await Promise.all(
+          typeVariants.map(async (type) => {
+            const res = await postsAPI.getByStatus('published', { page: 1, limit: 1, type });
+            if (res?.error) return 0;
+            return res?.pagination?.total ?? 0;
+          })
+        );
+        return Math.max(0, ...results);
+      };
+
+      try {
+        const [article, video, gallery, webStory, liveBlog] = await Promise.all([
+          getTotalForType(['article']),
+          getTotalForType(['video']),
+          getTotalForType(['photo-gallery', 'photo gallery']),
+          getTotalForType(['web-story', 'web story']),
+          getTotalForType(['live-blog', 'live blog']),
+        ]);
+
+        setPublishedTypeTotals({ article, video, gallery, webStory, liveBlog });
+      } catch {
+        setPublishedTypeTotals({ article: 0, video: 0, gallery: 0, webStory: 0, liveBlog: 0 });
+      }
+    };
+
+    fetchTypeTotals();
   }, []);
 
   // ✅ Fetch one page at a time from backend
@@ -80,24 +108,23 @@ export default function PublishedPosts() {
       setIsLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('token') || '';
-      const skip = (page - 1) * LIMIT;
-
-      // Build URL with filters
-      let url = `${BASE}/api/posts?status=published&limit=${LIMIT}&skip=${skip}`;
-      if (filterType !== 'All') url += `&type=${filterType}`;
-      if (filterCategory !== 'All') url += `&category=${filterCategory}`;
-
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` },
+      const res = await postsAPI.getByStatus('published', {
+        page,
+        limit: LIMIT,
+        search,
+        type: filterType,
+        category: filterCategory,
       });
 
-      if (!res.ok) throw new Error(`Failed to fetch posts: ${res.status}`);
+      if (res?.error) throw new Error(res.error);
 
-      const data = await res.json();
-      // Backend returns array directly
-      const fetchedPosts = Array.isArray(data) ? data : (data.posts || []);
+      const fetchedPosts = res?.posts || (Array.isArray(res) ? res : []);
       setPosts(fetchedPosts);
+
+      const total = res?.pagination?.total ?? fetchedPosts.length;
+      const pages = res?.pagination?.totalPages ?? 1;
+      setTotalPublished(total);
+      setTotalPages(pages);
     } catch (err) {
       console.error('❌ Fetch error:', err);
       setError('Failed to fetch posts: ' + err.message);
@@ -105,7 +132,7 @@ export default function PublishedPosts() {
     } finally {
       setIsLoading(false);
     }
-  }, [filterType, filterCategory]);
+  }, [filterType, filterCategory, search]);
 
   useEffect(() => {
     fetchPage(currentPage);
@@ -153,17 +180,31 @@ export default function PublishedPosts() {
       : `/posts/${s}`;
   };
 
+  const getTypeBucket = (type) => {
+    const t = String(type || '').toLowerCase().trim();
+    if (t === 'article') return 'article';
+    if (t === 'video') return 'video';
+    if (t === 'photo-gallery' || t === 'photo gallery') return 'gallery';
+    if (t === 'web-story' || t === 'web story' || t === 'story') return 'webStory';
+    if (t === 'live-blog' || t === 'live blog') return 'liveBlog';
+    return null;
+  };
+
   const handleDelete = async (post) => {
     try {
       const token = localStorage.getItem('token') || '';
       const target = post.slug || post._id;
       const res = await fetch(`${BASE}/api/posts/${target}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() },
       });
       if (res.ok) {
         setPosts(posts.filter(p => p._id !== post._id));
         setTotalPublished(t => t - 1);
+        const bucket = getTypeBucket(post.type);
+        if (bucket) {
+          setPublishedTypeTotals((prev) => ({ ...prev, [bucket]: Math.max(0, (prev[bucket] || 0) - 1) }));
+        }
         setOpenMenuIndex(null);
         setConfirmDeleteIndex(null);
       }
@@ -178,12 +219,16 @@ export default function PublishedPosts() {
       const target = post.slug || post._id;
       const res = await fetch(`${BASE}/api/posts/${target}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-tenant-id': getTenantId() },
         body: JSON.stringify({ status: 'draft' }),
       });
       if (res.ok) {
         setPosts(posts.filter(p => p._id !== post._id));
         setTotalPublished(t => t - 1);
+        const bucket = getTypeBucket(post.type);
+        if (bucket) {
+          setPublishedTypeTotals((prev) => ({ ...prev, [bucket]: Math.max(0, (prev[bucket] || 0) - 1) }));
+        }
         setOpenMenuIndex(null);
       }
     } catch (err) {
@@ -244,30 +289,13 @@ export default function PublishedPosts() {
           </div>
         )}
 
-        {/* Stats — uses totalPublished from stats endpoint */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <div className="bg-slate-100 dark:bg-gray-800 rounded-2xl p-6 border border-black/5 shadow-sm">
-            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">Total Published</p>
-            <span className="text-3xl font-bold text-slate-700 dark:text-gray-300">
-              {totalPublished.toLocaleString()}
-            </span>
-          </div>
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-6 border border-black/5 shadow-sm">
-            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">Current Page</p>
-            <span className="text-3xl font-bold text-green-700 dark:text-green-400">
-              {posts.length} posts
-            </span>
-          </div>
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-6 border border-black/5 shadow-sm">
-            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">Page</p>
-            <span className="text-3xl font-bold text-blue-700 dark:text-blue-400">
-              {currentPage} / {totalPages.toLocaleString()}
-            </span>
-          </div>
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-2xl p-6 border border-black/5 shadow-sm">
-            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">Per Page</p>
-            <span className="text-3xl font-bold text-purple-700 dark:text-purple-400">{LIMIT}</span>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-10">
+          <StatCard label="Total Published" value={totalPublished.toLocaleString()} icon={<BarChart3 size={20} />} bgColor="bg-slate-100 dark:bg-gray-800" textColor="text-slate-700 dark:text-gray-300" iconClass="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md ring-1 ring-white/40" />
+          <StatCard label="Articles" value={publishedTypeTotals.article.toLocaleString()} icon={<FileText size={20} />} bgColor="bg-green-50 dark:bg-green-900/20" textColor="text-green-700 dark:text-green-400" iconClass="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md ring-1 ring-white/40" />
+          <StatCard label="Videos" value={publishedTypeTotals.video.toLocaleString()} icon={<Film size={20} />} bgColor="bg-purple-50 dark:bg-purple-900/20" textColor="text-purple-700 dark:text-purple-400" iconClass="p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 text-white shadow-md ring-1 ring-white/40" />
+          <StatCard label="Galleries" value={publishedTypeTotals.gallery.toLocaleString()} icon={<ImageIcon size={20} />} bgColor="bg-blue-50 dark:bg-blue-900/20" textColor="text-blue-700 dark:text-blue-400" iconClass="p-3 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-md ring-1 ring-white/40" />
+          <StatCard label="Web Stories" value={publishedTypeTotals.webStory.toLocaleString()} icon={<Smartphone size={20} />} bgColor="bg-amber-50 dark:bg-amber-900/20" textColor="text-amber-700 dark:text-amber-400" iconClass="p-3 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-md ring-1 ring-white/40" />
+          <StatCard label="Live Blogs" value={publishedTypeTotals.liveBlog.toLocaleString()} icon={<CircleDot size={20} />} bgColor="bg-red-50 dark:bg-red-900/20" textColor="text-red-700 dark:text-red-400" iconClass="p-3 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 text-white shadow-md ring-1 ring-white/40" />
         </div>
 
         {/* Filters */}
@@ -435,4 +463,16 @@ function seoClass(score) {
   if (score > 80) return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
   if (score >= 60) return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400";
   return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+}
+
+function StatCard({ label, value, icon, bgColor, textColor, iconClass }) {
+  return (
+    <div className={`${bgColor} rounded-2xl p-6 border border-opacity-50 dark:border-opacity-10 shadow-sm hover:shadow-md transition`}>
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-sm font-medium text-slate-600 dark:text-gray-400">{label}</span>
+        <div className={`${iconClass}`}>{icon}</div>
+      </div>
+      <span className={`text-3xl font-bold ${textColor}`}>{value}</span>
+    </div>
+  );
 }

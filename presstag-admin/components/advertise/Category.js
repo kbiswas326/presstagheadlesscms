@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Cookies from 'js-cookie';
+import { getTenantId } from "../../lib/api";
 
 const Advertise = ({  categoryAdd }) => {
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
   const [categoryPage, setCategoryPage] = useState([]);
 
   // Initialize the categoryPage state with the passed categoryAdd prop
@@ -54,11 +56,12 @@ const Advertise = ({  categoryAdd }) => {
     const token = Cookies.get('token');
     // Send the updated data to the backend (you can use fetch, axios, or any other method)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/customize`, {
+      const response = await fetch(`${BASE}/admin/customize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          'x-tenant-id': getTenantId(),
         },
         body: JSON.stringify({category_page:updatedCategories})
       });
@@ -93,11 +96,12 @@ const Advertise = ({  categoryAdd }) => {
     const token = Cookies.get('token');
     // Send the updated data to the backend (you can use fetch, axios, or any other method)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/customize`, {
+      const response = await fetch(`${BASE}/admin/customize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          'x-tenant-id': getTenantId(),
         },
         body: JSON.stringify({category_page:categoryPage})
       });

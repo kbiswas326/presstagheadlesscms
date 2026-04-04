@@ -5,9 +5,11 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Save, X, Code, Layout, Check } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-hot-toast';
+import { getTenantId } from '../../../lib/api';
 
 export default function AdInserterPage() {
   const { isDark } = useTheme();
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
   const [ads, setAds] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,9 +68,8 @@ export default function AdInserterPage() {
   const fetchAds = async () => {
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const res = await fetch(`${apiUrl}/api/ad-blocks`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch(`${BASE}/api/ad-blocks`, {
+          headers: { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() }
       });
       if (res.ok) {
         const data = await res.json();
@@ -89,10 +90,9 @@ export default function AdInserterPage() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const url = editingAd 
-        ? `${apiUrl}/api/ad-blocks/${editingAd._id}`
-        : `${apiUrl}/api/ad-blocks`;
+        ? `${BASE}/api/ad-blocks/${editingAd._id}`
+        : `${BASE}/api/ad-blocks`;
       
       const method = editingAd ? 'PUT' : 'POST';
 
@@ -100,7 +100,8 @@ export default function AdInserterPage() {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'x-tenant-id': getTenantId(),
         },
         body: JSON.stringify(formData)
       });
@@ -184,10 +185,9 @@ export default function AdInserterPage() {
     if (!confirm('Are you sure you want to delete this ad block?')) return;
     try {
         const token = localStorage.getItem('token');
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const res = await fetch(`${apiUrl}/api/ad-blocks/${id}`, {
+        const res = await fetch(`${BASE}/api/ad-blocks/${id}`, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() }
         });
         if (res.ok) {
             toast.success('Ad block deleted');
@@ -203,12 +203,12 @@ export default function AdInserterPage() {
   const toggleStatus = async (ad) => {
       try {
         const token = localStorage.getItem('token');
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const res = await fetch(`${apiUrl}/api/ad-blocks/${ad._id}`, {
+        const res = await fetch(`${BASE}/api/ad-blocks/${ad._id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'x-tenant-id': getTenantId(),
             },
             body: JSON.stringify({ isActive: !ad.isActive })
         });

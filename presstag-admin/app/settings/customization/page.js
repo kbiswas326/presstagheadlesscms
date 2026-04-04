@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-hot-toast';
 import { uploadImage, getImageUrl } from '../../../lib/imageHelper';
 import MediaImagesSelector from '../../media/MediaImagesSelector';
+import { getTenantId } from '../../../lib/api';
 
 const navbarItems = ['Home', 'About', 'Blog', 'News', 'Events', 'Contact', 'Gallery', 'Services'];
 const sidebarSections = ['Recent Posts', 'Popular Tags', 'Categories', 'Newsletter', 'Social Media', 'Ads', 'About Widget'];
@@ -14,6 +15,7 @@ const footerSections = ['Quick Links', 'Company Info', 'Social Media', 'Contact 
 
 export default function CustomizationPage() {
   const { isDark } = useTheme();
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef(null);
   const [showFallbackImagePicker, setShowFallbackImagePicker] = useState(false);
@@ -84,8 +86,8 @@ export default function CustomizationPage() {
     const loadSettings = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/layout-config`, {
-          headers: { 'Authorization': `Bearer ${token}`, 'x-tenant-id': 'sportzpoint' }
+        const response = await fetch(`${BASE}/api/layout-config`, {
+          headers: { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() }
         });
         if (response.ok) {
           const data = await response.json();
@@ -130,12 +132,12 @@ export default function CustomizationPage() {
     setIsSaving(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/layout-config`, {
+      const response = await fetch(`${BASE}/api/layout-config`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'x-tenant-id': 'sportzpoint'
+          'x-tenant-id': getTenantId()
         },
         body: JSON.stringify(settings)
       });

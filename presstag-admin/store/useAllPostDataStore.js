@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import Cookies from 'js-cookie';
+import { getTenantId } from "../lib/api";
 
 const useAllPostDataStore = create((set, get) => ({
     allPosts: [],
@@ -24,6 +25,7 @@ const useAllPostDataStore = create((set, get) => ({
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
+                        'x-tenant-id': getTenantId(),
                     },
                 }
             );
@@ -55,6 +57,7 @@ const useAllPostDataStore = create((set, get) => ({
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
+                    'x-tenant-id': getTenantId(),
                 },
             });
 
@@ -63,25 +66,24 @@ const useAllPostDataStore = create((set, get) => ({
             }
 
             const data = await response.json();
+            const postsList = Array.isArray(data)
+              ? data
+              : (data.posts || data.articles || []);
+            const pagination = data.pagination || {};
+            const totalPages = pagination.totalPages || 0;
+            const currentPage = pagination.page || pagination.currentPage || 1;
+            const total = pagination.total || pagination.count || postsList.length;
 
-            // If this is a pending approval request, update the pending count
-            if (url.includes('pending-approval')) {
-                set(() => ({
-                    totalPages: data.pagination?.totalPages || 0,
-                    currentPage: data.pagination?.page || 1,
-                    pendingApprovalCount: data.pagination?.total || 0,
-                    allPosts: data.articles || [],
-                    loading: false,
-                }));
-            } else {
-                set(() => ({
-                    totalPages: data.pagination?.totalPages || 0,
-                    currentPage: data.pagination?.page || 1,
-                    totalPostCount: data.pagination?.total || 0,
-                    allPosts: data.articles || [],
-                    loading: false,
-                }));
-            }
+            const isPending = url.includes('pending-approval') || url.includes('status=pending');
+
+            set(() => ({
+                totalPages,
+                currentPage,
+                pendingApprovalCount: isPending ? total : get().pendingApprovalCount,
+                totalPostCount: isPending ? get().totalPostCount : total,
+                allPosts: postsList,
+                loading: false,
+            }));
         } catch (error) {
             set({ error: error.message, loading: false });
             console.error("Error fetching data:", error);
@@ -134,6 +136,7 @@ const useAllPostDataStore = create((set, get) => ({
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
+                    'x-tenant-id': getTenantId(),
                 },
             });
 

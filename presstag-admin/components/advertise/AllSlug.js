@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
+import { getTenantId } from "../../lib/api";
 
 const AllSlug = ({ allSlugs }) => {
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
   // Initialize with an object instead of an array.
   const [allSlug, setAllSlug] = useState({
     section_card: { before: "", after: "" },
@@ -68,12 +70,13 @@ const AllSlug = ({ allSlugs }) => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/customize`,
+        `${BASE}/admin/customize`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            "x-tenant-id": getTenantId(),
           },
           body: JSON.stringify({ all_cat_tag: allSlug }),
         }

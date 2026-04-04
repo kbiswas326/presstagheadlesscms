@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { MoreVertical, Clock, Eye, Loader, CheckCircle, BarChart3, Film, Image as ImageIcon, Smartphone, CircleDot, FileText } from "lucide-react";
-import { posts as postsAPI } from "../../../lib/api";
+import { getTenantId, posts as postsAPI } from "../../../lib/api";
 import { useRouter } from 'next/navigation';
 import { getEditPath } from '@/utils/getEditPath';
 import { useTheme } from "../../context/ThemeContext";
@@ -11,6 +11,7 @@ import { useTheme } from "../../context/ThemeContext";
 export default function PendingPosts() {
   const router = useRouter();
   const { isDark } = useTheme();
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
   
   // Base URL for public links
   const publicOrigin = process.env.NEXT_PUBLIC_PUBLIC_ORIGIN || "http://localhost:3001";
@@ -51,6 +52,8 @@ export default function PendingPosts() {
 
   const postsPerPage = 15;
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalPending, setTotalPending] = useState(0);
 
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const [confirmDeleteIndex, setConfirmDeleteIndex] = useState(null);
@@ -80,9 +83,9 @@ export default function PendingPosts() {
         
         // 1. Fetch Categories
         const token = localStorage.getItem('token');
-        const headers = { 'Authorization': `Bearer ${token}` };
+        const headers = { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() };
         try {
-          const catRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, { headers });
+          const catRes = await fetch(`${BASE}/api/categories`, { headers });
           if (catRes.ok) {
             const catData = await catRes.json();
             setAvailableCategories(catData.categories || catData || []);
@@ -91,24 +94,6 @@ export default function PendingPosts() {
           console.error('Failed to fetch categories:', catErr);
         }
 
-        // 2. Fetch Pending Posts
-        const response = await postsAPI.getByStatus('pending');
-        
-        if (response.error) {
-          setError(response.error);
-          setPosts([]);
-        } else {
-          const fetchedPosts = Array.isArray(response) ? response : (response.posts || []);
-          
-          // Sort by submitted (updatedAt or createdAt)
-          fetchedPosts.sort((a, b) => {
-            const dateA = new Date(a.updatedAt || a.createdAt || 0);
-            const dateB = new Date(b.updatedAt || b.createdAt || 0);
-            return dateB - dateA;
-          });
-
-          setPosts(fetchedPosts);
-        }
       } catch (err) {
         console.error('❌ Fetch error:', err);
         setError('Failed to fetch pending posts: ' + err.message);
@@ -120,6 +105,53 @@ export default function PendingPosts() {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchPage = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const response = await postsAPI.getByStatus('pending', {
+          page: currentPage,
+          limit: postsPerPage,
+          search,
+          type: filterType,
+          category: filterCategory,
+        });
+
+        if (response?.error) {
+          setError(response.error);
+          setPosts([]);
+          setTotalPages(1);
+          setTotalPending(0);
+          return;
+        }
+
+        const fetchedPosts = response?.posts || (Array.isArray(response) ? response : []);
+        setPosts(fetchedPosts);
+
+        const total = response?.pagination?.total ?? fetchedPosts.length;
+        const pages = response?.pagination?.totalPages ?? 1;
+        setTotalPending(total);
+        setTotalPages(pages);
+      } catch (err) {
+        console.error('❌ Fetch error:', err);
+        setError('Failed to fetch pending posts: ' + err.message);
+        setPosts([]);
+        setTotalPages(1);
+        setTotalPending(0);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPage();
+  }, [currentPage, postsPerPage, search, filterType, filterCategory]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterType, filterCategory]);
 
   // Count posts by type
   const countByType = (type) => posts.filter((p) => p.type?.toLowerCase() === type.toLowerCase()).length;
@@ -135,12 +167,7 @@ export default function PendingPosts() {
     );
   });
 
-  const totalPages = Math.ceil(filtered.length / postsPerPage);
-  const paginated = filtered.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
-
-  useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(1);
-  }, [filtered, totalPages]);
+  const paginated = filtered;
 
   const handleMenuClick = (e, key) => {
     const rect = e.currentTarget.getBoundingClientRect();

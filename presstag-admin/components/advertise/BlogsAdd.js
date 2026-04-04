@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
+import { getTenantId } from "../../lib/api";
 
 const BlogsAdd = ({ blog_post }) => {
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
   // Destructure blog_post with default empty object and null values
   const {
     after_banner = null, 
@@ -77,11 +79,12 @@ const BlogsAdd = ({ blog_post }) => {
 
       const updatedTags = [...blogPostData.tag, currentTag];
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/customize`, {
+      const response = await fetch(`${BASE}/admin/customize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          'x-tenant-id': getTenantId(),
         },
         body: JSON.stringify({
           blog_post: {
@@ -133,11 +136,12 @@ const BlogsAdd = ({ blog_post }) => {
 
       const updatedTags = blogPostData.tag.filter((_, index) => index !== indexToDelete);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/customize`, {
+      const response = await fetch(`${BASE}/admin/customize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          'x-tenant-id': getTenantId(),
         },
         body: JSON.stringify({
           blog_post: {
@@ -197,11 +201,12 @@ const BlogsAdd = ({ blog_post }) => {
         }
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/customize`, {
+      const response = await fetch(`${BASE}/admin/customize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          'x-tenant-id': getTenantId(),
         },
         body: JSON.stringify(updatePayload)
       });
@@ -252,11 +257,12 @@ const BlogsAdd = ({ blog_post }) => {
         }
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/customize`, {
+      const response = await fetch(`${BASE}/admin/customize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          'x-tenant-id': getTenantId(),
         },
         body: JSON.stringify(deletePayload)
       });

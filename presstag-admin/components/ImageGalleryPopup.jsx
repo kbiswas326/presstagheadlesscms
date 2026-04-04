@@ -2,7 +2,10 @@ import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import ImageGallaryPagination from "./ImagegalleryPagination";
+import { getTenantId } from "../lib/api";
 const ImageGalleryPopup = ({ onSelect, onClose, onImageSelect }) => {
+  const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
+  const API_BASE = `${API_ORIGIN}/api`;
   const [images, setImages] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
@@ -31,6 +34,7 @@ const ImageGalleryPopup = ({ onSelect, onClose, onImageSelect }) => {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+            "x-tenant-id": getTenantId(),
           },
         }
       );
@@ -51,12 +55,12 @@ const ImageGalleryPopup = ({ onSelect, onClose, onImageSelect }) => {
 
     if (searchQuery === "") {
       // If searchQuery is empty, call the main API immediately
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/media/img?limit=8&page=${currentPage}`;
+      const url = `${API_BASE}/media/img?limit=8&page=${currentPage}`;
       fetchImages(url);
     } else {
       // If searchQuery changes, delay the API call by 800ms
       debounceTimeout = setTimeout(() => {
-        const url = `${process.env.NEXT_PUBLIC_API_URL}/media/search?alt=${searchQuery}&limit=8&page=${currentPage}`;
+        const url = `${API_BASE}/media/search?alt=${searchQuery}&limit=8&page=${currentPage}`;
         fetchImages(url);
       }, 800);
     }
@@ -67,8 +71,8 @@ const ImageGalleryPopup = ({ onSelect, onClose, onImageSelect }) => {
   useEffect(() => {
     // Fetch images immediately when currentPage changes
     const url = searchQuery === ""
-      ? `${process.env.NEXT_PUBLIC_API_URL}/media/img?limit=8&page=${currentPage}`
-      : `${process.env.NEXT_PUBLIC_API_URL}/media/search?alt=${searchQuery}&limit=8&page=${currentPage}`;
+      ? `${API_BASE}/media/img?limit=8&page=${currentPage}`
+      : `${API_BASE}/media/search?alt=${searchQuery}&limit=8&page=${currentPage}`;
 
     fetchImages(url);
   }, [currentPage]);
@@ -97,7 +101,7 @@ const ImageGalleryPopup = ({ onSelect, onClose, onImageSelect }) => {
 
     if (onImageSelect) {
       onImageSelect(
-        selectedImage.startsWith('http') ? selectedImage : `${process.env.NEXT_PUBLIC_API_URL}${selectedImage}`,
+        selectedImage.startsWith('http') ? selectedImage : `${API_ORIGIN}${selectedImage}`,
         altText.trim()
       );
     }
@@ -135,11 +139,12 @@ const ImageGalleryPopup = ({ onSelect, onClose, onImageSelect }) => {
         setIsLoading(true);
         const token = Cookies.get("token");
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/media/upload`,
+          `${API_BASE}/media/upload`,
           {
             method: "POST",
             headers: {
               Authorization: `Bearer ${token}`,
+              "x-tenant-id": getTenantId(),
             },
             body: formData,
           }
@@ -152,7 +157,7 @@ const ImageGalleryPopup = ({ onSelect, onClose, onImageSelect }) => {
         setImage(null)
         setImageAltTexts("")
         setCurrentPage(1);
-        fetchImages(`${process.env.NEXT_PUBLIC_API_URL}/media/img?limit=8&page=${currentPage}`)
+        fetchImages(`${API_BASE}/media/img?limit=8&page=${currentPage}`)
         
       } catch (error) {
         console.error("Error uploading file:", error);

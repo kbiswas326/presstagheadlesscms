@@ -8,7 +8,9 @@ import Cookies from 'js-cookie';
 import AllSlug from '../../components/advertise/AllSlug'
 import HeadScript from '../../components/advertise/HeadScript'
 import RouteGuard from '../../components/RouteGuard';
+import { getTenantId } from "../../lib/api";
 const Advertise = () => {
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
   const [top_nav, setTop_nav] = useState(null);
   const [after_nav, setAfter_nav] = useState(null);
   const [before_home_body, setBefore_home_body] = useState(null);
@@ -67,12 +69,12 @@ const Advertise = () => {
       const token = Cookies.get('token');
 
       // Send a POST request to the backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/customize`, {
+      const response = await fetch(`${BASE}/admin/customize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'x-tenant-id': 'sportzpoint'
+          'x-tenant-id': getTenantId()
         },
         body: JSON.stringify(updateData)
       });
@@ -98,9 +100,9 @@ const Advertise = () => {
     const fetchLayoutStructure = async () => {
 
       try {
-        const data = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/structure`, {
+        const data = await fetch(`${BASE}/structure`, {
           headers: {
-            'x-tenant-id': 'sportzpoint'
+            'x-tenant-id': getTenantId()
           }
         })
 
@@ -193,12 +195,12 @@ const Advertise = () => {
       const token = Cookies.get('token');
 
       // Send the updated data to the API route to reset the field
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/customize`, {
+      const response = await fetch(`${BASE}/admin/customize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'x-tenant-id': 'sportzpoint'
+          'x-tenant-id': getTenantId()
         },
         body: JSON.stringify(updateData)
       });

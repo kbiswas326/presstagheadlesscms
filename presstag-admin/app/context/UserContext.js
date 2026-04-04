@@ -27,19 +27,10 @@ const refreshTokenIfNeeded = async (token) => {
   if (!isTokenExpiringSoon(token)) return;
   try {
     console.log('🔄 Token expiring soon, refreshing...');
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    if (!response.ok) return;
-    const data = await response.json();
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-      console.log('✅ Token refreshed successfully');
-    }
+    const data = await auth.refresh(token);
+    if (!data?.token) return;
+    localStorage.setItem('token', data.token);
+    console.log('✅ Token refreshed successfully');
   } catch (error) {
     console.error('Error refreshing token:', error);
   }

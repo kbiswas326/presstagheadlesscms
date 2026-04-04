@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import Cookies from 'js-cookie';
+import { getTenantId } from "../lib/api";
 
 const useDropDownDataStore = create((set) => ({
   allTags: [],
@@ -22,6 +23,7 @@ const useDropDownDataStore = create((set) => ({
         headers: {
           'Content-Type': 'application/json', // or other appropriate content type
           'Authorization': `Bearer ${token}`, // Add token to Authorization header
+          'x-tenant-id': getTenantId(),
         },
       });
   

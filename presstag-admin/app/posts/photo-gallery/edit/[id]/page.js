@@ -6,7 +6,7 @@ import { useTheme } from '../../../../context/ThemeContext';
 import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, ChevronDown, Upload, CheckCircle2, XCircle, AlertCircle, X, Image as ImageIcon } from 'lucide-react';
 import MediaImagesSelector from '../../../../media/MediaImagesSelector';
-import { posts } from '../../../../../lib/api';
+import { getTenantId, posts } from '../../../../../lib/api';
 import { getUsers, getCategories, getTags } from '../../../../../lib/api';
 
 
@@ -14,6 +14,7 @@ export default function PhotoGalleryEditorPage() {
   const { isDark } = useTheme();
   const params = useParams();
   const postId = params?.id;
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
   // Author, Categories, Tags state and dropdowns (copied from article editor)
   const [author, setAuthor] = useState('');
   const [categories, setCategories] = useState([]);
@@ -56,12 +57,12 @@ export default function PhotoGalleryEditorPage() {
   const fetchDropdownData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = { Authorization: `Bearer ${token}`, 'x-tenant-id': getTenantId() };
 
       const [usersRes, catRes, tagRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, { headers }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`, { headers }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tags`, { headers }),
+        fetch(`${BASE}/api/users`, { headers }),
+        fetch(`${BASE}/api/categories`, { headers }),
+        fetch(`${BASE}/api/tags`, { headers }),
       ]);
 
       const usersData = await usersRes.json();
