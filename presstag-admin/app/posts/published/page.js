@@ -1,212 +1,438 @@
-﻿"use client";
+﻿/// app/posts/published/page.js | Published Posts Management Page — server-side pagination
+"use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { 
-  MoreVertical, 
-  TrendingUp, 
-  Eye, 
-  Loader, 
-  BarChart3, 
-  FileText, 
-  ChevronLeft, 
-  ChevronRight, 
-  Search,
-  Filter
-} from "lucide-react";
+import { MoreVertical, TrendingUp, Eye, Loader, BarChart3, FileText, Film, Image as ImageIcon, Smartphone, CircleDot } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { getEditPath } from '@/utils/getEditPath';
+import { useTheme } from "../../context/ThemeContext";
 
-export default function PublishedPostsPage() {
+const LIMIT = 20;
+
+export default function PublishedPosts() {
   const router = useRouter();
+  const { isDark } = useTheme();
 
-  // Data State
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api$/, '');
+
+  function handleEdit(post) {
+    const path = getEditPath(post);
+    if (path) router.push(path);
+  }
+
   const [posts, setPosts] = useState([]);
-  const [stats, setStats] = useState({ published: 0 });
-  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
-  
-  // UI State
   const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [openMenuId, setOpenMenuId] = useState(null);
+  const [error, setError] = useState(null);
 
-  // 1. Fetch Accurate Stats for the Header Cards
-  const fetchStats = async () => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts/stats`, {
-        headers: { 
-          'x-tenant-id': 'sportzpoint',
-          'Authorization': `Bearer ${localStorage.getItem('token')}` 
-        }
-      });
-      const data = await res.json();
-      setStats(data);
-    } catch (err) {
-      console.error("Stats fetch error:", err);
-    }
+  // ✅ Total comes from /api/posts/stats — not from posts.length
+  const [totalPublished, setTotalPublished] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState("All");
+  const [filterCategory, setFilterCategory] = useState("All");
+  const [filterAuthor, setFilterAuthor] = useState("All");
+  const [availableCategories, setAvailableCategories] = useState([]);
+
+  const [openMenuIndex, setOpenMenuIndex] = useState(null);
+  const [confirmDeleteIndex, setConfirmDeleteIndex] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+
+  const publicOrigin = process.env.NEXT_PUBLIC_PUBLIC_ORIGIN || 'http://localhost:3001';
+
+  const getCategoryNames = (categoriesArray) => {
+    if (!Array.isArray(categoriesArray)) return 'Uncategorized';
+    return categoriesArray
+      .map(cat => (typeof cat === 'object' && cat.name) ? cat.name : cat)
+      .filter(Boolean)
+      .join(', ') || 'Uncategorized';
   };
 
-  // 2. Fetch Paginated Posts
-  const fetchPosts = useCallback(async () => {
-    setIsLoading(true);
+  // ✅ Fetch stats once for accurate total count
+  useEffect(() => {
+    const token = localStorage.getItem('token') || '';
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    // Categories
+    fetch(`${BASE}/api/categories`, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) setAvailableCategories(data.categories || data || []);
+      })
+      .catch(() => {});
+
+    // Stats for accurate total
+    fetch(`${BASE}/api/posts/stats`, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setTotalPublished(data.published || 0);
+          setTotalPages(Math.ceil((data.published || 0) / LIMIT));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // ✅ Fetch one page at a time from backend
+  const fetchPage = useCallback(async (page) => {
     try {
-      const token = localStorage.getItem('token');
-      const params = new URLSearchParams({
-        status: 'published',
-        page: currentPage.toString(),
-        limit: '20',
-        search: search
+      setIsLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem('token') || '';
+      const skip = (page - 1) * LIMIT;
+
+      // Build URL with filters
+      let url = `${BASE}/api/posts?status=published&limit=${LIMIT}&skip=${skip}`;
+      if (filterType !== 'All') url += `&type=${filterType}`;
+      if (filterCategory !== 'All') url += `&category=${filterCategory}`;
+
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` },
       });
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts?${params.toString()}`, {
-        headers: { 
-          'x-tenant-id': 'sportzpoint',
-          'Authorization': `Bearer ${token}` 
-        }
-      });
-      
+      if (!res.ok) throw new Error(`Failed to fetch posts: ${res.status}`);
+
       const data = await res.json();
-      setPosts(data.posts || []);
-      setPagination(data.pagination || { total: 0, totalPages: 1 });
+      // Backend returns array directly
+      const fetchedPosts = Array.isArray(data) ? data : (data.posts || []);
+      setPosts(fetchedPosts);
     } catch (err) {
-      console.error("Posts fetch error:", err);
+      console.error('❌ Fetch error:', err);
+      setError('Failed to fetch posts: ' + err.message);
+      setPosts([]);
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, search]);
+  }, [filterType, filterCategory]);
 
-  // Initial load and search debounce
   useEffect(() => {
-    fetchStats();
+    fetchPage(currentPage);
+  }, [currentPage, fetchPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, filterCategory, filterAuthor]);
+
+  // Client-side search and author filter on current page only
+  const filtered = posts.filter(p => {
+    const title = p.title || '';
+    const authorMatch = filterAuthor === 'All' || p.authorName?.toLowerCase() === filterAuthor.toLowerCase();
+    const searchMatch = title.toLowerCase().includes(search.toLowerCase());
+    return searchMatch && authorMatch;
+  });
+
+  const handleMenuClick = (e, key) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const menuHeight = 200;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const topPosition = spaceBelow < menuHeight ? rect.top - menuHeight - 8 : rect.bottom + 8;
+    setMenuPosition({ top: Math.max(8, topPosition), left: rect.left - 200 });
+    setOpenMenuIndex(openMenuIndex === key ? null : key);
+    setConfirmDeleteIndex(null);
+  };
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (e.target.closest("button[data-menu-button]")) return;
+      if (e.target.closest(".menu-dropdown")) return;
+      setOpenMenuIndex(null);
+      setConfirmDeleteIndex(null);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    const timer = setTimeout(() => fetchPosts(), 300);
-    return () => clearTimeout(timer);
-  }, [fetchPosts]);
+  const getPublicUrl = (post) => {
+    const t = post.type?.toLowerCase().trim();
+    const s = post.slug || post._id;
+    return (t === 'web story' || t === 'web-story' || t === 'story')
+      ? `/web-stories/${s}`
+      : `/posts/${s}`;
+  };
+
+  const handleDelete = async (post) => {
+    try {
+      const token = localStorage.getItem('token') || '';
+      const target = post.slug || post._id;
+      const res = await fetch(`${BASE}/api/posts/${target}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setPosts(posts.filter(p => p._id !== post._id));
+        setTotalPublished(t => t - 1);
+        setOpenMenuIndex(null);
+        setConfirmDeleteIndex(null);
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  };
+
+  const handleUnpublish = async (post) => {
+    try {
+      const token = localStorage.getItem('token') || '';
+      const target = post.slug || post._id;
+      const res = await fetch(`${BASE}/api/posts/${target}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: 'draft' }),
+      });
+      if (res.ok) {
+        setPosts(posts.filter(p => p._id !== post._id));
+        setTotalPublished(t => t - 1);
+        setOpenMenuIndex(null);
+      }
+    } catch (err) {
+      console.error('Unpublish error:', err);
+    }
+  };
+
+  const handleCopyLink = (post) => {
+    navigator.clipboard.writeText(`${publicOrigin}${getPublicUrl(post)}`).catch(() => {});
+  };
+
+  const handleView = (post) => {
+    window.open(`${publicOrigin}${getPublicUrl(post)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  // Pagination buttons — show max 7 page numbers around current
+  const getPageNumbers = () => {
+    const pages = [];
+    const delta = 3;
+    const left = Math.max(1, currentPage - delta);
+    const right = Math.min(totalPages, currentPage + delta);
+    for (let i = left; i <= right; i++) pages.push(i);
+    return pages;
+  };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-8">
-      {/* Header */}
-      <div className="max-w-7xl mx-auto mb-10">
-        <div className="flex items-center gap-4 mb-2">
-          <div className="p-3 bg-green-100 rounded-2xl">
-            <TrendingUp className="text-green-600" size={28} />
-          </div>
-          <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Published Posts</h1>
-            <p className="text-slate-500 font-medium">
-              Managing <span className="text-blue-600 font-bold">{stats.published?.toLocaleString()}</span> live articles for SportzPoint
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
+      <div className="p-8">
 
-      {/* Stats Grid */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-        <StatCard label="Total Published" value={stats.published} icon={<BarChart3 />} color="blue" />
-        <StatCard label="Live Articles" value={stats.published} icon={<FileText />} color="green" />
-      </div>
+        {/* Breadcrumb */}
+        <nav className="text-sm text-slate-600 dark:text-gray-400 mb-8">
+          <ol className="flex items-center space-x-2">
+            <li><a href="/" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium">Home</a></li>
+            <li className="text-slate-400">/</li>
+            <li><a href="/posts" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium">Posts</a></li>
+            <li className="text-slate-400">/</li>
+            <li className="text-slate-900 dark:text-white font-semibold">Published</li>
+          </ol>
+        </nav>
 
-      {/* Content Table */}
-      <div className="max-w-7xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search published content..." 
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            />
+        {/* Header */}
+        <div className="mb-10">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
+              <TrendingUp className="text-green-600 dark:text-green-400" size={24} />
+            </div>
+            <h1 className="text-4xl font-bold text-slate-900 dark:text-white">Published Posts</h1>
           </div>
-          <div className="text-sm font-bold text-slate-400 uppercase tracking-widest">
-            Page {currentPage} of {pagination.totalPages}
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-6 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider">Article</th>
-                <th className="px-6 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider">Author</th>
-                <th className="px-6 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider">Published Date</th>
-                <th className="px-6 py-5 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {isLoading ? (
-                <tr>
-                  <td colSpan="4" className="py-24 text-center">
-                    <Loader className="animate-spin text-blue-600 mx-auto" size={32} />
-                    <p className="text-slate-400 mt-2 font-medium">Loading your library...</p>
-                  </td>
-                </tr>
-              ) : posts.map((post) => (
-                <tr key={post._id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-6 py-5">
-                    <p className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">{post.title}</p>
-                    <p className="text-xs text-slate-400 mt-0.5 capitalize">{post.type || 'Article'}</p>
-                  </td>
-                  <td className="px-6 py-5 text-sm text-slate-600 font-medium">{post.authorName || 'Staff Writer'}</td>
-                  <td className="px-6 py-5 text-sm text-slate-400">
-                    {new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </td>
-                  <td className="px-6 py-5 text-right">
-                    <button 
-                      onClick={() => router.push(getEditPath(post))}
-                      className="p-2 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg transition-all text-slate-400 hover:text-blue-600"
-                    >
-                      <Eye size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Footer */}
-        <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-          <p className="text-sm text-slate-500 font-medium">
-            Showing <span className="text-slate-900 font-bold">{posts.length}</span> of <span className="text-slate-900 font-bold">{pagination.total.toLocaleString()}</span> articles
+          <p className="text-slate-600 dark:text-gray-400 ml-14 text-lg">
+            {/* ✅ Shows real total from stats endpoint */}
+            {totalPublished.toLocaleString()} total published articles
           </p>
-          <div className="flex items-center gap-2">
-            <button 
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(p => p - 1)}
-              className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-all shadow-sm flex items-center gap-2"
-            >
-              <ChevronLeft size={16} /> Previous
-            </button>
-            <button 
-              disabled={currentPage >= pagination.totalPages}
-              onClick={() => setCurrentPage(p => p + 1)}
-              className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-all shadow-sm flex items-center gap-2"
-            >
-              Next <ChevronRight size={16} />
-            </button>
+        </div>
+
+        {error && (
+          <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400">
+            {error}
+          </div>
+        )}
+
+        {/* Stats — uses totalPublished from stats endpoint */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          <div className="bg-slate-100 dark:bg-gray-800 rounded-2xl p-6 border border-black/5 shadow-sm">
+            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">Total Published</p>
+            <span className="text-3xl font-bold text-slate-700 dark:text-gray-300">
+              {totalPublished.toLocaleString()}
+            </span>
+          </div>
+          <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-6 border border-black/5 shadow-sm">
+            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">Current Page</p>
+            <span className="text-3xl font-bold text-green-700 dark:text-green-400">
+              {posts.length} posts
+            </span>
+          </div>
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-6 border border-black/5 shadow-sm">
+            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">Page</p>
+            <span className="text-3xl font-bold text-blue-700 dark:text-blue-400">
+              {currentPage} / {totalPages.toLocaleString()}
+            </span>
+          </div>
+          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-2xl p-6 border border-black/5 shadow-sm">
+            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 mb-2">Per Page</p>
+            <span className="text-3xl font-bold text-purple-700 dark:text-purple-400">{LIMIT}</span>
           </div>
         </div>
+
+        {/* Filters */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-6 mb-8">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-64">
+              <input
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                placeholder="Search in current page..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <select value={filterType} onChange={(e) => setFilterType(e.target.value)}
+              className="px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl text-slate-900 dark:text-white">
+              <option value="All">All Types</option>
+              <option value="article">Article</option>
+              <option value="video">Video</option>
+              <option value="photo-gallery">Gallery</option>
+              <option value="web-story">Web Story</option>
+              <option value="live-blog">Live Blog</option>
+            </select>
+            <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
+              className="px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl text-slate-900 dark:text-white">
+              <option value="All">All Categories</option>
+              {availableCategories.map(cat => (
+                <option key={cat._id} value={cat.slug || cat.name}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 overflow-hidden">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader size={32} className="animate-spin text-blue-600" />
+              <span className="ml-3 text-slate-600 dark:text-gray-400">Loading page {currentPage}...</span>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800 border-b border-slate-200 dark:border-gray-700">
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">Title</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">Type</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">Category</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">Author</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">Published</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">SEO</th>
+                  <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700 dark:text-gray-300">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-gray-700">
+                {filtered.map((post) => (
+                  <tr key={post._id} className="hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white max-w-xs truncate">{post.title}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1.5 rounded-full text-xs font-semibold inline-block ${tagClass(post.type)}`}>
+                        {post.type || 'Article'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-slate-700 dark:text-gray-300 text-sm">{getCategoryNames(post.categories)}</td>
+                    <td className="px-6 py-4 text-slate-700 dark:text-gray-300 text-sm">{post.authorName || 'Unknown'}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-gray-400 text-sm">
+                      {post.publishedAt
+                        ? new Date(post.publishedAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: '2-digit' })
+                        : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1.5 rounded-lg text-xs font-semibold inline-block ${seoClass(post.seoScore || 0)}`}>
+                        {post.seoScore || 0}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button data-menu-button onClick={(e) => handleMenuClick(e, `post-${post._id}`)}
+                        className="p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-700 transition text-slate-600 dark:text-gray-400">
+                        <MoreVertical size={18} />
+                      </button>
+                      {openMenuIndex === `post-${post._id}` && (
+                        <div className="fixed bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl shadow-lg z-50 w-48 overflow-hidden menu-dropdown"
+                          style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}>
+                          <ul className="py-1">
+                            <li><button onClick={() => handleEdit(post)} className="px-4 py-3 w-full hover:bg-blue-50 dark:hover:bg-blue-900/30 text-left text-slate-700 dark:text-gray-300 font-medium text-sm">Edit</button></li>
+                            <li><button onClick={() => handleView(post)} className="px-4 py-3 w-full hover:bg-slate-50 dark:hover:bg-gray-700/50 text-left text-slate-700 dark:text-gray-300 text-sm flex items-center gap-2"><Eye size={16} /> View</button></li>
+                            <li><button onClick={() => handleCopyLink(post)} className="px-4 py-3 w-full hover:bg-slate-50 dark:hover:bg-gray-700/50 text-left text-slate-700 dark:text-gray-300 text-sm">Copy Link</button></li>
+                            <li><button onClick={() => handleUnpublish(post)} className="px-4 py-3 w-full hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-left text-yellow-700 dark:text-yellow-400 text-sm">Unpublish</button></li>
+                            <li>
+                              {confirmDeleteIndex === `post-${post._id}` ? (
+                                <div className="px-4 py-3">
+                                  <p className="text-xs text-red-600 dark:text-red-400 mb-2 font-medium">Confirm delete?</p>
+                                  <div className="flex gap-2">
+                                    <button onClick={() => handleDelete(post)} className="flex-1 bg-red-600 text-white px-2.5 py-1.5 rounded-lg text-xs">Delete</button>
+                                    <button onClick={() => setConfirmDeleteIndex(null)} className="flex-1 bg-slate-100 dark:bg-gray-700 px-2.5 py-1.5 rounded-lg text-xs">Cancel</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button onClick={() => setConfirmDeleteIndex(`post-${post._id}`)} className="px-4 py-3 w-full hover:bg-red-50 dark:hover:bg-red-900/20 text-left text-red-600 dark:text-red-400 text-sm">Delete</button>
+                              )}
+                            </li>
+                          </ul>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && !isLoading && (
+                  <tr><td colSpan="7" className="text-center py-12 text-slate-500 dark:text-gray-400">No posts on this page match your search</td></tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* ✅ Server-side pagination — navigates to next batch from backend */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
+            <button disabled={currentPage === 1} onClick={() => setCurrentPage(1)}
+              className="px-3 py-2.5 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg disabled:opacity-50 text-slate-700 dark:text-gray-300 text-sm">
+              «
+            </button>
+            <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}
+              className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg disabled:opacity-50 text-slate-700 dark:text-gray-300">
+              Previous
+            </button>
+            {getPageNumbers().map(n => (
+              <button key={n} onClick={() => setCurrentPage(n)}
+                className={`px-4 py-2.5 rounded-lg font-medium transition ${
+                  currentPage === n
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-50'
+                }`}>
+                {n}
+              </button>
+            ))}
+            <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}
+              className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg disabled:opacity-50 text-slate-700 dark:text-gray-300">
+              Next
+            </button>
+            <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(totalPages)}
+              className="px-3 py-2.5 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg disabled:opacity-50 text-slate-700 dark:text-gray-300 text-sm">
+              »
+            </button>
+            <span className="text-sm text-slate-500 dark:text-gray-400 ml-2">
+              Page {currentPage} of {totalPages.toLocaleString()} ({totalPublished.toLocaleString()} total)
+            </span>
+          </div>
+        )}
+
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value, icon, color }) {
-  const colors = {
-    blue: "bg-blue-50 text-blue-600",
-    green: "bg-green-50 text-green-600",
-  };
-  return (
-    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-      <div className={`w-12 h-12 rounded-2xl ${colors[color]} flex items-center justify-center mb-4`}>
-        {icon}
-      </div>
-      <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">{label}</p>
-      <h3 className="text-3xl font-black text-slate-900">{value?.toLocaleString() || 0}</h3>
-    </div>
-  );
+function tagClass(type) {
+  const t = type?.toLowerCase() || '';
+  if (t === "article") return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+  if (t === "live-blog") return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+  if (t === "video") return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400";
+  if (t === "photo-gallery") return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+  if (t === "web-story") return "bg-yellow-200 text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-400";
+  return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
+}
+
+function seoClass(score) {
+  if (score > 80) return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+  if (score >= 60) return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400";
+  return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
 }
