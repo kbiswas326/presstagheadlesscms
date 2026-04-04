@@ -144,3 +144,154 @@ export const getUsers = async () => {
     return [];
   }
 };
+
+export const createUser = async (data) => {
+  const res = await fetch(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-tenant-id': resolveTenantId(),
+    },
+    body: JSON.stringify(data),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || json.message || 'Failed to create user');
+  return json;
+};
+
+export const updateUser = async (id, data) => {
+  const res = await fetch(`${API_BASE}/users/${id}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || json.message || 'Failed to update user');
+  return json;
+};
+
+export const deleteUser = async (id) => {
+  const res = await fetch(`${API_BASE}/users/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || json.message || 'Failed to delete user');
+  return json;
+};
+
+export const getCategories = async () => {
+  const res = await fetch(`${API_BASE}/categories`, { headers: getHeaders() });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || json.message || 'Failed to fetch categories');
+  return json;
+};
+
+export const createCategory = async (data) => {
+  const res = await fetch(`${API_BASE}/categories`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || json.message || 'Failed to create category');
+  return json;
+};
+
+export const updateCategory = async (id, data) => {
+  const res = await fetch(`${API_BASE}/categories/${id}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || json.message || 'Failed to update category');
+  return json;
+};
+
+export const deleteCategory = async (id) => {
+  const res = await fetch(`${API_BASE}/categories/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || json.message || 'Failed to delete category');
+  return json;
+};
+
+export const getTags = async () => {
+  const res = await fetch(`${API_BASE}/tags`, { headers: getHeaders() });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || json.message || 'Failed to fetch tags');
+  return json;
+};
+
+export const createTag = async (data) => {
+  const res = await fetch(`${API_BASE}/tags`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || json.message || 'Failed to create tag');
+  return json;
+};
+
+export const updateTag = async (id, data) => {
+  const res = await fetch(`${API_BASE}/tags/${id}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || json.message || 'Failed to update tag');
+  return json;
+};
+
+export const deleteTag = async (id) => {
+  const res = await fetch(`${API_BASE}/tags/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || json.message || 'Failed to delete tag');
+  return json;
+};
+
+const getToken = () => (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || '';
+
+export const getMediaLibrary = async () => {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}/media`, {
+    headers: {
+      'x-tenant-id': resolveTenantId(),
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
+  });
+  const json = await res.json().catch(() => ([]));
+  if (!res.ok) throw new Error(json.error || json.message || 'Failed to fetch media library');
+  return json;
+};
+
+export const uploadMedia = async (file, metadata = {}) => {
+  const token = getToken();
+  if (!token) throw new Error('Session expired - Please login again');
+  const formData = new FormData();
+  formData.append('file', file);
+  if (metadata.altText) formData.append('altText', metadata.altText);
+  if (metadata.title) formData.append('title', metadata.title);
+  if (metadata.caption) formData.append('caption', metadata.caption);
+  if (metadata.credits) formData.append('credits', metadata.credits);
+
+  const res = await fetch(`${API_BASE}/media/upload`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'x-tenant-id': resolveTenantId(),
+    },
+    body: formData,
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || json.message || 'Failed to upload media');
+  return json;
+};

@@ -59,10 +59,11 @@ const resolveImageUrl = (url) => {
   if (!url) return "";
   if (url.startsWith("http")) return url;
   
+  const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
   // Remove /api/ prefix if it exists (backend doesn't serve from /api/uploads)
   const cleanUrl = url.replace('/api/uploads/', '/uploads/');
   
-  return `http://localhost:5000${cleanUrl}`;
+  return `${apiOrigin}${cleanUrl.startsWith('/') ? '' : '/'}${cleanUrl}`;
 };
 
   // Generate slug
@@ -87,9 +88,10 @@ useEffect(() => {
         let cleanUrl = img.url || "";
         cleanUrl = cleanUrl.replace('/api/uploads/', '/uploads/'); // Remove incorrect /api/ prefix
         
-        const fullUrl = cleanUrl.startsWith('http') 
-          ? cleanUrl 
-          : `http://localhost:5000${cleanUrl}`;
+        const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
+        const fullUrl = cleanUrl.startsWith('http')
+          ? cleanUrl
+          : `${apiOrigin}${cleanUrl.startsWith('/') ? '' : '/'}${cleanUrl}`;
         
         if (index === 0) {
           console.log('✅ Sample image:', { 

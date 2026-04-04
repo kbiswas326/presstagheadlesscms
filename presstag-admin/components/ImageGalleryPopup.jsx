@@ -1,4 +1,3 @@
-import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import ImageGallaryPagination from "./ImagegalleryPagination";
@@ -26,15 +25,15 @@ const ImageGalleryPopup = ({ onSelect, onClose, onImageSelect }) => {
   const fetchImages = async (url) => {
     setIsLoading(true);
     try {
-      const token = Cookies.get("token");
+      const token = (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || Cookies.get("token");
       const response = await fetch(
         url,
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
             "x-tenant-id": getTenantId(),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         }
       );
@@ -133,18 +132,18 @@ const ImageGalleryPopup = ({ onSelect, onClose, onImageSelect }) => {
       const formData = new FormData();
 
       formData.append("file", file);
-      formData.append("alt", imageAltTexts);
+      formData.append("altText", imageAltTexts);
 
       try {
         setIsLoading(true);
-        const token = Cookies.get("token");
+        const token = (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || Cookies.get("token");
         const response = await fetch(
           `${API_BASE}/media/upload`,
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${token}`,
               "x-tenant-id": getTenantId(),
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: formData,
           }
@@ -248,12 +247,10 @@ const ImageGalleryPopup = ({ onSelect, onClose, onImageSelect }) => {
                           setSelectedImageId(img._id);
                         }}
                       >
-                        <Image
+                        <img
                           src={img.url.startsWith('http') ? img.url : `${process.env.NEXT_PUBLIC_API_URL.replace('/api', '')}${img.url}`}
                           alt={img.altText || `Image ${index + 1}`}
-                          layout="fill"
-                          objectFit="cover"
-                          className="transition-transform group-hover:scale-105"
+                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
                         />
                         {selectedImageId === img._id && (
                           <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">

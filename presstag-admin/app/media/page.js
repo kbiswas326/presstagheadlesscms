@@ -1,6 +1,5 @@
 ///admin>app>media>page.js///
 'use client'
-import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import ImageGallaryPagination from "../../components/ImagegalleryPagination";
@@ -27,15 +26,15 @@ const Page = () => {
   const fetchImages = async (url) => {
     setIsLoading(true);
     try {
-      const token = Cookies.get("token");
+      const token = (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || Cookies.get("token");
       const response = await fetch(
         url,
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
-            "x-tenant-id": getTenantId()
+            "x-tenant-id": getTenantId(),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         }
       );
@@ -78,9 +77,9 @@ const Page = () => {
     fetchImages(url);
   }, [currentPage]);
 
-  const handleImageClick = (img,alt) => {
-    setSelectedImage(img);
-    setSelectedImageAlt(alt)
+  const handleImageClick = (url, altTextValue) => {
+    setSelectedImage(url);
+    setSelectedImageAlt(altTextValue);
   };
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -125,14 +124,14 @@ const Page = () => {
     setError("");
 
     try {
-      const token = Cookies.get("token");
+      const token = (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || Cookies.get("token");
       const response = await fetch(
         `${BASE}/api/media/upload`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
             "x-tenant-id": getTenantId(),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: formData,
         }
@@ -193,18 +192,18 @@ const Page = () => {
         const formData = new FormData();
   
         formData.append("file", file);
-        formData.append("alt", imageAltTexts);
+        formData.append("altText", imageAltTexts);
   
         try {
           setIsLoading(true);
-          const token = Cookies.get("token");
+          const token = (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || Cookies.get("token");
           const response = await fetch(
             `${BASE}/api/media/upload`,
             {
               method: "POST",
               headers: {
-                Authorization: `Bearer ${token}`,
                 "x-tenant-id": getTenantId(),
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
               },
               body: formData,
             }
@@ -309,15 +308,11 @@ const Page = () => {
           <div className="flex flex-col md:flex-row gap-3">
             {imagePreview && (
               <div className="w-full md:w-1/2">
-                <div className="relative w-full" style={{ height: '280px' }}>
-                  <Image
-                    src={imagePreview}
-                    alt="Preview"
-                    layout="fill"
-                    objectFit="contain"
-                    className="rounded-lg"
-                  />
-                </div>
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="h-[280px] w-full rounded-lg object-contain"
+                />
               </div>
             )}
 
@@ -375,18 +370,16 @@ const Page = () => {
           <div
             key={index}
             className="group aspect-square relative rounded-lg overflow-hidden border border-gray-200 bg-gray-100 hover:border-blue-500 transition-all duration-200"
-            onClick={() => handleImageClick(img.img_path,img.alt)}
+            onClick={() => handleImageClick(img.url, img.altText || img.alt || "")}
           >
-            <Image
+            <img
               src={getImageUrl(img.url || `/uploads/default/${img.img_path}`)}
-              alt={img.alt || ""}
-              layout="fill"
-              objectFit="cover"
-              className="group-hover:opacity-75 transition-opacity duration-200"
+              alt={img.altText || img.alt || ""}
+              className="h-full w-full object-cover group-hover:opacity-75 transition-opacity duration-200"
             />
            
               <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 truncate">
-                {img.alt}
+                {img.altText || img.alt}
               </div>
             
           </div>
@@ -416,15 +409,12 @@ const Page = () => {
               </button>
             </div>
             <div className="flex flex-col">
-              <div className="aspect-square relative w-full">
-                <Image
-                  src={getImageUrl(`/uploads/default/${selectedImage}`)}
-                  alt={imageAltTexts[selectedImage] || "Selected Image"}
-                  layout="fill"
-                  objectFit="contain"
-                  className="bg-gray-900"
+              <div className="w-full bg-gray-900">
+                <img
+                  src={getImageUrl(selectedImage)}
+                  alt={selectedImageAlt || "Selected Image"}
+                  className="h-[520px] w-full object-contain"
                 />
-               
               </div>
               {selectedImageAlt && (
                 <div className="p-3 bg-white border-t">

@@ -15,12 +15,30 @@ export const getImageUrl = (relativePath) => {
   }
   
   // Get API base URL from environment
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001').replace(/\/api$/, '');
   
   // Ensure no double slashes
   const path = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
   
-  return `${API_BASE}${path}`;
+  return `${API_ORIGIN}${path}`;
+};
+
+const normalizeApiBase = (raw) => {
+  const trimmed = String(raw || '').trim().replace(/\/+$/, '');
+  if (!trimmed) return 'http://localhost:5001/api';
+  if (trimmed.endsWith('/api')) return trimmed;
+  return `${trimmed}/api`;
+};
+
+const resolveTenantId = () => {
+  const envTenant = String(process.env.NEXT_PUBLIC_TENANT_ID || '').trim();
+  if (envTenant) return envTenant;
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname.toLowerCase();
+    if (host.includes('sportzpoint')) return 'sportzpoint';
+    if (host.includes('presstag')) return 'presstag';
+  }
+  return 'presstag';
 };
 
 /**
@@ -30,7 +48,7 @@ export const getImageUrl = (relativePath) => {
  * @returns {Promise<Object>} Upload response
  */
 export const uploadImage = async (file, metadata = {}) => {
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const API_BASE = normalizeApiBase(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001');
   
   const formData = new FormData();
   formData.append('file', file);
@@ -50,10 +68,11 @@ export const uploadImage = async (file, metadata = {}) => {
   }
   
   const headers = {
-    'Authorization': `Bearer ${token}`
+    'Authorization': `Bearer ${token}`,
+    'x-tenant-id': resolveTenantId(),
   };
   
-  let response = await fetch(`${API_BASE}/api/media/upload`, {
+  let response = await fetch(`${API_BASE}/media/upload`, {
     method: 'POST',
     headers: headers,
     body: formData
@@ -63,11 +82,12 @@ export const uploadImage = async (file, metadata = {}) => {
   if (!response.ok && response.status === 401) {
     console.log('🔄 Upload got 401, attempting token refresh...');
     try {
-      const refreshRes = await fetch(`${API_BASE}/api/auth/refresh`, {
+      const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'x-tenant-id': resolveTenantId(),
         }
       });
 
@@ -86,9 +106,9 @@ export const uploadImage = async (file, metadata = {}) => {
           if (metadata.caption) retryFormData.append('caption', metadata.caption);
           if (metadata.credits) retryFormData.append('credits', metadata.credits);
 
-          response = await fetch(`${API_BASE}/api/media/upload`, {
+          response = await fetch(`${API_BASE}/media/upload`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
+            headers: { 'Authorization': `Bearer ${token}`, 'x-tenant-id': resolveTenantId() },
             body: retryFormData
           });
         }
