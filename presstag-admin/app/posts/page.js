@@ -235,9 +235,9 @@ export default function PostsPage() {
             <option value="All">All Types</option>
             <option value="article">Article</option>
             <option value="video">Video</option>
-            <option value="photo-gallery">Gallery</option>
-            <option value="web-story">Web Story</option>
-            <option value="live-blog">Live Blog</option>
+            <option value="photo gallery">Gallery</option>
+            <option value="web story">Web Story</option>
+            <option value="live blog">Live Blog</option>
           </select>
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl text-slate-900 dark:text-white">
@@ -361,12 +361,12 @@ export default function PostsPage() {
 }
 
 function tagClass(type) {
-  const t = type?.toLowerCase() || '';
+  const t = String(type || '').toLowerCase().trim().replace(/-/g, ' ');
   if (t === "article") return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-  if (t === "live-blog") return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+  if (t === "live blog") return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
   if (t === "video") return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400";
-  if (t === "photo-gallery") return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
-  if (t === "web-story") return "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-400";
+  if (t === "photo gallery") return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+  if (t === "web story") return "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-400";
   return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
 }
 

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { MoreVertical, FileText, Eye, Loader, Edit3, BarChart3, Film, Image as ImageIcon, Smartphone, CircleDot } from "lucide-react";
-import { getTenantId, posts as postsAPI } from "../../../lib/api";
+import { getTenantId, getUsers, posts as postsAPI } from "../../../lib/api";
 import { useRouter } from 'next/navigation';
 import { getEditPath } from '@/utils/getEditPath';
 import { useTheme } from "../../context/ThemeContext";
@@ -29,6 +29,7 @@ export default function DraftPosts() {
   const [filterCategory, setFilterCategory] = useState("All");
   const [filterAuthor, setFilterAuthor] = useState("All");
   const [availableCategories, setAvailableCategories] = useState([]);
+  const [availableAuthors, setAvailableAuthors] = useState([]);
 
   const postsPerPage = 15;
   const [currentPage, setCurrentPage] = useState(1);
@@ -38,7 +39,7 @@ export default function DraftPosts() {
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const [confirmDeleteIndex, setConfirmDeleteIndex] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
-  const publicOrigin = process.env.NEXT_PUBLIC_PUBLIC_ORIGIN || "http://localhost:3001";
+  const [publicOrigin, setPublicOrigin] = useState('');
 
   // =====================================================
   // HELPER: Get public URL
@@ -61,9 +62,19 @@ export default function DraftPosts() {
           const found = availableCategories.find(c => c._id === cat || c.id === cat);
           return found ? found.name : cat;
         }
-        return cat.name || 'Uncategorized';
+        return cat?.name || cat?.title || cat?.slug || 'Uncategorized';
       })
       .join(', ') || 'Uncategorized';
+  };
+
+  const getCategoryLabel = (post) => {
+    const fromCategories = getCategoryNames(post?.categories);
+    if (fromCategories !== 'Uncategorized') return fromCategories;
+    const primaryIds = Array.isArray(post?.primary_category) ? post.primary_category : (post?.primary_category ? [post.primary_category] : []);
+    if (primaryIds.length === 0) return 'Uncategorized';
+    const map = new Map((availableCategories || []).map((c) => [String(c._id), c.name || c.slug || String(c._id)]));
+    const labels = primaryIds.map((id) => map.get(String(id)) || String(id)).filter(Boolean);
+    return labels.join(', ') || 'Uncategorized';
   };
 
   useEffect(() => {
@@ -84,6 +95,38 @@ export default function DraftPosts() {
         } catch (catErr) {
           console.error('Failed to fetch categories:', catErr);
         }
+
+        fetch(`${BASE}/api/layout-config`, { headers })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((cfg) => {
+            const normalizeOrigin = (raw) => String(raw || '').trim().replace(/\/+$/, '');
+            const inferFromHost = () => {
+              const host = window.location.hostname.toLowerCase();
+              if (host.includes('localhost') || host.includes('127.0.0.1')) return 'http://localhost:3001';
+              if (host.startsWith('admin.')) return `https://${host.slice(6)}`;
+              if (host.startsWith('cms.')) return `https://${host.slice(4)}`;
+              return '';
+            };
+            const fromEnv = normalizeOrigin(process.env.NEXT_PUBLIC_PUBLIC_ORIGIN);
+            const fromConfig = normalizeOrigin(
+              cfg?.seo?.publicOrigin ||
+              cfg?.seo?.siteUrl ||
+              cfg?.seo?.frontendUrl ||
+              cfg?.branding?.siteUrl
+            );
+            setPublicOrigin(fromEnv || fromConfig || inferFromHost());
+          })
+          .catch(() => {});
+
+        getUsers()
+          .then((users) => {
+            const rows = Array.isArray(users) ? users : (users?.users || []);
+            const normalized = rows
+              .map((u) => ({ _id: u?._id || u?.id, name: u?.name }))
+              .filter((u) => u._id && u.name);
+            setAvailableAuthors(normalized);
+          })
+          .catch(() => {});
       } catch (err) {
         console.error('❌ Fetch error:', err);
         setError('Failed to fetch draft posts: ' + err.message);
@@ -144,13 +187,17 @@ export default function DraftPosts() {
   }, [search, filterType, filterCategory]);
 
   // Count posts by type
-  const countByType = (type) => posts.filter((p) => p.type?.toLowerCase() === type.toLowerCase()).length;
+  const countByType = (type) => {
+    const normalizeType = (t) => String(t || '').toLowerCase().replace(/-/g, ' ').trim();
+    return posts.filter((p) => normalizeType(p.type) === normalizeType(type)).length;
+  };
 
   const filtered = posts.filter((p) => {
     const title = p.title || "";
+    const authorId = (p.author && typeof p.author === 'object') ? (p.author._id || p.author.id) : p.author;
     return (
       title.toLowerCase().includes(search.toLowerCase()) &&
-      (filterAuthor === "All" || p.authorName?.toLowerCase() === filterAuthor?.toLowerCase())
+      (filterAuthor === "All" || String(authorId || '') === String(filterAuthor))
     );
   });
 
@@ -203,8 +250,9 @@ export default function DraftPosts() {
 
   const handleView = (post) => {
     const path = getPublicUrl(post);
-    const absolute = `${publicOrigin}${path}`;
-    window.open(absolute, '_blank', 'noopener,noreferrer');
+    const origin = String(publicOrigin || '').trim();
+    const full = origin ? `${origin}${path}` : path;
+    window.open(full, '_blank', 'noopener,noreferrer');
   };
 
   if (isLoading) {
@@ -280,9 +328,9 @@ export default function DraftPosts() {
               <option value="All">All Types</option>
               <option value="article">Article</option>
               <option value="video">Video</option>
-              <option value="photo-gallery">Gallery</option>
-              <option value="web-story">Web Story</option>
-              <option value="live-blog">Live Blog</option>
+              <option value="photo gallery">Gallery</option>
+              <option value="web story">Web Story</option>
+              <option value="live blog">Live Blog</option>
             </select>
 
             <select
@@ -291,8 +339,9 @@ export default function DraftPosts() {
               className="px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white font-medium transition cursor-pointer"
             >
               <option value="All">All Categories</option>
-              <option value="Cricket">Cricket</option>
-              <option value="Sports News">Sports News</option>
+              {availableCategories.map((cat) => (
+                <option key={cat._id} value={cat.slug || cat.name}>{cat.name}</option>
+              ))}
             </select>
 
             <select
@@ -301,7 +350,9 @@ export default function DraftPosts() {
               className="px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white font-medium transition cursor-pointer"
             >
               <option value="All">All Authors</option>
-              <option value="Admin User">Admin User</option>
+              {availableAuthors.map((a) => (
+                <option key={a._id} value={a._id}>{a.name}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -332,8 +383,8 @@ export default function DraftPosts() {
                     </span>
                   </td>
 
-                  <td className="px-6 py-4 text-slate-700 dark:text-gray-300">{getCategoryNames(post.categories)}</td>
-                  <td className="px-6 py-4 text-slate-700 dark:text-gray-300">{post.authorName || 'Unknown'}</td>
+                  <td className="px-6 py-4 text-slate-700 dark:text-gray-300">{getCategoryLabel(post)}</td>
+                  <td className="px-6 py-4 text-slate-700 dark:text-gray-300">{(post.author && typeof post.author === 'object' ? post.author.name : post.authorName) || 'Unknown'}</td>
                   
                   <td className="px-6 py-4 text-slate-600 dark:text-gray-400 text-sm">
                     {(() => {

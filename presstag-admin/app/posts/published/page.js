@@ -6,7 +6,7 @@ import { MoreVertical, TrendingUp, Eye, Loader, BarChart3, FileText, Film, Image
 import { useRouter } from 'next/navigation';
 import { getEditPath } from '@/utils/getEditPath';
 import { useTheme } from "../../context/ThemeContext";
-import { getTenantId, posts as postsAPI } from "../../../lib/api";
+import { getTenantId, getUsers, posts as postsAPI } from "../../../lib/api";
 
 const LIMIT = 20;
 
@@ -42,12 +42,56 @@ export default function PublishedPosts() {
   const [filterCategory, setFilterCategory] = useState("All");
   const [filterAuthor, setFilterAuthor] = useState("All");
   const [availableCategories, setAvailableCategories] = useState([]);
+  const [availableAuthors, setAvailableAuthors] = useState([]);
 
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const [confirmDeleteIndex, setConfirmDeleteIndex] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
-  const publicOrigin = process.env.NEXT_PUBLIC_PUBLIC_ORIGIN || 'http://localhost:3001';
+  const [publicOrigin, setPublicOrigin] = useState('');
+
+  useEffect(() => {
+    const normalizeOrigin = (raw) => String(raw || '').trim().replace(/\/+$/, '');
+    const inferFromHost = () => {
+      if (typeof window === 'undefined') return '';
+      const host = window.location.hostname.toLowerCase();
+      if (host.includes('localhost') || host.includes('127.0.0.1')) return 'http://localhost:3001';
+      if (host.startsWith('admin.')) return `https://${host.slice(6)}`;
+      if (host.startsWith('cms.')) return `https://${host.slice(4)}`;
+      return '';
+    };
+
+    const token = localStorage.getItem('token') || '';
+    const headers = { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() };
+
+    fetch(`${BASE}/api/layout-config`, { headers })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((cfg) => {
+        const fromEnv = normalizeOrigin(process.env.NEXT_PUBLIC_PUBLIC_ORIGIN);
+        const fromConfig = normalizeOrigin(
+          cfg?.seo?.publicOrigin ||
+          cfg?.seo?.siteUrl ||
+          cfg?.seo?.frontendUrl ||
+          cfg?.branding?.siteUrl
+        );
+        const origin = fromEnv || fromConfig || inferFromHost();
+        setPublicOrigin(origin);
+      })
+      .catch(() => {
+        const fromEnv = normalizeOrigin(process.env.NEXT_PUBLIC_PUBLIC_ORIGIN);
+        setPublicOrigin(fromEnv || inferFromHost());
+      });
+
+    getUsers()
+      .then((users) => {
+        const rows = Array.isArray(users) ? users : (users?.users || []);
+        const normalized = rows
+          .map((u) => ({ _id: u?._id || u?.id, name: u?.name }))
+          .filter((u) => u._id && u.name);
+        setAvailableAuthors(normalized);
+      })
+      .catch(() => {});
+  }, []);
 
   const getCategoryNames = (categoriesArray) => {
     if (!Array.isArray(categoriesArray)) return 'Uncategorized';
@@ -159,8 +203,8 @@ export default function PublishedPosts() {
   // Client-side search and author filter on current page only
   const filtered = posts.filter(p => {
     const title = p.title || '';
-    const authorLabel = (p.author && typeof p.author === 'object') ? (p.author.name || '') : (p.authorName || '');
-    const authorMatch = filterAuthor === 'All' || authorLabel.toLowerCase() === filterAuthor.toLowerCase();
+    const authorId = (p.author && typeof p.author === 'object') ? (p.author._id || p.author.id) : p.author;
+    const authorMatch = filterAuthor === 'All' || String(authorId || '') === String(filterAuthor);
     const searchMatch = title.toLowerCase().includes(search.toLowerCase());
     return searchMatch && authorMatch;
   });
@@ -251,11 +295,17 @@ export default function PublishedPosts() {
   };
 
   const handleCopyLink = (post) => {
-    navigator.clipboard.writeText(`${publicOrigin}${getPublicUrl(post)}`).catch(() => {});
+    const origin = String(publicOrigin || '').trim();
+    const url = getPublicUrl(post);
+    const full = origin ? `${origin}${url}` : url;
+    navigator.clipboard.writeText(full).catch(() => {});
   };
 
   const handleView = (post) => {
-    window.open(`${publicOrigin}${getPublicUrl(post)}`, '_blank', 'noopener,noreferrer');
+    const origin = String(publicOrigin || '').trim();
+    const url = getPublicUrl(post);
+    const full = origin ? `${origin}${url}` : url;
+    window.open(full, '_blank', 'noopener,noreferrer');
   };
 
   // Pagination buttons — show max 7 page numbers around current
@@ -328,15 +378,22 @@ export default function PublishedPosts() {
               <option value="All">All Types</option>
               <option value="article">Article</option>
               <option value="video">Video</option>
-              <option value="photo-gallery">Gallery</option>
-              <option value="web-story">Web Story</option>
-              <option value="live-blog">Live Blog</option>
+              <option value="photo gallery">Gallery</option>
+              <option value="web story">Web Story</option>
+              <option value="live blog">Live Blog</option>
             </select>
             <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
               className="px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl text-slate-900 dark:text-white">
               <option value="All">All Categories</option>
               {availableCategories.map(cat => (
                 <option key={cat._id} value={cat.slug || cat.name}>{cat.name}</option>
+              ))}
+            </select>
+            <select value={filterAuthor} onChange={(e) => setFilterAuthor(e.target.value)}
+              className="px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl text-slate-900 dark:text-white">
+              <option value="All">All Authors</option>
+              {availableAuthors.map(a => (
+                <option key={a._id} value={a._id}>{a.name}</option>
               ))}
             </select>
           </div>

@@ -71,6 +71,26 @@ export const posts = {
     return res.json();
   },
 
+  getById: async (id) => {
+    const res = await fetch(`${API_BASE}/posts/${id}`, {
+      headers: getHeaders(),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return { error: json.error || json.message || 'Failed to fetch post' };
+    return json;
+  },
+
+  create: async (data) => {
+    const res = await fetch(`${API_BASE}/posts`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return { error: json.error || json.message || 'Failed to create post' };
+    return json;
+  },
+
   /**
    * Updates a specific post (e.g., changing status or content)
    */
