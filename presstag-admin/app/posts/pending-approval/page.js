@@ -25,7 +25,7 @@ export default function PendingPosts() {
   const handleView = (post) => {
     const url = getPublicUrl(post);
     const origin = String(publicOrigin || '').trim();
-    const full = origin ? `${origin}${url}` : url;
+    const full = /^https?:\/\//i.test(String(url || '')) ? url : (origin ? `${origin}${url}` : url);
     window.open(full, '_blank', 'noopener,noreferrer');
   };
 

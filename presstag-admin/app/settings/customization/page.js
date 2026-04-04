@@ -58,7 +58,6 @@ export default function CustomizationPage() {
       ]
     },
     seo: {
-  publicOrigin: '',
   postUrlStructure: '/{category}/{slug}',   // for articles
   pageUrlStructure: '/{slug}',              // for pages
 
@@ -1085,27 +1084,6 @@ export default function CustomizationPage() {
     </h2>
 
     <div className="space-y-8">
-
-      <div>
-        <h3 className="text-md font-semibold mb-3">Frontend Public Origin</h3>
-
-        <input
-          type="text"
-          placeholder="https://sportzpoint-frontend-xxxxx.vercel.app"
-          value={settings.seo.publicOrigin}
-          onChange={(e) =>
-            setSettings(prev => ({
-              ...prev,
-              seo: { ...prev.seo, publicOrigin: e.target.value }
-            }))
-          }
-          className={inputClass}
-        />
-
-        <p className="text-xs mt-2 text-gray-400">
-          Used by the Admin View button to open posts on the frontend.
-        </p>
-      </div>
 
       {/* ================= POSTS ================= */}
       <div>

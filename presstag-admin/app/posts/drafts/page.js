@@ -292,7 +292,7 @@ export default function DraftPosts() {
   const handleView = (post) => {
     const path = getPublicUrl(post);
     const origin = String(publicOrigin || '').trim();
-    const full = origin ? `${origin}${path}` : path;
+    const full = /^https?:\/\//i.test(String(path || '')) ? path : (origin ? `${origin}${path}` : path);
     window.open(full, '_blank', 'noopener,noreferrer');
   };
 
