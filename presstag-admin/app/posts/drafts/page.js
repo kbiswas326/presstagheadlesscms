@@ -6,12 +6,13 @@ import { MoreVertical, FileText, Eye, Loader, Edit3, BarChart3, Film, Image as I
 import { getTenantId, getUsers, posts as postsAPI } from "../../../lib/api";
 import { useRouter } from 'next/navigation';
 import { getEditPath } from '@/utils/getEditPath';
+import { buildPostUrl } from '@/utils/buildPostUrl';
 import { useTheme } from "../../context/ThemeContext";
 
 export default function DraftPosts() {
   const router = useRouter();
   const { isDark } = useTheme();
-  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
   function handleEdit(post) {
     const path = getEditPath(post);
@@ -40,15 +41,13 @@ export default function DraftPosts() {
   const [confirmDeleteIndex, setConfirmDeleteIndex] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [publicOrigin, setPublicOrigin] = useState('');
+  const [urlStructure, setUrlStructure] = useState('/{category}/{slug}');
 
   // =====================================================
   // HELPER: Get public URL
   // =====================================================
   const getPublicUrl = (post) => {
-    const t = post.type?.toLowerCase().trim();
-    const s = post.slug || post._id;
-    const isWebStory = t === 'web story' || t === 'web-story' || t === 'story';
-    return isWebStory ? `/web-stories/${s}` : `/posts/${s}`;
+    return buildPostUrl(post, urlStructure);
   };
 
   // =====================================================
@@ -103,6 +102,8 @@ export default function DraftPosts() {
             const inferFromHost = () => {
               const host = window.location.hostname.toLowerCase();
               if (host.includes('localhost') || host.includes('127.0.0.1')) return 'http://localhost:3001';
+              if (host.includes('-admin-')) return `https://${host.replace('-admin-', '-frontend-')}`;
+              if (host.includes('sportzpoint-admin')) return `https://${host.replace('sportzpoint-admin', 'sportzpoint-frontend')}`;
               if (host.startsWith('admin.')) return `https://${host.slice(6)}`;
               if (host.startsWith('cms.')) return `https://${host.slice(4)}`;
               return '';
@@ -114,7 +115,10 @@ export default function DraftPosts() {
               cfg?.seo?.frontendUrl ||
               cfg?.branding?.siteUrl
             );
-            setPublicOrigin(fromEnv || fromConfig || inferFromHost());
+            const rawOrigin = fromEnv || fromConfig || inferFromHost();
+            const origin = rawOrigin.includes('-admin-') ? rawOrigin.replace('-admin-', '-frontend-') : (rawOrigin.includes('sportzpoint-admin') ? rawOrigin.replace('sportzpoint-admin', 'sportzpoint-frontend') : rawOrigin);
+            setPublicOrigin(origin);
+            setUrlStructure(cfg?.seo?.postUrlStructure || '/{category}/{slug}');
           })
           .catch(() => {});
 
@@ -122,9 +126,10 @@ export default function DraftPosts() {
           .then((users) => {
             const rows = Array.isArray(users) ? users : (users?.users || []);
             const normalized = rows
-              .map((u) => ({ _id: u?._id || u?.id, name: u?.name }))
+              .map((u) => ({ _id: u?._id || u?.id, name: u?.name, email: u?.email || '' }))
               .filter((u) => u._id && u.name);
-            setAvailableAuthors(normalized);
+            const byId = new Map(normalized.map((u) => [String(u._id), u]));
+            setAvailableAuthors(Array.from(byId.values()).sort((a, b) => String(a.name).localeCompare(String(b.name))));
           })
           .catch(() => {});
       } catch (err) {
@@ -151,6 +156,7 @@ export default function DraftPosts() {
           search,
           type: filterType,
           category: filterCategory,
+          author: filterAuthor,
         });
 
         if (response?.error) {
@@ -351,7 +357,7 @@ export default function DraftPosts() {
             >
               <option value="All">All Authors</option>
               {availableAuthors.map((a) => (
-                <option key={a._id} value={a._id}>{a.name}</option>
+                <option key={a._id} value={a._id}>{a.email ? `${a.name} — ${a.email}` : a.name}</option>
               ))}
             </select>
           </div>

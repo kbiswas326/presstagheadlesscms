@@ -5,8 +5,9 @@ import { useState, useEffect, useCallback } from "react";
 import { MoreVertical, TrendingUp, Eye, Loader, BarChart3, FileText, Film, Image as ImageIcon, Smartphone, CircleDot } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { getEditPath } from '@/utils/getEditPath';
+import { buildPostUrl } from '@/utils/buildPostUrl';
 import { useTheme } from "../../context/ThemeContext";
-import { getTenantId, getUsers, posts as postsAPI } from "../../../lib/api";
+import { getCategories, getLayoutConfig, getTenantId, getUsers, posts as postsAPI } from "../../../lib/api";
 
 const LIMIT = 20;
 
@@ -14,7 +15,7 @@ export default function PublishedPosts() {
   const router = useRouter();
   const { isDark } = useTheme();
 
-  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
   function handleEdit(post) {
     const path = getEditPath(post);
@@ -49,6 +50,7 @@ export default function PublishedPosts() {
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
   const [publicOrigin, setPublicOrigin] = useState('');
+  const [urlStructure, setUrlStructure] = useState('/{category}/{slug}');
 
   useEffect(() => {
     const normalizeOrigin = (raw) => String(raw || '').trim().replace(/\/+$/, '');
@@ -56,41 +58,43 @@ export default function PublishedPosts() {
       if (typeof window === 'undefined') return '';
       const host = window.location.hostname.toLowerCase();
       if (host.includes('localhost') || host.includes('127.0.0.1')) return 'http://localhost:3001';
+      if (host.includes('-admin-')) return `https://${host.replace('-admin-', '-frontend-')}`;
+      if (host.includes('sportzpoint-admin')) return `https://${host.replace('sportzpoint-admin', 'sportzpoint-frontend')}`;
       if (host.startsWith('admin.')) return `https://${host.slice(6)}`;
       if (host.startsWith('cms.')) return `https://${host.slice(4)}`;
       return '';
     };
 
-    const token = localStorage.getItem('token') || '';
-    const headers = { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() };
+    Promise.allSettled([getLayoutConfig(), getCategories(), getUsers()]).then((results) => {
+      const [layoutRes, categoriesRes, usersRes] = results;
+      const cfg = layoutRes.status === 'fulfilled' ? layoutRes.value : null;
 
-    fetch(`${BASE}/api/layout-config`, { headers })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((cfg) => {
-        const fromEnv = normalizeOrigin(process.env.NEXT_PUBLIC_PUBLIC_ORIGIN);
-        const fromConfig = normalizeOrigin(
-          cfg?.seo?.publicOrigin ||
-          cfg?.seo?.siteUrl ||
-          cfg?.seo?.frontendUrl ||
-          cfg?.branding?.siteUrl
-        );
-        const origin = fromEnv || fromConfig || inferFromHost();
-        setPublicOrigin(origin);
-      })
-      .catch(() => {
-        const fromEnv = normalizeOrigin(process.env.NEXT_PUBLIC_PUBLIC_ORIGIN);
-        setPublicOrigin(fromEnv || inferFromHost());
-      });
+      setUrlStructure(cfg?.seo?.postUrlStructure || '/{category}/{slug}');
 
-    getUsers()
-      .then((users) => {
-        const rows = Array.isArray(users) ? users : (users?.users || []);
-        const normalized = rows
-          .map((u) => ({ _id: u?._id || u?.id, name: u?.name }))
-          .filter((u) => u._id && u.name);
-        setAvailableAuthors(normalized);
-      })
-      .catch(() => {});
+      const fromEnv = normalizeOrigin(process.env.NEXT_PUBLIC_PUBLIC_ORIGIN);
+      const fromConfig = normalizeOrigin(
+        cfg?.seo?.publicOrigin ||
+        cfg?.seo?.siteUrl ||
+        cfg?.seo?.frontendUrl ||
+        cfg?.branding?.siteUrl
+      );
+      const rawOrigin = fromEnv || fromConfig || inferFromHost();
+      const origin = rawOrigin.includes('-admin-')
+        ? rawOrigin.replace('-admin-', '-frontend-')
+        : (rawOrigin.includes('sportzpoint-admin') ? rawOrigin.replace('sportzpoint-admin', 'sportzpoint-frontend') : rawOrigin);
+      setPublicOrigin(origin);
+
+      const categoriesJson = categoriesRes.status === 'fulfilled' ? categoriesRes.value : null;
+      if (categoriesJson) setAvailableCategories(categoriesJson.categories || categoriesJson || []);
+
+      const users = usersRes.status === 'fulfilled' ? usersRes.value : null;
+      const rows = Array.isArray(users) ? users : (users?.users || []);
+      const normalized = rows
+        .map((u) => ({ _id: u?._id || u?.id, name: u?.name, email: u?.email || '' }))
+        .filter((u) => u._id && u.name);
+      const byId = new Map(normalized.map((u) => [String(u._id), u]));
+      setAvailableAuthors(Array.from(byId.values()).sort((a, b) => String(a.name).localeCompare(String(b.name))));
+    });
   }, []);
 
   const getCategoryNames = (categoriesArray) => {
@@ -113,20 +117,6 @@ export default function PublishedPosts() {
     const labels = primaryIds.map((id) => map.get(String(id)) || String(id)).filter(Boolean);
     return labels.join(', ') || 'Uncategorized';
   };
-
-  // ✅ Fetch stats once for accurate total count
-  useEffect(() => {
-    const token = localStorage.getItem('token') || '';
-    const headers = { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() };
-
-    // Categories
-    fetch(`${BASE}/api/categories`, { headers })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data) setAvailableCategories(data.categories || data || []);
-      })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     const fetchTypeTotals = async () => {
@@ -171,6 +161,7 @@ export default function PublishedPosts() {
         search,
         type: filterType,
         category: filterCategory,
+        author: filterAuthor,
       });
 
       if (res?.error) throw new Error(res.error);
@@ -189,7 +180,7 @@ export default function PublishedPosts() {
     } finally {
       setIsLoading(false);
     }
-  }, [filterType, filterCategory, search]);
+  }, [filterType, filterCategory, filterAuthor, search]);
 
   useEffect(() => {
     fetchPage(currentPage);
@@ -231,11 +222,7 @@ export default function PublishedPosts() {
   }, []);
 
   const getPublicUrl = (post) => {
-    const t = post.type?.toLowerCase().trim();
-    const s = post.slug || post._id;
-    return (t === 'web story' || t === 'web-story' || t === 'story')
-      ? `/web-stories/${s}`
-      : `/posts/${s}`;
+    return buildPostUrl(post, urlStructure);
   };
 
   const getTypeBucket = (type) => {
@@ -393,7 +380,7 @@ export default function PublishedPosts() {
               className="px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl text-slate-900 dark:text-white">
               <option value="All">All Authors</option>
               {availableAuthors.map(a => (
-                <option key={a._id} value={a._id}>{a.name}</option>
+                <option key={a._id} value={a._id}>{a.email ? `${a.name} — ${a.email}` : a.name}</option>
               ))}
             </select>
           </div>

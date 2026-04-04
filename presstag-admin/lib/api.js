@@ -207,6 +207,13 @@ export const getCategories = async () => {
   return json;
 };
 
+export const getLayoutConfig = async () => {
+  const res = await fetch(`${API_BASE}/layout-config`, { headers: getHeaders() });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || json.message || 'Failed to fetch layout config');
+  return json;
+};
+
 export const createCategory = async (data) => {
   const res = await fetch(`${API_BASE}/categories`, {
     method: 'POST',
