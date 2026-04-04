@@ -27,9 +27,15 @@ class Category {
     return { _id: result.insertedId, ...category };
   }
 
-  static async findAll(tenantId = null) {
+  static async findAll(tenantId = null, options = {}) {
     const { getDB } = require('../config/db');
     const db = getDB(tenantId);
+
+    const withCounts = options?.withCounts !== false;
+
+    if (!withCounts) {
+      return await db.collection('categories').find({}).sort({ name: 1, slug: 1 }).toArray();
+    }
     
     const pipeline = [
       { $lookup: { from: 'posts', localField: '_id', foreignField: 'categories', as: 'matchedPosts' } },

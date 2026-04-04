@@ -15,7 +15,9 @@ router.post('/', authMiddleware, async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const categories = await Category.findAll(req.tenantId);
+    const withCountsRaw = String(req.query.withCounts ?? '1').toLowerCase().trim();
+    const withCounts = !(withCountsRaw === '0' || withCountsRaw === 'false');
+    const categories = await Category.findAll(req.tenantId, { withCounts });
     res.json({ categories });
   } catch (error) {
     res.status(500).json({ error: error.message });
