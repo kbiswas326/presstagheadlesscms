@@ -250,8 +250,12 @@ export const deleteCategory = async (id) => {
   return json;
 };
 
-export const getTags = async () => {
-  const res = await fetch(`${API_BASE}/tags`, { headers: getHeaders() });
+export const getTags = async (options = {}) => {
+  const withCounts = options?.withCounts !== false;
+  const params = new URLSearchParams();
+  if (!withCounts) params.set('withCounts', '0');
+  const suffix = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${API_BASE}/tags${suffix}`, { headers: getHeaders() });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || json.message || 'Failed to fetch tags');
   return json;

@@ -20,7 +20,7 @@ export default function VideoEditorPage() {
   const router = useRouter();
   const params = useParams();
   const [postId, setPostId] = useState(params?.id);
-  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
   useEffect(() => {
     setPostId(params?.id);
@@ -127,7 +127,7 @@ export default function VideoEditorPage() {
         }
 
         // Fetch categories
-        const catRes = await fetch(`${BASE}/api/categories`, { headers });
+        const catRes = await fetch(`${BASE}/api/categories?withCounts=0`, { headers });
         if (catRes.ok) {
           const catData = await catRes.json();
           const categories = Array.isArray(catData.categories) ? catData.categories : (Array.isArray(catData.data) ? catData.data : (Array.isArray(catData) ? catData : []));
@@ -135,7 +135,7 @@ export default function VideoEditorPage() {
         }
 
         // Fetch tags
-        const tagRes = await fetch(`${BASE}/api/tags`, { headers });
+        const tagRes = await fetch(`${BASE}/api/tags?withCounts=0`, { headers });
         if (tagRes.ok) {
           const tagData = await tagRes.json();
           const tags = Array.isArray(tagData.tags) ? tagData.tags : (Array.isArray(tagData.data) ? tagData.data : (Array.isArray(tagData) ? tagData : []));

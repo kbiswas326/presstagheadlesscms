@@ -14,7 +14,7 @@ export default function PhotoGalleryEditorPage() {
   const { isDark } = useTheme();
   const params = useParams();
   const postId = params?.id;
-  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
   // Author, Categories, Tags state and dropdowns (copied from article editor)
   const [author, setAuthor] = useState('');
   const [categories, setCategories] = useState([]);
@@ -61,8 +61,8 @@ export default function PhotoGalleryEditorPage() {
 
       const [usersRes, catRes, tagRes] = await Promise.all([
         fetch(`${BASE}/api/users`, { headers }),
-        fetch(`${BASE}/api/categories`, { headers }),
-        fetch(`${BASE}/api/tags`, { headers }),
+        fetch(`${BASE}/api/categories?withCounts=0`, { headers }),
+        fetch(`${BASE}/api/tags?withCounts=0`, { headers }),
       ]);
 
       const usersData = await usersRes.json();

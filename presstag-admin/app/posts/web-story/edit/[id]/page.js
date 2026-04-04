@@ -10,7 +10,7 @@ import { useUser } from '../../../../context/UserContext';
 import { useTheme } from '../../../../context/ThemeContext';
 import MediaImagesSelector from '../../../../media/MediaImagesSelector';
 import Image from 'next/image';
-import { posts } from '../../../../../lib/api';
+import { getTenantId, posts } from '../../../../../lib/api';
 
 
 /**
@@ -23,6 +23,7 @@ import { posts } from '../../../../../lib/api';
  */
 export default function WebStoryEditorPage() {
 const params = useParams();
+const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 const postId = params?.id; // enables edit mode later
 const { user } = useUser();
   const { isDark } = useTheme();
@@ -89,12 +90,12 @@ useEffect(() => {
   const fetchAllData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = { Authorization: `Bearer ${token}`, 'x-tenant-id': getTenantId() };
 
       const [usersRes, categoriesRes, tagsRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, { headers }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`, { headers }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tags`, { headers }),
+        fetch(`${BASE}/api/users`, { headers }),
+        fetch(`${BASE}/api/categories?withCounts=0`, { headers }),
+        fetch(`${BASE}/api/tags?withCounts=0`, { headers }),
       ]);
 
       if (usersRes.ok) {
