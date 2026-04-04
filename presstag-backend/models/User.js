@@ -44,9 +44,9 @@ class User {
     return userWithoutPassword;
   }
 
-  static async findById(id) {
+  static async findById(id, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     const user = await db.collection('users').findOne({ _id: new ObjectId(id) });
     if (user) {
       const { password, ...userWithoutPassword } = user;
@@ -55,15 +55,15 @@ class User {
     return null;
   }
 
-  static async findAll() {
+  static async findAll(tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     return await db.collection('users').find({}).project({ password: 0 }).toArray();
   }
 
-  static async update(id, updateData) {
+  static async update(id, updateData, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
 
     if (updateData.password) {
       updateData.password = await bcryptjs.hash(updateData.password, 10);
@@ -82,9 +82,9 @@ class User {
     return userWithoutPassword;
   }
 
-  static async delete(id) {
+  static async delete(id, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     return await db.collection('users').deleteOne({ _id: new ObjectId(id) });
   }
 }

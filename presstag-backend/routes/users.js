@@ -6,7 +6,7 @@ const authMiddleware = require('../middleware/auth');
 
 router.get('/', async (req, res) => {
   try {
-    const users = await User.findAll();
+    const users = await User.findAll(req.tenantId);
     res.json({ users });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -46,7 +46,7 @@ router.get('/public/:id', async (req, res) => {
 
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.params.id, req.tenantId);
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (error) {
@@ -56,7 +56,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const user = await User.update(req.params.id, req.body);
+    const user = await User.update(req.params.id, req.body, req.tenantId);
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -65,7 +65,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    await User.delete(req.params.id);
+    await User.delete(req.params.id, req.tenantId);
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
