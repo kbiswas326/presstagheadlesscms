@@ -1,22 +1,39 @@
-/// web/src/lib/fetchWithTenant.js | This file provides utility functions for making API requests that include tenant information. It constructs the API URL by appending the tenant ID as a query parameter, allowing the backend to identify which tenant's data to access. The `fetchWithTenant` function is a wrapper around the standard `fetch` API, ensuring that all requests made using this function will include the tenant information automatically. This is essential for multi-tenant applications where different tenants share the same backend but need to access their own data securely.
-const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'sportzpoint';
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+/**
+ * web/src/lib/fetchWithTenant.js
+ * Utility for tenant-aware API calls from the public frontend.
+ */
 
-export function tenantUrl(path) {
-  return `${API_BASE}${path}`;
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-export function fetchWithTenant(path, options = {}) {
-  const headers = {
-    ...options.headers,
-    'x-tenant-id': TENANT_ID,
+export async function fetchWithTenant(path, options = {}) {
+  // Ensure path starts with /
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const url = `${API_URL}${cleanPath}`;
+  
+  const defaultOptions = {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-tenant-id': 'sportzpoint', // ✅ Hardcoded for your first client
+      ...options.headers,
+    },
+    // ✅ CRITICAL: 'no-store' ensures admin changes reflect immediately
+    cache: options.cache || 'no-store', 
   };
-  return fetch(tenantUrl(path), { ...options, headers });
+
+  return fetch(url, defaultOptions);
 }
 
-export function fetchLayoutConfig() {
-  return fetch(tenantUrl('/api/layout-config'), { 
-    headers: { 'x-tenant-id': TENANT_ID },
-    next: { revalidate: 300 } // cache 5 minutes
-  });
+/**
+ * Specifically fetches the layout configuration (branding, colors, sections)
+ */
+export async function fetchLayoutConfig(options = {}) {
+  return fetchWithTenant('/layout-config', options);
+}
+
+/**
+ * Specifically fetches the tenant's general info
+ */
+export async function fetchTenantInfo(options = {}) {
+  return fetchWithTenant('/tenants/sportzpoint', options);
 }
