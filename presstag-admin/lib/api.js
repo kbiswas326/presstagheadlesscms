@@ -107,11 +107,13 @@ export const posts = {
    * Permanently deletes a post
    */
   remove: async (id) => {
-    const res = await fetch(`${API_BASE}/posts/${id}`, {
+    const res = await fetch(`${API_BASE}/posts/${encodeURIComponent(String(id))}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
-    return res.json();
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return { error: json.error || json.message || 'Failed to delete post' };
+    return json;
   }
 };
 

@@ -279,7 +279,8 @@ export default function DraftPosts() {
 
   const handleDelete = async (post) => {
     try {
-      await postsAPI.remove(post._id);
+      const res = await postsAPI.remove(post._id);
+      if (res?.error) throw new Error(res.error);
       setPosts(current => current.filter(p => p._id !== post._id));
       setConfirmDeleteIndex(null);
       setOpenMenuIndex(null);

@@ -275,8 +275,8 @@ export default function PublishedPosts() {
   const handleDelete = async (post) => {
     try {
       const token = localStorage.getItem('token') || '';
-      const target = post.slug || post._id;
-      const res = await fetch(`${BASE}/api/posts/${target}`, {
+      const target = post._id;
+      const res = await fetch(`${BASE}/api/posts/${encodeURIComponent(String(target))}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() },
       });
@@ -298,8 +298,8 @@ export default function PublishedPosts() {
   const handleUnpublish = async (post) => {
     try {
       const token = localStorage.getItem('token') || '';
-      const target = post.slug || post._id;
-      const res = await fetch(`${BASE}/api/posts/${target}/status`, {
+      const target = post._id;
+      const res = await fetch(`${BASE}/api/posts/${encodeURIComponent(String(target))}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-tenant-id': getTenantId() },
         body: JSON.stringify({ status: 'draft' }),

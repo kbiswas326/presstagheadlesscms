@@ -19,6 +19,7 @@ export default function CustomizationPage() {
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef(null);
   const [showFallbackImagePicker, setShowFallbackImagePicker] = useState(false);
+  const [showFaviconPicker, setShowFaviconPicker] = useState(false);
 
   const [settings, setSettings] = useState({
     navbar: {
@@ -69,10 +70,12 @@ export default function CustomizationPage() {
 },
     branding: {
   logo: '/images/logo.png',
+  favicon: '',
   primaryColor: '#185EFD',
   siteTitle: 'SportzPoint',
   siteTagline: '',
   logoDisplayMode: 'both',
+  showTaglineInHeader: true,
   logoFile: null,
   fallbackImage: ''
 }
@@ -496,6 +499,7 @@ export default function CustomizationPage() {
                         className={inputClass} 
                       />
                     </div>
+                  </div>
                   <div>
                     <label className={label}>Site Tagline (Optional)</label>
                     <input 
@@ -505,6 +509,39 @@ export default function CustomizationPage() {
                       className={inputClass} 
                       placeholder="e.g. Latest Sports News"
                     />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className={label}>Favicon</label>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-col md:flex-row md:items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowFaviconPicker(true)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                        >
+                          Select from Media
+                        </button>
+                        <input
+                          type="text"
+                          value={settings.branding.favicon || ''}
+                          onChange={(e) => setSettings(prev => ({ ...prev, branding: { ...prev.branding, favicon: e.target.value } }))}
+                          className={inputClass}
+                          placeholder="https://example.com/favicon.ico or /uploads/..."
+                        />
+                      </div>
+                      {settings.branding.favicon ? (
+                        <div className="flex items-center gap-3">
+                          <img src={settings.branding.favicon} alt="Favicon" className="h-10 w-10 rounded border bg-white object-contain" />
+                          <button
+                            type="button"
+                            onClick={() => setSettings(prev => ({ ...prev, branding: { ...prev.branding, favicon: '' } }))}
+                            className="px-3 py-1.5 bg-red-500/10 text-red-500 border border-red-500/20 text-sm rounded-lg hover:bg-red-500/20 transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
 
@@ -528,6 +565,15 @@ export default function CustomizationPage() {
                         </label>
                     ))}
                   </div>
+                  <label className="flex items-center gap-2 mt-4 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.branding.showTaglineInHeader !== false}
+                      onChange={(e) => setSettings(prev => ({ ...prev, branding: { ...prev.branding, showTaglineInHeader: e.target.checked } }))}
+                      className={checkboxClass}
+                    />
+                    <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>Show tagline in header</span>
+                  </label>
                 </div>
 
                 <div>
@@ -633,10 +679,27 @@ export default function CustomizationPage() {
       onClose={() => setShowFallbackImagePicker(false)}
     />
   )}
+
+  {showFaviconPicker && (
+    <MediaImagesSelector
+      onSelect={(img) => {
+        const imageUrl = img.url || img.src || img.fullUrl;
+        setSettings(prev => ({
+          ...prev,
+          branding: {
+            ...prev.branding,
+            favicon: imageUrl || ''
+          }
+        }));
+        setShowFaviconPicker(false);
+        toast.success('Favicon selected');
+      }}
+      onClose={() => setShowFaviconPicker(false)}
+    />
+  )}
 </div>
               </div>
             </div>
-          </div>
           )}
 
           {/* Navbar Section */}
