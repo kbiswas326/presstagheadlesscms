@@ -20,7 +20,7 @@ async function getLayoutConfig() {
 }
 
 async function getPosts(params = {}) {
-  const { type = 'latest', value, limit = 10 } = params;
+  const { type = 'latest', value, limit = 10, excludeKeys = [] } = params;
   let path = `/posts?status=published&limit=${limit}`;
   if (type === 'category' && value) path += '&category=' + value;
   else if (type === 'tag' && value) path += '&tag=' + value;
@@ -30,7 +30,10 @@ async function getPosts(params = {}) {
     const res = await fetchWithTenant(path); // ✅ FIXED: was fetchLayoutConfig()
     if (!res.ok) return [];
     const data = await res.json();
-    return Array.isArray(data) ? data : (data.posts || []);
+    const posts = Array.isArray(data) ? data : (data.posts || []);
+    if (!excludeKeys || excludeKeys.length === 0) return posts;
+    const exclude = new Set(excludeKeys.map((k) => String(k || '')).filter(Boolean));
+    return posts.filter((p) => !exclude.has(String(p?.slug || p?._id || '')));
   } catch (e) { return []; }
 }
 
@@ -60,18 +63,22 @@ export default async function Page() {
 
         if (section.type === 'system') {
           if (section.id === 'latest') {
-            posts = await getPosts({ limit });
+            posts = await getPosts({ limit: limit + 5, excludeKeys: excludePostKeys });
+            posts = posts.slice(0, limit);
             viewAllUrl = '/posts';
           } else if (section.id === 'trending') {
-            posts = await getPosts({ limit });
+            posts = await getPosts({ limit: limit + 5, excludeKeys: excludePostKeys });
+            posts = posts.slice(0, limit);
             viewAllUrl = '/posts?sort=trending';
           }
         } else if (section.type === 'custom') {
           posts = await getPosts({
             type: section.sourceType,
             value: section.sourceValue,
-            limit
+            limit: limit + 5,
+            excludeKeys: excludePostKeys,
           });
+          posts = posts.slice(0, limit);
 
           if (section.sourceType === 'category') viewAllUrl = `/category/${section.sourceValue}`;
           else if (section.sourceType === 'tag') viewAllUrl = `/tag/${section.sourceValue}`;

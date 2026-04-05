@@ -29,8 +29,8 @@ if (imageUrl) {
 }
 
   const renderingCategories = [
-    ...(post.primary_category || []),
     ...(post.categories || []),
+    ...(post.primary_category || []),
   ];
   const formatCategoryLabel = (value) => {
     const raw = typeof value === 'string'
@@ -44,14 +44,26 @@ if (imageUrl) {
     return cleaned.replace(/\b\w/g, (ch) => ch.toUpperCase());
   };
 
+  const isMongoIdString = (value) => /^[a-f0-9]{24}$/i.test(String(value || '').trim());
+
   const uniqueRenderingCategories = renderingCategories
     .map((c) => {
-      const key = typeof c === 'string' ? c : String(c?._id || c?.slug || c?.name || c?.title || '');
+      const key = typeof c === 'string' ? String(c) : String(c?._id || c?.slug || c?.name || c?.title || '');
+      if (typeof c === 'string' && isMongoIdString(key)) return null;
       const label = formatCategoryLabel(c);
+      if (!key || !label) return null;
+      if (isMongoIdString(label)) return null;
       return { key, label };
     })
-    .filter((c) => c.key && c.label)
-    .filter((c, i, a) => a.findIndex((t) => t.key === c.key) === i);
+    .filter(Boolean)
+    .reduce((acc, curr) => {
+      const existing = acc.get(curr.key);
+      if (!existing) acc.set(curr.key, curr);
+      else if (isMongoIdString(existing.label) && !isMongoIdString(curr.label)) acc.set(curr.key, curr);
+      return acc;
+    }, new Map());
+
+  const heroCategories = Array.from(uniqueRenderingCategories.values());
 
   const displayDate = post.publishedAt || post.publishDate || post.createdAt || post.updatedAt;
 
@@ -88,7 +100,7 @@ if (imageUrl) {
                              LIVE
                         </div>
                     )}
-                {uniqueRenderingCategories.slice(0, 1).map((cat) => (
+                {heroCategories.slice(0, 1).map((cat) => (
                     <span 
                         key={cat.key} 
                         className="px-3 py-1 rounded-full text-white text-xs font-bold uppercase tracking-wider shadow-sm"
