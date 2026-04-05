@@ -38,7 +38,7 @@ export async function generateMetadata() {
     },
     description: description,
     icons: {
-      icon: config?.branding?.logo || '/favicon.ico', // Use logo as favicon if available
+      icon: config?.branding?.favicon || config?.branding?.logo || '/favicon.ico',
     }
   };
 }

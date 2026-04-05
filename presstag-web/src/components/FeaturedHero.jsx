@@ -32,7 +32,26 @@ if (imageUrl) {
     ...(post.primary_category || []),
     ...(post.categories || []),
   ];
-  const uniqueRenderingCategories = renderingCategories.filter((v,i,a)=>a.findIndex(t=>(t._id === v._id))===i);
+  const formatCategoryLabel = (value) => {
+    const raw = typeof value === 'string'
+      ? value
+      : (value?.name || value?.title || value?.slug || '');
+
+    if (!raw) return '';
+
+    const cleaned = String(raw).replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!cleaned) return '';
+    return cleaned.replace(/\b\w/g, (ch) => ch.toUpperCase());
+  };
+
+  const uniqueRenderingCategories = renderingCategories
+    .map((c) => {
+      const key = typeof c === 'string' ? c : String(c?._id || c?.slug || c?.name || c?.title || '');
+      const label = formatCategoryLabel(c);
+      return { key, label };
+    })
+    .filter((c) => c.key && c.label)
+    .filter((c, i, a) => a.findIndex((t) => t.key === c.key) === i);
 
   const displayDate = post.publishedAt || post.publishDate || post.createdAt || post.updatedAt;
 
@@ -69,13 +88,13 @@ if (imageUrl) {
                              LIVE
                         </div>
                     )}
-                {uniqueRenderingCategories.slice(0, 1).map((cat, i) => (
+                {uniqueRenderingCategories.slice(0, 1).map((cat) => (
                     <span 
-                        key={i} 
+                        key={cat.key} 
                         className="px-3 py-1 rounded-full text-white text-xs font-bold uppercase tracking-wider shadow-sm"
                         style={{ backgroundColor: 'var(--primary-color)' }}
                     >
-                        {cat.name}
+                        {cat.label}
                     </span>
                 ))}
             </div>
