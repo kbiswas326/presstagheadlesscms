@@ -49,6 +49,14 @@ export default async function Page() {
   const featuredPost = heroPosts[0];
   const sidePosts = heroPosts.slice(1, 5);
 
+  const excludePostKeys = Array.from(
+    new Set(
+      [...heroPosts]
+        .map((p) => String(p?.slug || p?._id || ''))
+        .filter(Boolean)
+    )
+  );
+
   // DYNAMIC SECTIONS
   let sectionsData = [];
 
@@ -99,14 +107,6 @@ export default async function Page() {
       { name: 'Latest News', posts: latestNews, viewAllUrl: '/posts' }
     ];
   }
-
-  const excludePostKeys = Array.from(
-    new Set(
-      [...heroPosts]
-        .map((p) => String(p?.slug || p?._id || ''))
-        .filter(Boolean)
-    )
-  );
 
   return (
     <div className="bg-white min-h-screen pb-16">
