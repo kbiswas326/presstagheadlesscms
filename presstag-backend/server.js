@@ -13,6 +13,7 @@ const postRoutes = require('./routes/posts');
 const mediaRoutes = require('./routes/media');
 const layoutConfigRoutes = require('./routes/layoutConfig');
 const adBlockRoutes = require('./routes/adBlocks');
+const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 
@@ -59,6 +60,7 @@ app.use('/api/posts', postRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/layout-config', layoutConfigRoutes);
 app.use('/api/ad-blocks', adBlockRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

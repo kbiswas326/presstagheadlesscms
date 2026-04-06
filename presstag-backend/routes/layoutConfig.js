@@ -35,7 +35,8 @@ router.get('/', async (req, res) => {
           showNewsletter: true,
           showSocial: true,
         },
-        branding: req.body?.branding
+        branding: req.body?.branding,
+        analytics: {}
       };
       
       config = await LayoutConfig.create(defaultConfig, req.tenantId);
@@ -50,7 +51,7 @@ router.get('/', async (req, res) => {
 
 router.put('/', auth, async (req, res) => {
   try {
-    const { homepage, sidebar, navbar, mobileNav, footer, branding, seo } = req.body;
+    const { homepage, sidebar, navbar, mobileNav, footer, branding, seo, analytics } = req.body;
     
     const updateData = {};
     if (homepage) updateData.homepage = homepage;
@@ -60,6 +61,7 @@ router.put('/', auth, async (req, res) => {
     if (footer) updateData.footer = footer;
     if (branding) updateData.branding = branding;
     if (seo) updateData.seo = seo;
+    if (analytics) updateData.analytics = analytics;
     
     const updatedConfig = await LayoutConfig.update(updateData, req.tenantId);
     res.json(updatedConfig);

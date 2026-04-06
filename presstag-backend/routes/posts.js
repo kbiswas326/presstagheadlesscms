@@ -296,6 +296,171 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+router.get('/insights', authMiddleware, async (req, res) => {
+  try {
+    const daysRaw = Number(req.query.days || 7);
+    const days = daysRaw === 30 ? 30 : 7;
+    const db = getDB(req.tenantId);
+
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(start.getDate() - days);
+    const prevStart = new Date(now);
+    prevStart.setDate(prevStart.getDate() - days * 2);
+
+    const pipelineBase = [
+      { $match: { status: 'published' } },
+      {
+        $addFields: {
+          publishedAtEffective: {
+            $ifNull: [
+              '$publishedAt',
+              {
+                $cond: [
+                  {
+                    $and: [
+                      { $ne: ['$publishDate', null] },
+                      { $ne: ['$publishDate', ''] },
+                    ],
+                  },
+                  {
+                    $dateFromString: {
+                      dateString: {
+                        $concat: [
+                          '$publishDate',
+                          'T',
+                          { $ifNull: ['$publishTime', '00:00'] },
+                          ':00.000Z',
+                        ],
+                      },
+                    },
+                  },
+                  { $ifNull: ['$updatedAt', '$createdAt'] },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    ];
+
+    const [result] = await db.collection('posts').aggregate([
+      ...pipelineBase,
+      {
+        $facet: {
+          counts: [
+            {
+              $group: {
+                _id: null,
+                current: {
+                  $sum: {
+                    $cond: [{ $gte: ['$publishedAtEffective', start] }, 1, 0],
+                  },
+                },
+                previous: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $gte: ['$publishedAtEffective', prevStart] },
+                          { $lt: ['$publishedAtEffective', start] },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+          topAuthor: [
+            { $match: { publishedAtEffective: { $gte: start } } },
+            { $group: { _id: '$author', count: { $sum: 1 }, authorName: { $first: '$authorName' } } },
+            { $sort: { count: -1 } },
+            { $limit: 1 },
+            { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'author' } },
+            { $addFields: { author: { $arrayElemAt: ['$author', 0] } } },
+            {
+              $project: {
+                _id: 0,
+                count: 1,
+                id: '$_id',
+                name: { $ifNull: ['$author.name', '$authorName'] },
+                slug: '$author.slug',
+              },
+            },
+          ],
+          topCategory: [
+            { $match: { publishedAtEffective: { $gte: start } } },
+            {
+              $addFields: {
+                categoryIds: {
+                  $cond: [
+                    { $gt: [{ $size: { $ifNull: ['$categories', []] } }, 0] },
+                    '$categories',
+                    {
+                      $cond: [
+                        { $isArray: '$primary_category' },
+                        '$primary_category',
+                        {
+                          $cond: [{ $ne: ['$primary_category', null] }, ['$primary_category'], []],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+            { $unwind: '$categoryIds' },
+            { $group: { _id: '$categoryIds', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 1 },
+            { $lookup: { from: 'categories', localField: '_id', foreignField: '_id', as: 'cat' } },
+            { $addFields: { cat: { $arrayElemAt: ['$cat', 0] } } },
+            {
+              $project: {
+                _id: 0,
+                count: 1,
+                id: '$_id',
+                name: { $ifNull: ['$cat.name', { $toString: '$_id' }] },
+                slug: '$cat.slug',
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          counts: { $arrayElemAt: ['$counts', 0] },
+          topAuthor: { $arrayElemAt: ['$topAuthor', 0] },
+          topCategory: { $arrayElemAt: ['$topCategory', 0] },
+        },
+      },
+    ]).toArray();
+
+    const current = Number(result?.counts?.current || 0);
+    const previous = Number(result?.counts?.previous || 0);
+    const delta = current - previous;
+    const deltaPct = previous > 0 ? (delta / previous) * 100 : null;
+
+    res.json({
+      days,
+      range: { start, end: now },
+      published: {
+        current,
+        previous,
+        delta,
+        deltaPct,
+      },
+      topAuthor: result?.topAuthor || null,
+      topCategory: result?.topCategory || null,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // CREATE POST
 router.post('/', authMiddleware, async (req, res) => {
   try {
