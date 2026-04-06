@@ -217,7 +217,7 @@ const Footer = ({ config }) => {
               &copy; {new Date().getFullYear()} {siteTitle}. All rights reserved.
             </div>
             <div className="flex items-center gap-1">
-               Made with <span className="text-red-400">♥</span> by {siteTitle} Team
+               Made with <span className="text-red-400">💖</span> by PressTag
             </div>
           </div>
         </div>

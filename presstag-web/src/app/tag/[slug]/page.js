@@ -2,6 +2,23 @@ import React from 'react';
 import ArticleGridCard from '../../../components/ArticleGridCard';
 import Pagination from '../../../components/Pagination';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
+import { buildOpenGraphImage, fillTemplate, resolveSiteAssetUrl } from '../../../lib/seo';
+
+async function getLayoutConfig() {
+  try {
+    const res = await fetchWithTenant('/layout-config', { cache: 'no-store' });
+    if (res.ok) return res.json();
+  } catch {}
+  return null;
+}
+
+async function getTag(slug) {
+  try {
+    const res = await fetchWithTenant(`/tags/by-slug/${slug}`, { cache: 'no-store' });
+    if (res.ok) return res.json();
+  } catch {}
+  return null;
+}
 
 async function getTagPosts(slug, page = 1) {
   if (!slug) return { articles: [], totalPages: 0 };
@@ -34,6 +51,44 @@ async function getTagPosts(slug, page = 1) {
     console.error("Error fetching tag posts:", error);
     return { articles: [], totalPages: 0 };
   }
+}
+
+export async function generateMetadata({ params }) {
+  const resolvedParams = await params;
+  const slug = resolvedParams?.slug;
+  const [config, tag] = await Promise.all([
+    getLayoutConfig(),
+    slug ? getTag(slug) : null,
+  ]);
+
+  const siteTitle = config?.branding?.siteTitle || 'PressTag';
+  const tagName = tag?.name || (slug ? slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'Tag');
+
+  const title = tag?.metaTitle
+    || fillTemplate(config?.seo?.tagMetaTitleTemplate || 'Tag: {tag} | {site}', { tag: tagName, site: siteTitle });
+
+  const description = tag?.metaDescription
+    || fillTemplate(config?.seo?.tagMetaDescriptionTemplate || 'Read posts tagged {tag} on {site}', { tag: tagName, site: siteTitle });
+
+  const ogImage = resolveSiteAssetUrl(tag?.image || config?.seo?.defaultOgImage || config?.branding?.fallbackImage || config?.branding?.logo || '/favicon.ico');
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      siteName: siteTitle,
+      images: buildOpenGraphImage(ogImage),
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: ogImage ? [ogImage] : undefined,
+    }
+  };
 }
 
 export default async function TagPage({ params, searchParams }) {

@@ -14,6 +14,7 @@ import AdSpot from '../../components/AdSpot';
 import ArticleContent from '../../components/ArticleContent';
 import { getImageUrl } from '@/lib/imageHelper';
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
+import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
 
 const merriweather = Merriweather({
   weight: ['300', '400', '700', '900'],
@@ -63,13 +64,42 @@ export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const slugParts = resolvedParams.slug;
   const lastSegment = slugParts[slugParts.length - 1];
-  const post = await getPostBySlug(lastSegment);
+  const [post, config] = await Promise.all([
+    getPostBySlug(lastSegment),
+    fetchWithTenant('/layout-config', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+  ]);
 
   if (!post) return { title: 'Post Not Found' };
+
+  const siteTitle = config?.branding?.siteTitle || 'PressTag';
+  const ogImage = resolveSiteAssetUrl(
+    post?.seo?.ogImage ||
+    post?.featuredImage?.url ||
+    post?.featuredImage ||
+    post?.banner_image ||
+    post?.coverImage ||
+    config?.seo?.defaultOgImage ||
+    config?.branding?.fallbackImage ||
+    config?.branding?.logo ||
+    '/favicon.ico'
+  );
 
   return {
     title: post.seo?.metaTitle || post.title,
     description: post.seo?.metaDescription || post.summary,
+    openGraph: {
+      title: post.seo?.metaTitle || post.title,
+      description: post.seo?.metaDescription || post.summary,
+      siteName: siteTitle,
+      images: buildOpenGraphImage(ogImage),
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.seo?.metaTitle || post.title,
+      description: post.seo?.metaDescription || post.summary,
+      images: ogImage ? [ogImage] : undefined,
+    }
   };
 }
 

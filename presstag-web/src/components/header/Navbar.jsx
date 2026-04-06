@@ -24,7 +24,7 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
   const siteTagline = branding?.siteTagline || '';
   const logoUrl = branding?.logo || null;
   const displayMode = branding?.logoDisplayMode || 'both'; // 'both', 'logo', 'text'
-  const showTaglineInHeader = branding?.showTaglineInHeader !== false;
+  const showTaglineInHeader = branding?.showTaglineInHeader === true;
 
   const showLogo = (displayMode === 'logo' || displayMode === 'both') && logoUrl;
   const showTitle = (displayMode === 'text' || displayMode === 'both') && siteTitle;

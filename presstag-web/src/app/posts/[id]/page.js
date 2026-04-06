@@ -15,6 +15,7 @@ import Sidebar from '../../../components/Sidebar';
 import AdSpot from '../../../components/AdSpot';
 import ArticleContent from '../../../components/ArticleContent';
 import { getImageUrl } from '@/lib/imageHelper';
+import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
 
 const inter = Inter({ subsets: ['latin'] });
 const merriweather = Merriweather({ 
@@ -26,7 +27,12 @@ const merriweather = Merriweather({
 
 export async function generateMetadata({ params }) {
   const resolvedParams = await params;
-  const post = await getPostById(resolvedParams.id);
+  const [post, config] = await Promise.all([
+    getPostById(resolvedParams.id),
+    (await import('@/lib/fetchWithTenant')).fetchWithTenant('/layout-config', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null),
+  ]);
   if (post) post.gallery = post.gallery || post.images;
   
   if (!post) {
@@ -35,9 +41,35 @@ export async function generateMetadata({ params }) {
     };
   }
 
+  const siteTitle = config?.branding?.siteTitle || 'PressTag';
+  const ogImage = resolveSiteAssetUrl(
+    post?.seo?.ogImage ||
+    post?.featuredImage?.url ||
+    post?.featuredImage ||
+    post?.banner_image ||
+    post?.coverImage ||
+    config?.seo?.defaultOgImage ||
+    config?.branding?.fallbackImage ||
+    config?.branding?.logo ||
+    '/favicon.ico'
+  );
+
   return {
     title: post.seo?.metaTitle || post.title,
     description: post.seo?.metaDescription || post.summary,
+    openGraph: {
+      title: post.seo?.metaTitle || post.title,
+      description: post.seo?.metaDescription || post.summary,
+      siteName: siteTitle,
+      images: buildOpenGraphImage(ogImage),
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.seo?.metaTitle || post.title,
+      description: post.seo?.metaDescription || post.summary,
+      images: ogImage ? [ogImage] : undefined,
+    }
   };
 }
 

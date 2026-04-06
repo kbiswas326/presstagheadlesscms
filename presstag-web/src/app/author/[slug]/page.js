@@ -6,6 +6,7 @@ import ArticleGridCard from '@/components/ArticleGridCard';
 import Pagination from '@/components/Pagination';
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
 import { getImageUrl } from '@/lib/imageHelper';
+import { buildOpenGraphImage, fillTemplate, resolveSiteAssetUrl } from '@/lib/seo';
 
 async function getAuthor(slug) {
     try {
@@ -14,6 +15,16 @@ async function getAuthor(slug) {
         return await res.json();
     } catch (error) {
         console.error('Error fetching author:', error);
+        return null;
+    }
+}
+
+async function getLayoutConfig() {
+    try {
+        const res = await fetchWithTenant('/layout-config', { cache: 'no-store' });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch {
         return null;
     }
 }
@@ -50,6 +61,49 @@ async function getAuthorPosts(authorId, page = 1) {
         console.error('Error fetching author posts:', error);
         return { articles: [], totalPages: 0 };
     }
+}
+
+export async function generateMetadata({ params }) {
+    const resolvedParams = await params;
+    const slug = resolvedParams?.slug;
+    const [config, author] = await Promise.all([
+        getLayoutConfig(),
+        slug ? getAuthor(slug) : null,
+    ]);
+
+    const siteTitle = config?.branding?.siteTitle || 'PressTag';
+    const authorName = author?.name || (slug || 'Author');
+
+    const title = author?.seoTitle
+        || fillTemplate(
+            config?.seo?.authorMetaTitleTemplate || '{author} | {site}',
+            { author: authorName, site: siteTitle }
+        );
+    const description = author?.seoDescription
+        || fillTemplate(
+            config?.seo?.authorMetaDescriptionTemplate || 'Read articles by {author} on {site}',
+            { author: authorName, site: siteTitle }
+        );
+
+    const ogImage = resolveSiteAssetUrl(author?.image || config?.seo?.defaultOgImage || config?.branding?.fallbackImage || config?.branding?.logo || '/favicon.ico');
+
+    return {
+        title,
+        description,
+        openGraph: {
+            title,
+            description,
+            siteName: siteTitle,
+            images: buildOpenGraphImage(ogImage),
+            type: 'profile',
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title,
+            description,
+            images: ogImage ? [ogImage] : undefined,
+        }
+    };
 }
 
 export default async function AuthorPage({ params, searchParams }) {

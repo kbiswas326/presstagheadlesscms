@@ -3,6 +3,23 @@ import React from 'react';
 import ArticleGridCard from '../../../components/ArticleGridCard';
 import Pagination from '../../../components/Pagination';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
+import { buildOpenGraphImage, fillTemplate, resolveSiteAssetUrl } from '../../../lib/seo';
+
+async function getLayoutConfig() {
+  try {
+    const res = await fetchWithTenant('/layout-config', { cache: 'no-store' });
+    if (res.ok) return res.json();
+  } catch {}
+  return null;
+}
+
+async function getCategory(slug) {
+  try {
+    const res = await fetchWithTenant(`/categories/by-slug/${slug}`, { cache: 'no-store' });
+    if (res.ok) return res.json();
+  } catch {}
+  return null;
+}
 
 async function getCategoryPosts(slug, page = 1) {
   if (!slug) return { articles: [], totalPages: 1, total: 0 };
@@ -31,6 +48,44 @@ async function getCategoryPosts(slug, page = 1) {
     console.error("Error fetching category posts:", error);
     return { articles: [], totalPages: 1, total: 0 };
   }
+}
+
+export async function generateMetadata({ params }) {
+  const resolvedParams = await params;
+  const slug = resolvedParams?.slug;
+  const [config, category] = await Promise.all([
+    getLayoutConfig(),
+    slug ? getCategory(slug) : null,
+  ]);
+
+  const siteTitle = config?.branding?.siteTitle || 'PressTag';
+  const categoryName = category?.name || (slug ? slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'Category');
+
+  const title = category?.metaTitle
+    || fillTemplate(config?.seo?.categoryMetaTitleTemplate || 'Category: {category} | {site}', { category: categoryName, site: siteTitle });
+
+  const description = category?.metaDescription
+    || fillTemplate(config?.seo?.categoryMetaDescriptionTemplate || 'Read the latest {category} news on {site}', { category: categoryName, site: siteTitle });
+
+  const ogImage = resolveSiteAssetUrl(category?.image || config?.seo?.defaultOgImage || config?.branding?.fallbackImage || config?.branding?.logo || '/favicon.ico');
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      siteName: siteTitle,
+      images: buildOpenGraphImage(ogImage),
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: ogImage ? [ogImage] : undefined,
+    }
+  };
 }
 
 export default async function CategoryPage({ params, searchParams }) {

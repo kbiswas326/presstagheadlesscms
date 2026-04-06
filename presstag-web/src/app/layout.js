@@ -8,6 +8,7 @@ import GoogleAnalytics from "../components/GoogleAnalytics";
 import ScrollToTop from "../components/ScrollToTop";
 import { AdProvider } from '../context/AdContext';
 import { fetchWithTenant, fetchLayoutConfig } from '../lib/fetchWithTenant';
+import { buildOpenGraphImage, resolveSiteAssetUrl } from '../lib/seo';
 
 const roboto = Roboto({
   weight: ['400', '500', '700'],
@@ -27,18 +28,56 @@ export async function generateMetadata() {
   const config = await getLayoutConfig();
   const siteTitle = config?.branding?.siteTitle || 'PressTag';
   const siteTagline = config?.branding?.siteTagline || '';
+  const siteUrlFromConfig = String(config?.branding?.siteUrl || '').trim();
+  const googleSiteVerification = String(config?.analytics?.googleSiteVerification || '').trim();
+  const facebookAppId = String(config?.analytics?.facebookAppId || '').trim();
+
+  let metadataBase;
+  try {
+    const explicit = String(process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || '').trim();
+    const inferred = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '';
+    const base = siteUrlFromConfig || explicit || inferred;
+    metadataBase = new URL(base || 'http://localhost:3000');
+  } catch {}
   
-  const title = siteTagline ? `${siteTitle} - ${siteTagline}` : siteTitle;
-  const description = config?.footer?.companyDescription || "Get the latest sports news, live scores, and updates from the world of Cricket, Football, Tennis, Hockey, and more.";
+  const title = config?.seo?.homeMetaTitle || (siteTagline ? `${siteTitle} - ${siteTagline}` : siteTitle);
+  const description = config?.seo?.homeMetaDescription || config?.footer?.companyDescription || "Get the latest sports news, live scores, and updates from the world of Cricket, Football, Tennis, Hockey, and more.";
+  const iconUrl = resolveSiteAssetUrl(config?.branding?.favicon || config?.branding?.logo || '/favicon.ico');
+  const ogImage = resolveSiteAssetUrl(
+    config?.seo?.defaultOgImage ||
+    config?.branding?.fallbackImage ||
+    config?.branding?.logo ||
+    '/favicon.ico'
+  );
 
   return {
+    metadataBase,
     title: {
       default: title,
       template: `%s | ${siteTitle}`
     },
     description: description,
     icons: {
-      icon: config?.branding?.favicon || config?.branding?.logo || '/favicon.ico',
+      icon: iconUrl,
+      shortcut: iconUrl,
+      apple: iconUrl,
+    },
+    verification: {
+      google: googleSiteVerification || undefined,
+    },
+    openGraph: {
+      title,
+      description,
+      siteName: siteTitle,
+      images: buildOpenGraphImage(ogImage),
+      type: 'website',
+      appId: facebookAppId || undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: ogImage ? [ogImage] : undefined,
     }
   };
 }
@@ -68,7 +107,7 @@ export default async function RootLayout({ children }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <GoogleAnalytics />
+        <GoogleAnalytics measurementId={config?.analytics?.gaMeasurementId} />
         {/* Load embed scripts early with inline initialization */}
         <Script 
           src="https://platform.twitter.com/widgets.js" 
