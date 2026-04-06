@@ -21,7 +21,10 @@ router.get('/public/:id', async (req, res) => {
 
     let user;
     if (ObjectId.isValid(req.params.id)) {
-      user = await User.findById(req.params.id);
+      user = await db.collection('users').findOne(
+        { _id: new ObjectId(req.params.id) },
+        { projection: { password: 0 } }
+      );
     }
     
     if (!user) {

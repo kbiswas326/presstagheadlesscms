@@ -165,14 +165,17 @@ async function populatePost(post, db) {
 
   let editor = null;
   const rawEditor = post.editor || post.editorId;
+  const editorId = rawEditor ? toObjectId(rawEditor) : null;
   if (rawEditor) {
-    const editorId = toObjectId(rawEditor);
     if (editorId) {
       editor = await db.collection('users').findOne({ _id: editorId }, { projection: { password: 0 } });
     }
   }
 
   if (editor && author && String(editor._id) === String(author._id)) editor = null;
+  if (!editor && editorId && post.editorName) {
+    editor = { _id: editorId, name: post.editorName };
+  }
 
   if (primaryCategory && Array.isArray(categories) && categories.length > 0) {
     const primaryId = String(primaryCategory._id);
@@ -222,15 +225,13 @@ router.get('/__debug/raw/:id', async (req, res) => {
 router.get('/slug/:slug', async (req, res) => {
   try {
     const db = getDB(req.tenantId);
-    const post = await db.collection('posts').findOne({ 
+    const post = await db.collection('posts').findOne({
       slug: req.params.slug,
-      status: 'published'
+      status: 'published',
     });
-    
     if (!post) return res.status(404).json({ message: 'Post not found' });
-    
     const populated = await populatePost(post, db);
-    res.json(populated);
+    res.json(populated || post);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -605,100 +606,10 @@ router.get('/:id', async (req, res) => {
   try {
     const db = getDB(req.tenantId);
     const query = ObjectId.isValid(req.params.id) ? { _id: new ObjectId(req.params.id) } : { slug: req.params.id };
-    const rows = await db.collection('posts').aggregate([
-      { $match: query },
-      { $limit: 1 },
-      { $lookup: { from: 'categories', localField: 'categories', foreignField: '_id', as: 'categoriesPop' } },
-      { $lookup: { from: 'categories', localField: 'primary_category', foreignField: '_id', as: 'primaryCategoryPop' } },
-      { $lookup: { from: 'tags', localField: 'tags', foreignField: '_id', as: 'tagsPop' } },
-      { $lookup: { from: 'users', localField: 'author', foreignField: '_id', as: 'authorPop' } },
-      { $lookup: { from: 'users', localField: 'authors', foreignField: '_id', as: 'authorsPop' } },
-      { $lookup: { from: 'users', localField: 'editor', foreignField: '_id', as: 'editorPop' } },
-      {
-        $addFields: {
-          categories: {
-            $cond: [
-              { $gt: [{ $size: '$categoriesPop' }, 0] },
-              {
-                $filter: {
-                  input: {
-                    $map: {
-                      input: '$categories',
-                      as: 'cid',
-                      in: {
-                        $arrayElemAt: [
-                          {
-                            $filter: {
-                              input: '$categoriesPop',
-                              as: 'c',
-                              cond: { $eq: ['$$c._id', '$$cid'] },
-                            },
-                          },
-                          0,
-                        ],
-                      },
-                    },
-                  },
-                  as: 'c',
-                  cond: { $ne: ['$$c', null] },
-                },
-              },
-              '$primaryCategoryPop',
-            ],
-          },
-          tags: '$tagsPop',
-          author: { $arrayElemAt: ['$authorPop', 0] },
-          authors: {
-            $cond: [
-              { $gt: [{ $size: '$authorsPop' }, 0] },
-              {
-                $filter: {
-                  input: {
-                    $map: {
-                      input: '$authors',
-                      as: 'aid',
-                      in: {
-                        $arrayElemAt: [
-                          {
-                            $filter: {
-                              input: '$authorsPop',
-                              as: 'a',
-                              cond: { $eq: ['$$a._id', '$$aid'] },
-                            },
-                          },
-                          0,
-                        ],
-                      },
-                    },
-                  },
-                  as: 'a',
-                  cond: { $ne: ['$$a', null] },
-                },
-              },
-              [],
-            ],
-          },
-          editor: {
-            $cond: [
-              {
-                $and: [
-                  { $gt: [{ $size: '$editorPop' }, 0] },
-                  { $gt: [{ $size: '$authorPop' }, 0] },
-                  { $eq: [{ $arrayElemAt: ['$editorPop._id', 0] }, { $arrayElemAt: ['$authorPop._id', 0] }] },
-                ],
-              },
-              null,
-              { $arrayElemAt: ['$editorPop', 0] },
-            ],
-          },
-        },
-      },
-      { $project: { categoriesPop: 0, primaryCategoryPop: 0, tagsPop: 0, authorPop: 0, authorsPop: 0, editorPop: 0, 'author.password': 0, 'authors.password': 0, 'editor.password': 0 } },
-    ]).toArray();
-
-    const post = rows[0];
+    const post = await db.collection('posts').findOne(query);
     if (!post) return res.status(404).json({ error: 'Post not found' });
-    res.json(post);
+    const populated = await populatePost(post, db);
+    res.json(populated || post);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
