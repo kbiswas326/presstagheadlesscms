@@ -101,12 +101,24 @@ async function getAds() {
 export default async function RootLayout({ children }) {
   const config = await getLayoutConfig();
   const ads = await getAds();
+  const faviconHref = resolveSiteAssetUrl(config?.branding?.favicon || config?.branding?.logo || '/favicon.ico');
+  const faviconVersion = config?.updatedAt ? new Date(config.updatedAt).getTime() : '';
+  const faviconUrl = faviconHref
+    ? `${faviconHref}${faviconVersion ? `${faviconHref.includes('?') ? '&' : '?'}v=${faviconVersion}` : ''}`
+    : '';
 
   return (
     <html lang="en" className={`${roboto.variable} ${ptSerif.variable}`}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {faviconUrl ? (
+          <>
+            <link rel="icon" href={faviconUrl} />
+            <link rel="shortcut icon" href={faviconUrl} />
+            <link rel="apple-touch-icon" href={faviconUrl} />
+          </>
+        ) : null}
         <GoogleAnalytics measurementId={config?.analytics?.gaMeasurementId} />
         {/* Load embed scripts early with inline initialization */}
         <Script 
