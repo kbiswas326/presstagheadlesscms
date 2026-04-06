@@ -144,6 +144,17 @@ export default function DraftPosts() {
   }, []);
 
   useEffect(() => {
+    const fetchOverallTotal = async () => {
+      try {
+        const res = await postsAPI.getByStatus('draft', { page: 1, limit: 1 });
+        if (res?.error) return;
+        setTotalDrafts(res?.pagination?.total ?? 0);
+      } catch {}
+    };
+    fetchOverallTotal();
+  }, []);
+
+  useEffect(() => {
     const fetchPage = async () => {
       try {
         setIsLoading(true);
@@ -162,23 +173,19 @@ export default function DraftPosts() {
           setError(response.error);
           setPosts([]);
           setTotalPages(1);
-          setTotalDrafts(0);
           return;
         }
 
         const fetchedPosts = response?.posts || (Array.isArray(response) ? response : []);
         setPosts(fetchedPosts);
 
-        const total = response?.pagination?.total ?? fetchedPosts.length;
         const pages = response?.pagination?.totalPages ?? 1;
-        setTotalDrafts(total);
         setTotalPages(pages);
       } catch (err) {
         console.error('❌ Fetch error:', err);
         setError('Failed to fetch draft posts: ' + err.message);
         setPosts([]);
         setTotalPages(1);
-        setTotalDrafts(0);
       } finally {
         setIsLoading(false);
       }
@@ -282,6 +289,7 @@ export default function DraftPosts() {
       const res = await postsAPI.remove(post._id);
       if (res?.error) throw new Error(res.error);
       setPosts(current => current.filter(p => p._id !== post._id));
+      setTotalDrafts((prev) => Math.max(0, (prev || 0) - 1));
       setConfirmDeleteIndex(null);
       setOpenMenuIndex(null);
     } catch (err) {
@@ -342,7 +350,7 @@ export default function DraftPosts() {
 
         {/* Stats Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-10">
-          <StatCard label="Total Drafts" value={posts.length} icon={<BarChart3 size={20} />} bgColor="bg-slate-100 dark:bg-gray-800" textColor="text-slate-700 dark:text-gray-300" iconClass="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md ring-1 ring-white/40" />
+          <StatCard label="Total Drafts" value={totalDrafts.toLocaleString()} icon={<BarChart3 size={20} />} bgColor="bg-slate-100 dark:bg-gray-800" textColor="text-slate-700 dark:text-gray-300" iconClass="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md ring-1 ring-white/40" />
           <StatCard label="Articles" value={countByType("article")} icon={<FileText size={20} />} bgColor="bg-green-50 dark:bg-green-900/20" textColor="text-green-700 dark:text-green-400" iconClass="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md ring-1 ring-white/40" />
           <StatCard label="Videos" value={countByType("video")} icon={<Film size={20} />} bgColor="bg-purple-50 dark:bg-purple-900/20" textColor="text-purple-700 dark:text-purple-400" iconClass="p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 text-white shadow-md ring-1 ring-white/40" />
           <StatCard label="Galleries" value={countByType("photo-gallery")} icon={<ImageIcon size={20} />} bgColor="bg-blue-50 dark:bg-blue-900/20" textColor="text-blue-700 dark:text-blue-400" iconClass="p-3 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-md ring-1 ring-white/40" />

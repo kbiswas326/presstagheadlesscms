@@ -150,6 +150,17 @@ export default function PublishedPosts() {
     fetchTypeTotals();
   }, []);
 
+  useEffect(() => {
+    const fetchOverallTotal = async () => {
+      try {
+        const res = await postsAPI.getByStatus('published', { page: 1, limit: 1 });
+        if (res?.error) return;
+        setTotalPublished(res?.pagination?.total ?? 0);
+      } catch {}
+    };
+    fetchOverallTotal();
+  }, []);
+
   // ✅ Fetch one page at a time from backend
   const fetchPage = useCallback(async (page) => {
     try {
@@ -170,9 +181,7 @@ export default function PublishedPosts() {
       const fetchedPosts = res?.posts || (Array.isArray(res) ? res : []);
       setPosts(fetchedPosts);
 
-      const total = res?.pagination?.total ?? fetchedPosts.length;
       const pages = res?.pagination?.totalPages ?? 1;
-      setTotalPublished(total);
       setTotalPages(pages);
     } catch (err) {
       console.error('❌ Fetch error:', err);

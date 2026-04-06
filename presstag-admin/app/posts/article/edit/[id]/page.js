@@ -10,6 +10,7 @@ import { useUser } from '../../../../context/UserContext';
 import { useTheme } from '../../../../context/ThemeContext';
 import MediaImagesSelector from '../../../../media/MediaImagesSelector'; // Ensure this is imported if not already
 import { countInternalExternalLinks } from '../../../../../utils/linkAnalysis';
+import { includesNormalized, keywordDensity, slugifyForMatch } from '../../../../../utils/seoMatch';
 
 // Load TinyMCE dynamically
 const Editor = dynamic(() => import('@tinymce/tinymce-react').then(mod => mod.Editor), {
@@ -371,11 +372,7 @@ export default function ArticleEditorPage() {
 
   // Helper: Count keyword density
   const calculateKeywordDensity = (text, keyword) => {
-    if (!keyword) return 0;
-    const words = countWords(text);
-    const keywordRegex = new RegExp(keyword, 'gi');
-    const matches = text.match(keywordRegex);
-    return words > 0 ? ((matches?.length || 0) / words) * 100 : 0;
+    return keywordDensity(text, keyword);
   };
 
   // Helper: Check heading structure
@@ -397,7 +394,7 @@ export default function ArticleEditorPage() {
     const maxScore = 100;
     const plainContent = stripHtml(content);
     const wordCount = countWords(plainContent);
-    const keywordLower = (keyword || '').toLowerCase();
+    const keywordSlug = slugifyForMatch(keyword);
 
     // 1. Focus Keyword
     if (!keyword) {
@@ -422,7 +419,7 @@ export default function ArticleEditorPage() {
     }
 
     // 3. Keyword in Title
-    if (keyword && title.toLowerCase().includes(keywordLower)) {
+    if (keyword && includesNormalized(title, keyword)) {
       checks.push({ status: 'success', text: 'Keyword appears in title' });
       score += 10;
     } else if (keyword) {
@@ -444,7 +441,7 @@ export default function ArticleEditorPage() {
     }
 
     // 5. Keyword in Meta Description
-    if (keyword && metaDescription.toLowerCase().includes(keywordLower)) {
+    if (keyword && includesNormalized(metaDescription, keyword)) {
       checks.push({ status: 'success', text: 'Keyword appears in meta description' });
       score += 10;
     } else if (keyword && metaDescription) {
@@ -467,7 +464,7 @@ export default function ArticleEditorPage() {
 
     // 7. Keyword in First Paragraph
     const firstParagraph = plainContent.substring(0, 200);
-    if (keyword && firstParagraph.toLowerCase().includes(keywordLower)) {
+    if (keyword && includesNormalized(firstParagraph, keyword)) {
       checks.push({ status: 'success', text: 'Keyword appears in first paragraph' });
       score += 8;
     } else if (keyword && plainContent) {
@@ -543,7 +540,7 @@ export default function ArticleEditorPage() {
     } else if (slug.length > 75) {
       checks.push({ status: 'warning', text: 'URL slug is too long' });
       score += 2;
-    } else if (keyword && slug.includes(keyword.toLowerCase().replace(/\s+/g, '-'))) {
+    } else if (keyword && keywordSlug && String(slug || '').toLowerCase().includes(keywordSlug)) {
       checks.push({ status: 'success', text: 'Keyword appears in URL slug' });
       score += 5;
     } else if (slug) {

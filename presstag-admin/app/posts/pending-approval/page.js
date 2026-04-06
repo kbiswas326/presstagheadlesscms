@@ -151,6 +151,17 @@ export default function PendingPosts() {
   }, []);
 
   useEffect(() => {
+    const fetchOverallTotal = async () => {
+      try {
+        const res = await postsAPI.getByStatus('pending', { page: 1, limit: 1 });
+        if (res?.error) return;
+        setTotalPending(res?.pagination?.total ?? 0);
+      } catch {}
+    };
+    fetchOverallTotal();
+  }, []);
+
+  useEffect(() => {
     const fetchPage = async () => {
       try {
         setIsLoading(true);
@@ -169,23 +180,19 @@ export default function PendingPosts() {
           setError(response.error);
           setPosts([]);
           setTotalPages(1);
-          setTotalPending(0);
           return;
         }
 
         const fetchedPosts = response?.posts || (Array.isArray(response) ? response : []);
         setPosts(fetchedPosts);
 
-        const total = response?.pagination?.total ?? fetchedPosts.length;
         const pages = response?.pagination?.totalPages ?? 1;
-        setTotalPending(total);
         setTotalPages(pages);
       } catch (err) {
         console.error('❌ Fetch error:', err);
         setError('Failed to fetch pending posts: ' + err.message);
         setPosts([]);
         setTotalPages(1);
-        setTotalPending(0);
       } finally {
         setIsLoading(false);
       }
@@ -293,6 +300,7 @@ export default function PendingPosts() {
       const response = await postsAPI.remove(postId);
       if (!response.error) {
         setPosts(posts.filter(p => p._id !== postId));
+        setTotalPending((prev) => Math.max(0, (prev || 0) - 1));
         setOpenMenuIndex(null);
         setConfirmDeleteIndex(null);
       }
@@ -320,6 +328,7 @@ export default function PendingPosts() {
         
         // Remove from list
         setPosts(prev => prev.filter(p => p._id !== post._id));
+        setTotalPending((prev) => Math.max(0, (prev || 0) - 1));
         setOpenMenuIndex(null);
     } catch (err) {
         console.error(err);
@@ -372,7 +381,7 @@ export default function PendingPosts() {
 
         {/* Stats Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-10">
-          <StatCard label="Total Pending" value={posts.length} icon={<BarChart3 size={20} />} bgColor="bg-slate-100 dark:bg-gray-800" textColor="text-slate-700 dark:text-gray-300" iconClass="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md ring-1 ring-white/40" />
+          <StatCard label="Total Pending" value={totalPending.toLocaleString()} icon={<BarChart3 size={20} />} bgColor="bg-slate-100 dark:bg-gray-800" textColor="text-slate-700 dark:text-gray-300" iconClass="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md ring-1 ring-white/40" />
           <StatCard label="Articles" value={countByType("article")} icon={<FileText size={20} />} bgColor="bg-green-50 dark:bg-green-900/20" textColor="text-green-700 dark:text-green-400" iconClass="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md ring-1 ring-white/40" />
           <StatCard label="Videos" value={countByType("video")} icon={<Film size={20} />} bgColor="bg-purple-50 dark:bg-purple-900/20" textColor="text-purple-700 dark:text-purple-400" iconClass="p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 text-white shadow-md ring-1 ring-white/40" />
           <StatCard label="Galleries" value={countByType("photo-gallery")} icon={<ImageIcon size={20} />} bgColor="bg-blue-50 dark:bg-blue-900/20" textColor="text-blue-700 dark:text-blue-400" iconClass="p-3 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-md ring-1 ring-white/40" />

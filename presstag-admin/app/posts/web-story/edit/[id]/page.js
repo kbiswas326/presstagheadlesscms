@@ -11,6 +11,7 @@ import { useTheme } from '../../../../context/ThemeContext';
 import MediaImagesSelector from '../../../../media/MediaImagesSelector';
 import Image from 'next/image';
 import { getTenantId, posts } from '../../../../../lib/api';
+import { includesNormalized, keywordDensity, slugifyForMatch } from '../../../../../utils/seoMatch';
 
 
 /**
@@ -278,7 +279,7 @@ useEffect(() => {
     const slideText = slides.map(s => `${s.title || ''} ${s.paragraph || ''}`).join(' ').trim();
     const firstSlideText = slides[0] ? `${slides[0].title || ''} ${slides[0].paragraph || ''}` : '';
     const wordCount = countWords(slideText);
-    const keywordLower = (keyword || '').toLowerCase();
+    const keywordSlug = slugifyForMatch(keyword);
 
     // 1. Focus keyword (5)
     if (!keyword) {
@@ -303,7 +304,7 @@ useEffect(() => {
     }
 
     // 3. Keyword in title (10)
-    if (keyword && storyTitle && storyTitle.toLowerCase().includes(keywordLower)) {
+    if (keyword && storyTitle && includesNormalized(storyTitle, keyword)) {
       checks.push({ status: 'success', text: 'Keyword appears in story title' });
       score += 10;
     } else if (keyword && storyTitle) {
@@ -326,7 +327,7 @@ useEffect(() => {
 
     // 5. Keyword in meta description (10)
     if (keyword && metaDescription) {
-      if (metaDescription.toLowerCase().includes(keywordLower)) {
+      if (includesNormalized(metaDescription, keyword)) {
         checks.push({ status: 'success', text: 'Keyword appears in meta description' });
         score += 10;
       } else {
@@ -350,7 +351,7 @@ useEffect(() => {
 
     // 7. Keyword early (8)
     if (keyword && firstSlideText) {
-      if (firstSlideText.toLowerCase().includes(keywordLower)) {
+      if (includesNormalized(firstSlideText, keyword)) {
         checks.push({ status: 'success', text: 'Keyword appears in first slide' });
         score += 8;
       } else {
@@ -406,7 +407,7 @@ useEffect(() => {
     } else if (storySlug.length > 75) {
       checks.push({ status: 'warning', text: 'Slug is quite long' });
       score += 2;
-    } else if (keyword && storySlug.includes(keyword.toLowerCase().replace(/\s+/g, '-'))) {
+    } else if (keyword && keywordSlug && String(storySlug || '').toLowerCase().includes(keywordSlug)) {
       checks.push({ status: 'success', text: 'Keyword appears inside the slug' });
       score += 5;
     } else {
@@ -641,11 +642,7 @@ const saveSlideToLibrary = async (index) => {
   };
 
   const calculateKeywordDensity = (text, keyword) => {
-    if (!keyword) return 0;
-    const words = countWords(text);
-    const keywordRegex = new RegExp(keyword, 'gi');
-    const matches = text.match(keywordRegex);
-    return words > 0 ? ((matches?.length || 0) / words) * 100 : 0;
+    return keywordDensity(text, keyword);
   };
 
   const getSEOColor = () => {

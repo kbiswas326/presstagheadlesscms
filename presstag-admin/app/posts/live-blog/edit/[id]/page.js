@@ -26,6 +26,7 @@ import { useParams } from "next/navigation";
 import { getUsers, getCategories, getTags } from '../../../../../lib/api';
 import { useTheme } from '../../../../context/ThemeContext';
 import { countInternalExternalLinks } from '../../../../../utils/linkAnalysis';
+import { includesNormalized, keywordDensity, slugifyForMatch } from '../../../../../utils/seoMatch';
 
 
 // Load TinyMCE dynamically
@@ -423,11 +424,7 @@ const buildPayload = (status) => ({
   };
 
   const calculateKeywordDensity = (text, keyword) => {
-    if (!keyword) return 0;
-    const words = countWords(text);
-    const keywordRegex = new RegExp(keyword, 'gi');
-    const matches = text.match(keywordRegex);
-    return words > 0 ? ((matches?.length || 0) / words) * 100 : 0;
+    return keywordDensity(text, keyword);
   };
 
   const checkHeadingStructure = (html) => {
@@ -447,7 +444,7 @@ const buildPayload = (status) => ({
     const maxScore = 100;
     const plainContent = stripHtml(content);
     const wordCount = countWords(plainContent);
-    const keywordLower = (keyword || '').toLowerCase();
+    const keywordSlug = slugifyForMatch(keyword);
 
     // Focus keyword
     if (!keyword) {
@@ -461,7 +458,7 @@ const buildPayload = (status) => ({
     else { checks.push({ status: 'success', text: `Title length is good (${title.length}/60 chars)` }); score += 10; }
 
     // Keyword in title
-    if (keyword && title.toLowerCase().includes(keywordLower)) { checks.push({ status: 'success', text: 'Keyword appears in title' }); score += 10; }
+    if (keyword && includesNormalized(title, keyword)) { checks.push({ status: 'success', text: 'Keyword appears in title' }); score += 10; }
     else if (keyword) { checks.push({ status: 'error', text: 'Keyword not found in title' }); }
 
     // Meta description
@@ -471,7 +468,7 @@ const buildPayload = (status) => ({
     else { checks.push({ status: 'success', text: `Meta description length is good (${metaDescription.length}/160 chars)` }); score += 10; }
 
     // Keyword in meta description
-    if (keyword && metaDescription.toLowerCase().includes(keywordLower)) { checks.push({ status: 'success', text: 'Keyword appears in meta description' }); score += 10; }
+    if (keyword && includesNormalized(metaDescription, keyword)) { checks.push({ status: 'success', text: 'Keyword appears in meta description' }); score += 10; }
     else if (keyword && metaDescription) { checks.push({ status: 'error', text: 'Keyword not in meta description' }); }
 
     // Content length
@@ -482,7 +479,7 @@ const buildPayload = (status) => ({
 
     // Keyword in first paragraph
     const firstParagraph = plainContent.substring(0, 200);
-    if (keyword && firstParagraph.toLowerCase().includes(keywordLower)) { checks.push({ status: 'success', text: 'Keyword appears in first paragraph' }); score += 8; }
+    if (keyword && includesNormalized(firstParagraph, keyword)) { checks.push({ status: 'success', text: 'Keyword appears in first paragraph' }); score += 8; }
     else if (keyword && plainContent) { checks.push({ status: 'warning', text: 'Keyword not in first paragraph' }); score += 3; }
 
     // Keyword density
@@ -518,7 +515,7 @@ const buildPayload = (status) => ({
     // Slug
     if (!slug) { checks.push({ status: 'error', text: 'Add a URL slug' }); }
     else if (slug.length > 75) { checks.push({ status: 'warning', text: 'URL slug is too long' }); score += 2; }
-    else if (keyword && slug.includes(keyword.toLowerCase().replace(/\s+/g, '-'))) { checks.push({ status: 'success', text: 'Keyword appears in URL slug' }); score += 5; }
+    else if (keyword && keywordSlug && String(slug || '').toLowerCase().includes(keywordSlug)) { checks.push({ status: 'success', text: 'Keyword appears in URL slug' }); score += 5; }
     else if (slug) { checks.push({ status: 'warning', text: 'Keyword not in URL slug' }); score += 3; }
 
     // Featured image check

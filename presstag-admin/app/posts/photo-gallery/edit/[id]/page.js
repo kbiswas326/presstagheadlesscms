@@ -8,6 +8,7 @@ import { ArrowLeft, ChevronDown, Upload, CheckCircle2, XCircle, AlertCircle, X, 
 import MediaImagesSelector from '../../../../media/MediaImagesSelector';
 import { getTenantId, posts } from '../../../../../lib/api';
 import { getUsers, getCategories, getTags } from '../../../../../lib/api';
+import { includesNormalized, keywordDensity, slugifyForMatch } from '../../../../../utils/seoMatch';
 
 
 export default function PhotoGalleryEditorPage() {
@@ -146,11 +147,7 @@ const getSelectedTagsText = () =>
 
   // Helper: Calculate keyword density
   const calculateKeywordDensity = (text, keyword) => {
-    if (!keyword) return 0;
-    const words = countWords(text);
-    const keywordRegex = new RegExp(keyword, 'gi');
-    const matches = text.match(keywordRegex);
-    return words > 0 ? ((matches?.length || 0) / words) * 100 : 0;
+    return keywordDensity(text, keyword);
   };
 
 
@@ -162,7 +159,7 @@ const getSelectedTagsText = () =>
     const allAltTexts = images.map(img => img.altText || '').join(' ');
     const plainContent = stripHtml(allDescriptions);
     const wordCount = countWords(plainContent);
-    const keywordLower = (keyword || '').toLowerCase();
+    const keywordSlug = slugifyForMatch(keyword);
 
     // 1. Focus Keyword (5)
     if (!keyword) {
@@ -187,7 +184,7 @@ const getSelectedTagsText = () =>
     }
 
     // 3. Keyword in Title (10)
-    if (keyword && title.toLowerCase().includes(keywordLower)) {
+    if (keyword && includesNormalized(title, keyword)) {
       checks.push({ status: 'success', text: 'Keyword appears in title' });
       score += 10;
     } else if (keyword) {
@@ -209,7 +206,7 @@ const getSelectedTagsText = () =>
     }
 
     // 5. Keyword in Meta Description (10)
-    if (keyword && metaDescription.toLowerCase().includes(keywordLower)) {
+    if (keyword && includesNormalized(metaDescription, keyword)) {
       checks.push({ status: 'success', text: 'Keyword appears in meta description' });
       score += 10;
     } else if (keyword && metaDescription) {
@@ -231,8 +228,8 @@ const getSelectedTagsText = () =>
     }
 
     // 7. Keyword in First Image Description (8)
-    const firstDesc = (images[0]?.description || '').toLowerCase();
-    if (keyword && firstDesc.includes(keywordLower)) {
+    const firstDesc = (images[0]?.description || '');
+    if (keyword && includesNormalized(firstDesc, keyword)) {
       checks.push({ status: 'success', text: 'Keyword appears in first image description' });
       score += 8;
     } else if (keyword && firstDesc) {
@@ -275,7 +272,7 @@ const getSelectedTagsText = () =>
     } else if (slug.length > 75) {
       checks.push({ status: 'warning', text: 'URL slug is too long' });
       score += 2;
-    } else if (keyword && slug.includes(keyword.toLowerCase().replace(/\s+/g, '-'))) {
+    } else if (keyword && keywordSlug && String(slug || '').toLowerCase().includes(keywordSlug)) {
       checks.push({ status: 'success', text: 'Keyword appears in URL slug' });
       score += 5;
     } else if (slug) {
