@@ -1,17 +1,21 @@
 'use client';
 import { useAds } from '../context/AdContext';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
+
+const subscribeHydration = (callback) => {
+  if (typeof window === 'undefined') return () => {};
+  Promise.resolve().then(callback);
+  return () => {};
+};
+
+const getHydratedSnapshot = () => true;
+const getServerHydratedSnapshot = () => false;
 
 export default function AdSpot({ position, className = '', index }) {
   const ads = useAds();
   const pathname = usePathname();
-  const [isClient, setIsClient] = useState(false);
-
-  // Mark when we're on client to prevent hydration mismatch
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const isClient = useSyncExternalStore(subscribeHydration, getHydratedSnapshot, getServerHydratedSnapshot);
 
   // Helper to check page type
   const isPageMatch = (ad) => {

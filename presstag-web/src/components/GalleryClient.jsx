@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FaTimes, FaChevronLeft, FaChevronRight, FaSearchPlus, FaTh, FaFacebook, FaTwitter, FaWhatsapp } from 'react-icons/fa';
@@ -18,17 +18,16 @@ const merriweather = Merriweather({
 const GalleryClient = ({ post }) => {
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const [isDark, setIsDark] = useState(false);
-
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            setIsDark(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const isDark = useSyncExternalStore(
+        (callback) => {
+            if (typeof window === 'undefined' || !window.matchMedia) return () => {};
             const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-            const handleChange = (e) => setIsDark(e.matches);
-            mediaQuery.addEventListener('change', handleChange);
-            return () => mediaQuery.removeEventListener('change', handleChange);
-        }
-    }, []);
+            mediaQuery.addEventListener('change', callback);
+            return () => mediaQuery.removeEventListener('change', callback);
+        },
+        () => (typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)').matches : false),
+        () => false
+    );
 
     const images = post.images || [];
 
@@ -76,12 +75,10 @@ const GalleryClient = ({ post }) => {
     const openLightbox = (index) => {
         setCurrentImageIndex(index);
         setIsLightboxOpen(true);
-        if (typeof document !== 'undefined') document.body.style.overflow = 'hidden';
     };
 
     const closeLightbox = () => {
         setIsLightboxOpen(false);
-        if (typeof document !== 'undefined') document.body.style.overflow = 'auto';
     };
 
     const nextImage = (e) => {
@@ -93,6 +90,15 @@ const GalleryClient = ({ post }) => {
         e?.stopPropagation();
         setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
     };
+
+    useEffect(() => {
+        if (typeof document === 'undefined') return;
+        const prevOverflow = document.body.style.overflow;
+        if (isLightboxOpen) document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = prevOverflow;
+        };
+    }, [isLightboxOpen]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -136,7 +142,7 @@ const GalleryClient = ({ post }) => {
                             </nav>
 
                             <div className="flex flex-wrap gap-2 mb-4">
-                                {post.categories?.map((cat, index) => (
+                                {post.categories?.slice(0, 3).map((cat, index) => (
                                     <Link key={index} href={`/category/${cat.slug || cat.name || cat.title || ''}`} className="px-3 py-1 bg-gray-50 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-100 transition-colors cursor-pointer text-rose-600">
                                         {String(cat.name || cat.title || cat.slug || '').replace(/Ã—/g, "").replace(/×/g, "").trim()}
                                     </Link>
@@ -151,22 +157,33 @@ const GalleryClient = ({ post }) => {
                                 {post.summary || post.sub_title}
                             </h2>
 
-                            <div className="flex items-center justify-between border-b border-gray-100 pb-6 mb-6">
+                            {(() => {
+                              const authorsList = Array.isArray(post.authors) && post.authors.length > 0
+                                ? post.authors
+                                : (post.author ? [post.author] : []);
+                              const primaryAuthor = authorsList[0] || post.author || null;
+                              const editorUser = post.editor && typeof post.editor === 'object' ? post.editor : null;
+                              const showEditor = !!(editorUser && primaryAuthor && String(editorUser._id || '') !== String(primaryAuthor._id || ''));
+                              const byline = authorsList.length > 0
+                                ? authorsList.map((a) => a?.name).filter(Boolean).join(', ')
+                                : (post.authorName || 'SportzPoint Editor');
+                              return (
+                                <div className="flex items-center justify-between border-b border-gray-100 pb-6 mb-6">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden relative">
                                         <Image
-                                            src={getImageUrl(post.author?.image || post.authorImage)}
-                                            alt={post.author?.name || post.authorName || 'Author'}
+                                            src={getImageUrl(primaryAuthor?.image || post.authorImage)}
+                                            alt={primaryAuthor?.name || post.authorName || 'Author'}
                                             fill
                                             className="object-cover"
                                         />
                                     </div>
                                     <div className="flex flex-col">
                                         <span className="font-bold text-gray-900 text-sm">
-                                            {post.author?.name || post.authorName || 'SportzPoint Editor'}
+                                            {byline}
                                         </span>
                                         <span className="text-xs text-gray-500">
-                                            {formattedDate}
+                                            {formattedDate}{showEditor ? ` • Edited by ${editorUser.name || 'Editor'}` : ''}
                                         </span>
                                     </div>
                                 </div>
@@ -177,7 +194,9 @@ const GalleryClient = ({ post }) => {
                                     <FaTwitter className="text-sky-500 hover:text-sky-600 cursor-pointer transition" size={20} />
                                     <FaWhatsapp className="text-green-500 hover:text-green-600 cursor-pointer transition" size={20} />
                                 </div>
-                            </div>
+                                </div>
+                              );
+                            })()}
                         </header>
 
                         {/* Featured Image - 16:9 988x556 with Caption Card Style */}

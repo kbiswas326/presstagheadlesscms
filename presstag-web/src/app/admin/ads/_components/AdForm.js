@@ -127,7 +127,7 @@ export default function AdForm({ initialData = {}, isEdit = false }) {
       {showInsertionInput && (
         <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
           <label className="block text-blue-800 text-sm font-bold mb-2" htmlFor="insertionParameter">
-            Insertion Index (e.g., 1 for "After 1st paragraph")
+            Insertion Index (e.g., 1 for &quot;After 1st paragraph&quot;)
           </label>
           <input
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"

@@ -9,6 +9,90 @@ import { useRouter } from "next/navigation";
 import { getImageUrl } from '@/lib/imageHelper';
 import { buildPostUrl } from '@/lib/urlBuilder';
 
+const ArticleCardContent = ({ post }) => {
+  const renderingCategories = [
+    ...(post.primary_category || []),
+    ...(post.categories || []),
+  ];
+  const uniqueRenderingCategories = renderingCategories.filter((v, i, a) => a.findIndex(t => (t._id === v._id)) === i);
+
+  return (
+    <div className="p-4 flex flex-col h-full">
+      <div className="flex flex-wrap gap-1 mb-2">
+        {post.isLive && (
+          <div className="text-[10px] gap-1.5 font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded flex items-center border border-red-100">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+            </span>
+            <span>LIVE</span>
+          </div>
+        )}
+
+        {uniqueRenderingCategories?.map(
+          (c, i) =>
+            c.name &&
+            c.name !== "Sports" && (
+              <div key={i}>
+                <span className="text-[10px] font-medium text-[#006356] bg-[#006356]/10 px-2 py-0.5 rounded">
+                  {c.name || "Uncategorized"}
+                </span>
+              </div>
+            )
+        )}
+      </div>
+
+      <h2 className="text-base font-semibold text-gray-800 line-clamp-2 mb-2">
+        {post.title}
+      </h2>
+
+      <div className="mt-auto">
+        <div className="flex items-center text-[10px] text-gray-500 mt-1 gap-2">
+          <span className="truncate">
+            {formatDate(post.published_at_datetime || post.createdAt || post.updatedAt)}
+          </span>
+          <span className="truncate">{calculateReadTime(post.content)}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ArticleBox = ({ post, onClick }) => {
+  const imageUrl = post.image || getImageUrl(post.featuredImage?.url || post.featuredImage || post.banner_image);
+  let finalImageSrc = null;
+  if (imageUrl) {
+    if (imageUrl.startsWith('http')) {
+      finalImageSrc = imageUrl;
+    } else if (imageUrl.startsWith('/uploads')) {
+      finalImageSrc = `${process.env.NEXT_PUBLIC_API_URL}${imageUrl}`;
+    } else {
+      finalImageSrc = `${process.env.NEXT_PUBLIC_API_URL}/uploads/${imageUrl}`;
+    }
+  }
+  return (
+    <div
+      className="bg-white hover:bg-gray-50 transition-colors border border-gray-200 rounded-lg overflow-hidden cursor-pointer flex flex-col h-full"
+      onClick={() => onClick(post)}
+    >
+      <div className="relative w-full">
+        {finalImageSrc && (
+          <figure className="relative pb-[56.25%]  rounded">
+            <Image
+              src={finalImageSrc}
+              alt={post.featuredImage?.altText || post.banner_desc || post.title || ""}
+              fill
+              className="object-cover object-center"
+              quality={75}
+            />
+          </figure>
+        )}
+      </div>
+      <ArticleCardContent post={post} />
+    </div>
+  );
+};
+
 const ArticleCard = ({ mainPost, secondaryPost, urlStructure }) => {
   const router = useRouter();
 
@@ -18,97 +102,10 @@ const ArticleCard = ({ mainPost, secondaryPost, urlStructure }) => {
     router.push(buildPostUrl(post, urlStructure));
   };
 
-  const ArticleContent = ({ post }) => {
-    const renderingCategories = [
-      ...(post.primary_category || []),
-      ...(post.categories || []),
-    ];
-    // Simple deduplication
-    const uniqueRenderingCategories = renderingCategories.filter((v,i,a)=>a.findIndex(t=>(t._id === v._id))===i);
-
-    return (
-      <div className="p-4 flex flex-col h-full">
-        <div className="flex flex-wrap gap-1 mb-2">
-{post.isLive && (
-  <div className="text-[10px] gap-1.5 font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded flex items-center border border-red-100">
-    <span className="relative flex h-2 w-2">
-      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>
-      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
-    </span>
-    <span>LIVE</span>
-  </div>
-)}          
-
-{uniqueRenderingCategories?.map(
-            (c, i) =>
-              c.name &&
-              c.name !== "Sports" && (
-                <div key={i}>
-                  <span className="text-[10px] font-medium text-[#006356] bg-[#006356]/10 px-2 py-0.5 rounded">
-                    {c.name || "Uncategorized"}
-                  </span>
-                </div>
-              )
-          )}
-        </div>
-
-        <h2 className="text-base font-semibold text-gray-800 line-clamp-2 mb-2">
-          {post.title}
-        </h2>
-
-        <div className="mt-auto">
-          <div className="flex items-center text-[10px] text-gray-500 mt-1 gap-2">
-            <span className="truncate">
-              {formatDate(post.published_at_datetime || post.createdAt || post.updatedAt)}
-            </span>
-            <span className="truncate">{calculateReadTime(post.content)}</span>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const ArticleBox = ({ post }) => {
-    const imageUrl = post.image || getImageUrl(post.featuredImage?.url || post.featuredImage || post.banner_image);
-    let finalImageSrc = null;
-    if (imageUrl) {
-      if (imageUrl.startsWith('http')) {
-        finalImageSrc = imageUrl;
-      } else if (imageUrl.startsWith('/uploads')) {
-        finalImageSrc = `${process.env.NEXT_PUBLIC_API_URL}${imageUrl}`;
-      } else {
-        finalImageSrc = `${process.env.NEXT_PUBLIC_API_URL}/uploads/${imageUrl}`;
-      }
-    }
-    return (
-    <div
-      className="bg-white hover:bg-gray-50 transition-colors border border-gray-200 rounded-lg overflow-hidden cursor-pointer flex flex-col h-full"
-      onClick={() => handleClick(post)}
-    >
-      <div className="relative w-full">
-        {/* 16:9 aspect ratio */}
-        {finalImageSrc && (
-          <figure className="relative pb-[56.25%]  rounded">
-            <Image
-              src={finalImageSrc}
-              alt={post.featuredImage?.altText || post.banner_desc || post.title || ""}
-              fill
-              className="object-cover object-center"
-              
-              quality={75} 
-            />
-          </figure>
-        )}
-      </div>
-      <ArticleContent post={post} />
-    </div>
-  );
-  };
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <ArticleBox post={mainPost} />
-      {secondaryPost && <ArticleBox post={secondaryPost} />}
+      <ArticleBox post={mainPost} onClick={handleClick} />
+      {secondaryPost && <ArticleBox post={secondaryPost} onClick={handleClick} />}
     </div>
   );
 };

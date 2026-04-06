@@ -158,9 +158,34 @@ useEffect(() => {
         const authId = typeof response.author === 'object' ? (response.author._id || response.author.id) : response.author;
         setAuthor(String(authId));
       }
+      if (Array.isArray(response.authors) && response.authors.length > 0) {
+        const ids = response.authors
+          .map((a) => (typeof a === 'object' && a !== null ? (a._id || a.id) : a))
+          .filter(Boolean)
+          .map((v) => String(v));
+        setAuthors(ids);
+      } else if (response.author) {
+        const authId = typeof response.author === 'object' ? (response.author._id || response.author.id) : response.author;
+        setAuthors(authId ? [String(authId)] : []);
+      }
+      if (response.editor) {
+        const editorId = typeof response.editor === 'object' ? (response.editor._id || response.editor.id) : response.editor;
+        setEditor(editorId ? String(editorId) : '');
+      } else {
+        setEditor('');
+      }
       if (Array.isArray(response.categories)) {
         const catIds = response.categories.map(c => (typeof c === 'object' && c !== null ? (c._id || c.id) : c)).filter(Boolean);
         setCategories(catIds);
+      }
+      if (Array.isArray(response.primary_category) && response.primary_category.length > 0) {
+        const raw = response.primary_category[0];
+        const id = typeof raw === 'object' && raw !== null ? (raw._id || raw.id) : raw;
+        setPrimaryCategory(id ? String(id) : '');
+      } else if (response.primary_category) {
+        const raw = response.primary_category;
+        const id = typeof raw === 'object' && raw !== null ? (raw._id || raw.id) : raw;
+        setPrimaryCategory(id ? String(id) : '');
       }
       if (Array.isArray(response.tags)) {
         const tagIds = response.tags.map(t => (typeof t === 'object' && t !== null ? (t._id || t.id) : t)).filter(Boolean);
@@ -193,7 +218,10 @@ useEffect(() => {
 /// Fetch available authors, categories, tags on mount///
 
   const [author, setAuthor] = useState('');
+  const [authors, setAuthors] = useState([]);
+  const [editor, setEditor] = useState('');
   const [categories, setCategories] = useState([]);
+  const [primaryCategory, setPrimaryCategory] = useState('');
   const [tags, setTags] = useState([]);
 
   const filteredAuthors = Array.isArray(availableAuthors) ? availableAuthors.filter(a => a?.name?.toLowerCase().includes(authorSearch.toLowerCase())) : [];
@@ -201,8 +229,45 @@ useEffect(() => {
   const filteredTags = Array.isArray(availableTags) ? availableTags.filter(t => t?.name?.toLowerCase().includes(tagSearch.toLowerCase())) : [];
 
   const toggleCategory = (id) => {
-    setCategories(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    setCategories(prev => prev.includes(id) ? prev.filter(x => x !== id) : (prev.length >= 3 ? prev : [...prev, id]));
   };
+
+  useEffect(() => {
+    if (!primaryCategory) {
+      if (categories.length > 0) setPrimaryCategory(String(categories[0]));
+      return;
+    }
+    if (!categories.includes(primaryCategory)) {
+      setPrimaryCategory(categories.length > 0 ? String(categories[0]) : '');
+    }
+  }, [categories, primaryCategory]);
+
+  useEffect(() => {
+    if (!author) return;
+    if (!authors.includes(author)) setAuthors([author, ...authors].filter((v, i, arr) => arr.indexOf(v) === i));
+  }, [author, authors]);
+
+  const toggleAuthor = (authorId) => {
+    setAuthors((prev) => {
+      if (prev.includes(authorId)) {
+        const next = prev.filter((id) => id !== authorId);
+        if (authorId === author) {
+          setAuthor(next[0] ? String(next[0]) : '');
+        }
+        if (authorId === editor) {
+          setEditor('');
+        }
+        return next;
+      }
+      const next = [...prev, authorId];
+      if (!author) setAuthor(String(authorId));
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (editor && author && editor === author) setEditor('');
+  }, [editor, author]);
 
   const toggleTag = (id) => {
     setTags(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -790,7 +855,9 @@ const buildPayload = (status) => ({
   slug: storySlug,
   type: 'web-story',
   status,
-  author: user?._id || null,
+  author: author || user?._id || null,
+  authors,
+  editor: editor || null,
   slides: slides.map(s => ({
     id: s.id,
     title: s.title || '',
@@ -822,6 +889,7 @@ const buildPayload = (status) => ({
     fileName: featuredImage.name || featuredImage.fileName,
   } : null,
   categories,
+  primary_category: primaryCategory ? [primaryCategory] : [],
   tags,
   seoScore,
   seo: {
@@ -1492,12 +1560,46 @@ const handleUpdate = async () => {
                           </div>
                           <div className="max-h-48 overflow-y-auto">
                             {filteredAuthors.length > 0 ? filteredAuthors.map((authorOption) => (
-                              <button key={authorOption.id} onClick={() => { setAuthor(authorOption.id.toString()); handleAuthorDropdownToggle(false); }} className={`w-full text-left px-4 py-3 hover:bg-emerald-50 ${author === authorOption.id.toString() ? 'bg-emerald-50 font-medium' : ''}`}>{authorOption.name}</button>
+                              <div key={authorOption.id} className={`flex items-center justify-between px-4 py-3 ${isDark ? "hover:bg-gray-700 text-gray-200" : "hover:bg-emerald-50 text-gray-900"} ${String(author) === String(authorOption.id) ? (isDark ? "bg-gray-700 font-medium" : "bg-emerald-50 font-medium") : ""}`}>
+                                <button type="button" onClick={() => { setAuthor(String(authorOption.id)); if (!authors.includes(String(authorOption.id))) setAuthors(prev => [String(authorOption.id), ...prev].filter((v, i, arr) => arr.indexOf(v) === i)); handleAuthorDropdownToggle(false); }} className="flex-1 text-left">
+                                  {authorOption.name}
+                                </button>
+                                <input type="checkbox" checked={authors.includes(String(authorOption.id))} onChange={() => toggleAuthor(String(authorOption.id))} className="ml-3" />
+                              </div>
                             )) : <div className="p-4 text-sm text-gray-500">No authors found</div>}
                           </div>
                         </div>
                       )}
                     </div>
+                    {authors.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {authors.map((id) => {
+                          const user = availableAuthors.find((u) => String(u.id) === String(id));
+                          if (!user) return null;
+                          const isPrimary = String(id) === String(author);
+                          return (
+                            <span key={user.id} className={`text-xs px-3 py-1 rounded-full flex items-center gap-2 ${isDark ? "bg-slate-700 text-slate-200" : "bg-slate-100 text-slate-700"}`}>
+                              {isPrimary ? `${user.name} (Primary)` : user.name}
+                              <button onClick={() => toggleAuthor(String(user.id))} className="opacity-70 hover:opacity-100">×</button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-6">
+                    <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Editor (optional)</label>
+                    <select
+                      value={editor}
+                      onChange={(e) => setEditor(e.target.value)}
+                      className={`w-full mt-2 p-2 rounded-lg border ${isDark ? "border-gray-600 bg-gray-700 text-white" : "border-gray-100 bg-white text-gray-900"}`}
+                    >
+                      <option value="">Same as author</option>
+                      {availableAuthors.filter((u) => String(u.id) !== String(author)).map((u) => (
+                        <option key={u.id} value={String(u.id)}>{u.name}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="mt-6">
@@ -1531,6 +1633,25 @@ const handleUpdate = async () => {
                         ) : null;
                       })}
                     </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Primary Category</label>
+                    <select
+                      value={primaryCategory}
+                      onChange={(e) => setPrimaryCategory(e.target.value)}
+                      className={`w-full mt-2 p-2 rounded-lg border ${isDark ? "border-gray-600 bg-gray-700 text-white" : "border-gray-100 bg-white text-gray-900"}`}
+                      disabled={categories.length === 0}
+                    >
+                      <option value="">Select primary</option>
+                      {categories.map((catId) => {
+                        const cat = availableCategories.find((c) => String(c._id || c.id) === String(catId));
+                        if (!cat) return null;
+                        return (
+                          <option key={String(cat._id || cat.id)} value={String(cat._id || cat.id)}>{cat.name}</option>
+                        );
+                      })}
+                    </select>
                   </div>
 
                   <div className="mt-6">

@@ -23,6 +23,9 @@ const LiveBlogViewer = ({ post }) => {
         updatedAt,
         publishedAt,
         authorName,
+        author,
+        authors,
+        editor,
         categories = [],
         featuredImage,
         featuredImageCaption,
@@ -66,6 +69,16 @@ const LiveBlogViewer = ({ post }) => {
         return new Date(b.timestamp) - new Date(a.timestamp);
     });
 
+    const authorsList = Array.isArray(authors) && authors.length > 0
+      ? authors
+      : (author ? [author] : []);
+    const primaryAuthor = authorsList[0] || author || null;
+    const editorUser = editor && typeof editor === 'object' ? editor : null;
+    const showEditor = !!(editorUser && primaryAuthor && String(editorUser._id || '') !== String(primaryAuthor._id || ''));
+    const byline = authorsList.length > 0
+      ? authorsList.map((a) => a?.name).filter(Boolean).join(', ')
+      : (authorName || 'SportzPoint Desk');
+
     return (
         <article className="min-h-screen bg-white pb-20">
             <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 pt-6 pb-12">
@@ -86,7 +99,7 @@ const LiveBlogViewer = ({ post }) => {
                                )}
                                
                                {categories && categories.length > 0 ? (
-                                   categories.map((cat, idx) => (
+                                   categories.slice(0, 3).map((cat, idx) => (
                                        <span key={idx} className="text-green-600 cursor-pointer hover:underline">
                                            {typeof cat === 'string' ? cat : cat.name || 'News'}
                                        </span>
@@ -119,14 +132,14 @@ const LiveBlogViewer = ({ post }) => {
                                     </div>
                                     <div className="flex flex-col">
                                         <span className="font-bold text-gray-900 text-sm">
-                                            {authorName || 'SportzPoint Desk'}
+                                            {byline}
                                         </span>
                                         <span className="text-xs text-gray-500" suppressHydrationWarning>
                                             {publishedAt ? new Date(publishedAt).toLocaleDateString(undefined, {
                                                 year: 'numeric',
                                                 month: 'long',
                                                 day: 'numeric'
-                                            }) : 'Just Now'}
+                                            }) : 'Just Now'}{showEditor ? ` • Edited by ${editorUser.name || 'Editor'}` : ''}
                                         </span>
                                     </div>
                                 </div>

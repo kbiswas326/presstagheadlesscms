@@ -9,25 +9,77 @@ class Post {
     const { getDB } = require('../config/db');
     const db = getDB(tenantId);
 
+    const toObjectId = (value) => {
+      if (!value) return null;
+      if (value instanceof ObjectId) return value;
+      if (typeof value === 'string' && ObjectId.isValid(value)) return new ObjectId(value);
+      if (typeof value === 'object') {
+        const candidate = value._id || value.id;
+        if (candidate instanceof ObjectId) return candidate;
+        if (typeof candidate === 'string' && ObjectId.isValid(candidate)) return new ObjectId(candidate);
+      }
+      return null;
+    };
+
+    const normalizeIdArray = (arr) => {
+      const list = Array.isArray(arr) ? arr : (arr ? [arr] : []);
+      return list
+        .map((v) => toObjectId(v))
+        .filter(Boolean);
+    };
+
+    const rawPrimaryCategory = Array.isArray(postData.primary_category)
+      ? postData.primary_category[0]
+      : (postData.primary_category || postData.primaryCategory);
+    const primaryCategoryId = toObjectId(rawPrimaryCategory);
+
+    const rawCategories = Array.isArray(postData.categories) ? postData.categories : [];
+    const categoryIds = normalizeIdArray(rawCategories);
+    const dedupedCategoryIds = Array.from(new Map(categoryIds.map((oid) => [String(oid), oid])).values());
+
+    if (dedupedCategoryIds.length > 3) {
+      return { error: 'You can select up to 3 categories.' };
+    }
+
+    const normalizedCategories = primaryCategoryId
+      ? [
+          primaryCategoryId,
+          ...dedupedCategoryIds.filter((oid) => String(oid) !== String(primaryCategoryId)),
+        ]
+      : dedupedCategoryIds;
+
+    const rawAuthors = Array.isArray(postData.authors) ? postData.authors : (postData.authors ? [postData.authors] : []);
+    const authorIds = normalizeIdArray(rawAuthors);
+    const dedupedAuthorIds = Array.from(new Map(authorIds.map((oid) => [String(oid), oid])).values());
+
+    const primaryAuthorId = toObjectId(postData.author || postData.primaryAuthor) || dedupedAuthorIds[0] || null;
+    const authors = primaryAuthorId
+      ? [
+          primaryAuthorId,
+          ...dedupedAuthorIds.filter((oid) => String(oid) !== String(primaryAuthorId)),
+        ]
+      : dedupedAuthorIds;
+
     let authorName = 'Unknown';
-    let authorId = null;
-
-    if (postData.author) {
-      if (!ObjectId.isValid(postData.author)) {
-        return { error: 'Invalid author ID format' };
-      }
-
-      const author = await db
-        .collection('users')
-        .findOne({ _id: new ObjectId(postData.author) });
-
-      if (!author) {
-        return { error: 'Author not found' };
-      }
-
-      authorId = new ObjectId(postData.author);
+    if (primaryAuthorId) {
+      const author = await db.collection('users').findOne({ _id: primaryAuthorId });
+      if (!author) return { error: 'Author not found' };
       authorName = author.name;
     }
+
+    const rawEditor = postData.editor || postData.editorId;
+    const editorId = toObjectId(rawEditor);
+    let editorName = null;
+    if (editorId) {
+      const editorUser = await db.collection('users').findOne({ _id: editorId });
+      if (!editorUser) return { error: 'Editor not found' };
+      editorName = editorUser.name;
+    }
+
+    const normalizedEditorId = (editorId && primaryAuthorId && String(editorId) === String(primaryAuthorId))
+      ? null
+      : editorId;
+    const normalizedEditorName = normalizedEditorId ? editorName : null;
 
     let publishedAt = postData.publishedAt ? new Date(postData.publishedAt) : null;
 
@@ -55,11 +107,13 @@ class Post {
       videoDuration: postData.videoDuration || null,
       images: postData.images || [],
       stories: postData.stories || [],
-      author: authorId,
+      author: primaryAuthorId,
       authorName,
-      categories: (postData.categories || [])
-        .filter(id => ObjectId.isValid(id))
-        .map(id => new ObjectId(id)),
+      authors,
+      editor: normalizedEditorId,
+      editorName: normalizedEditorName,
+      categories: normalizedCategories,
+      primary_category: primaryCategoryId ? [primaryCategoryId] : [],
       tags: (postData.tags || [])
         .filter(id => ObjectId.isValid(id))
         .map(id => new ObjectId(id)),
@@ -106,6 +160,25 @@ class Post {
 
     updateData.updatedAt = new Date();
 
+    const toObjectId = (value) => {
+      if (!value) return null;
+      if (value instanceof ObjectId) return value;
+      if (typeof value === 'string' && ObjectId.isValid(value)) return new ObjectId(value);
+      if (typeof value === 'object') {
+        const candidate = value._id || value.id;
+        if (candidate instanceof ObjectId) return candidate;
+        if (typeof candidate === 'string' && ObjectId.isValid(candidate)) return new ObjectId(candidate);
+      }
+      return null;
+    };
+
+    const normalizeIdArray = (arr) => {
+      const list = Array.isArray(arr) ? arr : (arr ? [arr] : []);
+      return list
+        .map((v) => toObjectId(v))
+        .filter(Boolean);
+    };
+
     if (updateData.status === 'published' || (updateData.publishDate && updateData.publishTime)) {
       if (updateData.publishedAt) {
         updateData.publishedAt = new Date(updateData.publishedAt);
@@ -123,28 +196,69 @@ class Post {
       console.log('✅ Set publishedAt:', updateData.publishedAt);
     }
 
-    if (updateData.author) {
-      if (!ObjectId.isValid(updateData.author)) {
-        return { error: 'Invalid author ID format' };
+    if (updateData.authors !== undefined || updateData.author !== undefined || updateData.primaryAuthor !== undefined) {
+      const incomingAuthors = updateData.authors !== undefined ? updateData.authors : [];
+      const normalizedIncomingAuthors = normalizeIdArray(incomingAuthors);
+      const dedupedAuthorIds = Array.from(new Map(normalizedIncomingAuthors.map((oid) => [String(oid), oid])).values());
+
+      const primaryAuthorId = toObjectId(updateData.author || updateData.primaryAuthor) || dedupedAuthorIds[0] || null;
+      const authors = primaryAuthorId
+        ? [
+            primaryAuthorId,
+            ...dedupedAuthorIds.filter((oid) => String(oid) !== String(primaryAuthorId)),
+          ]
+        : dedupedAuthorIds;
+
+      if (primaryAuthorId) {
+        const author = await db.collection('users').findOne({ _id: primaryAuthorId });
+        if (!author) return { error: 'Author not found' };
+        updateData.author = primaryAuthorId;
+        updateData.authorName = author.name;
+      } else {
+        updateData.author = null;
+        updateData.authorName = 'Unknown';
       }
 
-      const author = await db
-        .collection('users')
-        .findOne({ _id: new ObjectId(updateData.author) });
+      updateData.authors = authors;
+      delete updateData.primaryAuthor;
+    }
 
-      if (!author) {
-        return { error: 'Author not found' };
+    if (updateData.editor !== undefined || updateData.editorId !== undefined) {
+      const editorId = toObjectId(updateData.editor || updateData.editorId);
+      if (editorId) {
+        const editorUser = await db.collection('users').findOne({ _id: editorId });
+        if (!editorUser) return { error: 'Editor not found' };
+        updateData.editor = editorId;
+        updateData.editorName = editorUser.name;
+      } else {
+        updateData.editor = null;
+        updateData.editorName = null;
       }
-
-      updateData.author = new ObjectId(updateData.author);
-      updateData.authorName = author.name;
+      delete updateData.editorId;
     }
 
     if (updateData.categories) {
-      updateData.categories = updateData.categories
-        .map(c => (typeof c === 'string' ? c : c?._id))
-        .filter(id => ObjectId.isValid(id))
-        .map(id => new ObjectId(id));
+      const normalized = normalizeIdArray(updateData.categories);
+      const deduped = Array.from(new Map(normalized.map((oid) => [String(oid), oid])).values());
+      if (deduped.length > 3) {
+        return { error: 'You can select up to 3 categories.' };
+      }
+
+      const rawPrimaryCategory = Array.isArray(updateData.primary_category)
+        ? updateData.primary_category[0]
+        : (updateData.primary_category || updateData.primaryCategory);
+      const primaryCategoryId = toObjectId(rawPrimaryCategory);
+
+      updateData.categories = primaryCategoryId
+        ? [
+            primaryCategoryId,
+            ...deduped.filter((oid) => String(oid) !== String(primaryCategoryId)),
+          ]
+        : deduped;
+
+      if (primaryCategoryId) updateData.primary_category = [primaryCategoryId];
+      else if (updateData.primary_category !== undefined) updateData.primary_category = [];
+      delete updateData.primaryCategory;
     }
 
     if (updateData.tags) {
@@ -152,6 +266,11 @@ class Post {
         .map(t => (typeof t === 'string' ? t : t?._id))
         .filter(id => ObjectId.isValid(id))
         .map(id => new ObjectId(id));
+    }
+
+    if (updateData.editor && updateData.author && String(updateData.editor) === String(updateData.author)) {
+      updateData.editor = null;
+      updateData.editorName = null;
     }
 
     if (updateData.slug) {

@@ -4,13 +4,14 @@ import React, { useEffect } from 'react';
 import AdSpot from './AdSpot';
 
 export default function ArticleContent({ content }) {
-  if (!content) return null;
-  
+  const safeContent = content || '';
+
   // Fix image URLs: replace port 5000 with 5001 (for backward compatibility)
-  const fixedContent = content.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001');
+  const fixedContent = safeContent.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001');
 
   // Process embeds after content is rendered
   useEffect(() => {
+    if (!safeContent) return;
     // Process embeds when content changes
     const processEmbeds = () => {
       console.log('Processing embeds...', {
@@ -53,7 +54,9 @@ export default function ArticleContent({ content }) {
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
-  }, [content]);
+  }, [safeContent]);
+  
+  if (!safeContent) return null;
   
   // Prose classes
   const proseClasses = `prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-headings:mb-2 prose-headings:mt-6 prose-p:text-gray-700 prose-p:leading-loose prose-p:my-2

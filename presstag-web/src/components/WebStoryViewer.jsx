@@ -93,12 +93,6 @@ const WebStoryViewer = ({ images = [], postTitle = '', author = null, date = nul
     };
   }, [currentIndex, isPaused, handleNext, validImages.length]);
 
-  // Reset progress on index change
-  useEffect(() => {
-    setProgress(0);
-    startTimeRef.current = Date.now();
-  }, [currentIndex]);
-
   if (validImages.length === 0) return null;
 
   const getImageUrl = (img) => {

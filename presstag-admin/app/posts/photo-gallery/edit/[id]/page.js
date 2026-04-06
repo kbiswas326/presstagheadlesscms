@@ -18,7 +18,10 @@ export default function PhotoGalleryEditorPage() {
   const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
   // Author, Categories, Tags state and dropdowns (copied from article editor)
   const [author, setAuthor] = useState('');
+  const [authors, setAuthors] = useState([]);
+  const [editor, setEditor] = useState('');
   const [categories, setCategories] = useState([]);
+  const [primaryCategory, setPrimaryCategory] = useState('');
   const [tags, setTags] = useState([]);
   const [availableAuthors, setAvailableAuthors] = useState([]);
   const [availableCategories, setAvailableCategories] = useState([]);
@@ -90,7 +93,46 @@ export default function PhotoGalleryEditorPage() {
   const handleCategoriesDropdownToggle = (value) => { setShowCategoriesDropdown(value); if (!value) setCategorySearch(''); };
   const handleTagsDropdownToggle = (value) => { setShowTagsDropdown(value); if (!value) setTagSearch(''); };
   // Multi-select helpers
-  const toggleCategory = (id) => { setCategories(prev => prev.includes(id) ? prev.filter(cid => cid !== id) : [...prev, id]); };
+  const toggleCategory = (id) => {
+    setCategories((prev) => prev.includes(id) ? prev.filter((cid) => cid !== id) : (prev.length >= 3 ? prev : [...prev, id]));
+  };
+
+  useEffect(() => {
+    if (!primaryCategory) {
+      if (categories.length > 0) setPrimaryCategory(String(categories[0]));
+      return;
+    }
+    if (!categories.includes(primaryCategory)) {
+      setPrimaryCategory(categories.length > 0 ? String(categories[0]) : '');
+    }
+  }, [categories, primaryCategory]);
+
+  useEffect(() => {
+    if (!author) return;
+    if (!authors.includes(author)) setAuthors([author, ...authors].filter((v, i, arr) => arr.indexOf(v) === i));
+  }, [author, authors]);
+
+  const toggleAuthor = (authorId) => {
+    setAuthors((prev) => {
+      if (prev.includes(authorId)) {
+        const next = prev.filter((id) => id !== authorId);
+        if (authorId === author) {
+          setAuthor(next[0] ? String(next[0]) : '');
+        }
+        if (authorId === editor) {
+          setEditor('');
+        }
+        return next;
+      }
+      const next = [...prev, authorId];
+      if (!author) setAuthor(String(authorId));
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (editor && author && editor === author) setEditor('');
+  }, [editor, author]);
   const toggleTag = (id) => { setTags(prev => prev.includes(id) ? prev.filter(tid => tid !== id) : [...prev, id]); };
   // Display helpers
 const getSelectedCategoriesText = () =>
@@ -332,9 +374,34 @@ const getSelectedTagsText = () =>
           const authId = typeof response.author === 'object' ? (response.author._id || response.author.id) : response.author;
           setAuthor(String(authId));
         }
+        if (Array.isArray(response.authors) && response.authors.length > 0) {
+          const ids = response.authors
+            .map((a) => (typeof a === 'object' && a !== null ? (a._id || a.id) : a))
+            .filter(Boolean)
+            .map((v) => String(v));
+          setAuthors(ids);
+        } else if (response.author) {
+          const authId = typeof response.author === 'object' ? (response.author._id || response.author.id) : response.author;
+          setAuthors(authId ? [String(authId)] : []);
+        }
+        if (response.editor) {
+          const editorId = typeof response.editor === 'object' ? (response.editor._id || response.editor.id) : response.editor;
+          setEditor(editorId ? String(editorId) : '');
+        } else {
+          setEditor('');
+        }
         if (Array.isArray(response.categories)) {
           const catIds = response.categories.map(c => (typeof c === 'object' && c !== null ? (c._id || c.id) : c)).filter(Boolean);
           setCategories(catIds);
+        }
+        if (Array.isArray(response.primary_category) && response.primary_category.length > 0) {
+          const raw = response.primary_category[0];
+          const id = typeof raw === 'object' && raw !== null ? (raw._id || raw.id) : raw;
+          setPrimaryCategory(id ? String(id) : '');
+        } else if (response.primary_category) {
+          const raw = response.primary_category;
+          const id = typeof raw === 'object' && raw !== null ? (raw._id || raw.id) : raw;
+          setPrimaryCategory(id ? String(id) : '');
         }
         if (Array.isArray(response.tags)) {
           const tagIds = response.tags.map(t => (typeof t === 'object' && t !== null ? (t._id || t.id) : t)).filter(Boolean);
@@ -397,7 +464,10 @@ const getSelectedTagsText = () =>
       : null,
 
     author,
+    authors,
+    editor: editor || null,
     categories,
+    primary_category: primaryCategory ? [primaryCategory] : [],
     tags,
 
     seo: {
@@ -783,26 +853,59 @@ const getSelectedTagsText = () =>
                         </div>
                         <div className="max-h-48 overflow-y-auto">
                           {filteredAuthors.length > 0 ? filteredAuthors.map((authorOption) => (
-                            <button
-  key={authorOption._id}
-  onClick={() => {
-    setAuthor(authorOption._id.toString());
-    handleAuthorDropdownToggle(false);
-  }}
-  className={`w-full text-left px-4 py-3 cursor-pointer ${isDark ? "hover:bg-gray-700" : "hover:bg-emerald-50"} ${
-author === authorOption._id?.toString()
-      ? 'bg-emerald-50 font-medium'
-      : ''
-  }`}
->
-  {authorOption.name}
-</button>
+                            <div key={authorOption._id} className={`flex items-center justify-between px-4 py-3 cursor-pointer ${isDark ? "hover:bg-gray-700 text-gray-300" : "hover:bg-emerald-50 text-gray-900"} ${
+                              author === authorOption._id?.toString() ? (isDark ? "bg-gray-700 font-medium" : "bg-emerald-50 font-medium") : ""
+                            }`}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const id = authorOption._id.toString();
+                                  setAuthor(id);
+                                  if (!authors.includes(id)) setAuthors((prev) => [id, ...prev].filter((v, i, arr) => arr.indexOf(v) === i));
+                                  handleAuthorDropdownToggle(false);
+                                }}
+                                className="flex-1 text-left"
+                              >
+                                {authorOption.name}
+                              </button>
+                              <input type="checkbox" checked={authors.includes(authorOption._id.toString())} onChange={() => toggleAuthor(authorOption._id.toString())} className="ml-3" />
+                            </div>
 
                           )) : <div className="p-4 text-sm text-gray-500">No authors found</div>}
                         </div>
                       </div>
                     )}
                   </div>
+                </div>
+
+                {authors.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {authors.map((id) => {
+                      const user = availableAuthors.find((u) => String(u._id) === String(id));
+                      if (!user) return null;
+                      const isPrimary = String(id) === String(author);
+                      return (
+                        <span key={user._id} className={`text-xs px-3 py-1 rounded-full flex items-center gap-2 ${isDark ? "bg-slate-700 text-slate-200" : "bg-slate-100 text-slate-700"}`}>
+                          {isPrimary ? `${user.name} (Primary)` : user.name}
+                          <button onClick={() => toggleAuthor(String(user._id))} className="opacity-70 hover:opacity-100">×</button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div>
+                  <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Editor (optional)</label>
+                  <select
+                    value={editor}
+                    onChange={(e) => setEditor(e.target.value)}
+                    className={`w-full mt-2 p-2 rounded-lg border ${isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-100"}`}
+                  >
+                    <option value="">Same as author</option>
+                    {availableAuthors.filter((u) => String(u._id) !== String(author)).map((u) => (
+                      <option key={u._id} value={String(u._id)}>{u.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Categories</label>
@@ -837,6 +940,25 @@ author === authorOption._id?.toString()
                       })}
                     </div>
                   )}
+                </div>
+
+                <div>
+                  <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Primary Category</label>
+                  <select
+                    value={primaryCategory}
+                    onChange={(e) => setPrimaryCategory(e.target.value)}
+                    className={`w-full mt-2 p-2 rounded-lg border ${isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-100"}`}
+                    disabled={categories.length === 0}
+                  >
+                    <option value="">Select primary</option>
+                    {categories.map((catId) => {
+                      const cat = availableCategories.find((c) => c._id === catId);
+                      if (!cat) return null;
+                      return (
+                        <option key={cat._id} value={String(cat._id)}>{cat.name}</option>
+                      );
+                    })}
+                  </select>
                 </div>
                 <div>
                   <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Tags</label>

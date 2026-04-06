@@ -116,7 +116,11 @@ if (imageUrl) {
             </h1>
 
             <div className="flex items-center text-xs md:text-sm text-gray-300 gap-3">
-                <span className="font-medium text-white">{post.author?.name || "SportzPoint"}</span>
+                <span className="font-medium text-white">
+                  {(Array.isArray(post.authors) && post.authors.length > 0
+                    ? post.authors.map((a) => a?.name).filter(Boolean).join(', ')
+                    : (post.author?.name || "SportzPoint"))}
+                </span>
                 
                 <span>{formatDate(displayDate)}</span>
                 {post.content && (

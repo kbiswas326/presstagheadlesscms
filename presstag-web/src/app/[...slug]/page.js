@@ -165,6 +165,13 @@ if (!post) {
 
   const mainImage = getImageUrl(post.featuredImage) || getImageUrl(post.banner_image) || getImageUrl(post.coverImage);
 
+  const authorsList = Array.isArray(post.authors) && post.authors.length > 0
+    ? post.authors
+    : (post.author ? [post.author] : []);
+  const primaryAuthor = authorsList[0] || post.author || null;
+  const editorUser = post.editor && typeof post.editor === 'object' ? post.editor : null;
+  const showEditor = !!(editorUser && primaryAuthor && String(editorUser._id || '') !== String(primaryAuthor._id || ''));
+
   const getYouTubeId = (url) => {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -201,7 +208,7 @@ if (!post) {
             </nav>
 
             <div className="flex flex-wrap gap-2 mb-4">
-              {post.categories?.map((cat, index) => (
+              {post.categories?.slice(0, 3).map((cat, index) => (
                 <Link
                   key={index}
                   href={`/category/${cat.slug || cat.name || cat.title || ''}`}
@@ -224,10 +231,10 @@ if (!post) {
             <div className="flex items-center justify-between border-b border-gray-100 pb-6 mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden relative">
-                  {post.author?.image || post.authorImage ? (
+                  {primaryAuthor?.image || post.authorImage ? (
                     <Image
-                      src={getImageUrl(post.author?.image || post.authorImage)}
-                      alt={post.author?.name || post.authorName || 'Author'}
+                      src={getImageUrl(primaryAuthor?.image || post.authorImage)}
+                      alt={primaryAuthor?.name || post.authorName || 'Author'}
                       fill
                       sizes="40px"
                       className="object-cover"
@@ -242,16 +249,34 @@ if (!post) {
                 </div>
                 <div className="flex flex-col">
                   <span className="font-bold text-gray-900 text-sm">
-                    {post.author?.slug ? (
-                      <Link href={`/author/${post.author.slug}`} className="transition-colors hover:text-[var(--primary-color)]">
-                        {post.author?.name || post.authorName || 'SportzPoint Editor'}
-                      </Link>
+                    {authorsList.length > 0 ? (
+                      authorsList.map((a, idx) => {
+                        const name = a?.name || '';
+                        const slug = a?.slug || '';
+                        const sep = idx === 0 ? '' : (idx === authorsList.length - 1 ? ' & ' : ', ');
+                        if (slug) {
+                          return (
+                            <React.Fragment key={slug || idx}>
+                              {sep}
+                              <Link href={`/author/${slug}`} className="transition-colors hover:text-[var(--primary-color)]">
+                                {name || 'Author'}
+                              </Link>
+                            </React.Fragment>
+                          );
+                        }
+                        return (
+                          <React.Fragment key={slug || idx}>
+                            {sep}{name || 'Author'}
+                          </React.Fragment>
+                        );
+                      })
                     ) : (
-                      post.author?.name || post.authorName || 'SportzPoint Editor'
+                      post.authorName || 'SportzPoint Editor'
                     )}
                   </span>
                   <span className="text-xs text-gray-500">
                     {formattedDate} • {readTime} min read
+                    {showEditor ? ` • Edited by ${editorUser.name || 'Editor'}` : ''}
                   </span>
                 </div>
               </div>
@@ -312,13 +337,13 @@ if (!post) {
           )}
 
           {/* Author Box */}
-          {post.author && (
+          {primaryAuthor && (
             <div className="mt-10 p-6 bg-gray-50 rounded-xl border border-gray-100 flex gap-4">
               <div className="w-16 h-16 rounded-full bg-white overflow-hidden shrink-0 border border-gray-200">
-                {post.author.image ? (
+                {primaryAuthor.image ? (
                   <Image
-                    src={getImageUrl(post.author.image)}
-                    alt={post.author.name}
+                    src={getImageUrl(primaryAuthor.image)}
+                    alt={primaryAuthor.name}
                     width={64}
                     height={64}
                     className="object-cover w-full h-full"
@@ -332,10 +357,10 @@ if (!post) {
                 )}
               </div>
               <div>
-                <h4 className="font-bold text-gray-900 mb-1">{post.author.name}</h4>
-                <p className="text-sm text-gray-600 mb-2">{post.author.bio || `Sports journalist and editor at SportzPoint.`}</p>
-                {post.author.slug && (
-                  <Link href={`/author/${post.author.slug}`} className="text-xs font-bold uppercase tracking-wider hover:underline" style={{ color: 'var(--primary-color)' }}>
+                <h4 className="font-bold text-gray-900 mb-1">{primaryAuthor.name}</h4>
+                <p className="text-sm text-gray-600 mb-2">{primaryAuthor.bio || `Sports journalist and editor at SportzPoint.`}</p>
+                {primaryAuthor.slug && (
+                  <Link href={`/author/${primaryAuthor.slug}`} className="text-xs font-bold uppercase tracking-wider hover:underline" style={{ color: 'var(--primary-color)' }}>
                     View Profile
                   </Link>
                 )}

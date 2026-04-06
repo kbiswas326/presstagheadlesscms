@@ -113,7 +113,10 @@ export default function VideoEditorPage() {
   }, []);
 
   const [author, setAuthor] = useState('');
+  const [authors, setAuthors] = useState([]);
+  const [editor, setEditor] = useState('');
   const [categories, setCategories] = useState([]);
+  const [primaryCategory, setPrimaryCategory] = useState('');
   const [tags, setTags] = useState([]);
 
   const [metaTitle, setMetaTitle] = useState('');
@@ -208,12 +211,47 @@ export default function VideoEditorPage() {
               setAuthor(String(authId));
             }
 
+            if (Array.isArray(response.authors) && response.authors.length > 0) {
+              const ids = response.authors
+                .map((a) => (typeof a === 'object' && a !== null ? (a._id || a.id) : a))
+                .filter(Boolean)
+                .map((v) => String(v));
+              setAuthors(ids);
+            } else if (response.author) {
+              const authId = typeof response.author === 'object' 
+                ? (response.author._id || response.author.id) 
+                : response.author;
+              setAuthors(authId ? [String(authId)] : []);
+            }
+
+            if (response.editor) {
+              const editorId = typeof response.editor === 'object'
+                ? (response.editor._id || response.editor.id)
+                : response.editor;
+              setEditor(editorId ? String(editorId) : '');
+            } else {
+              setEditor('');
+            }
+
             // Handle Categories
+            let catIds = [];
             if (Array.isArray(response.categories)) {
-                const catIds = response.categories.map(c => 
+                catIds = response.categories.map(c => 
                   typeof c === 'object' && c !== null ? (c._id || c.id) : c
                 ).filter(Boolean);
                 setCategories(catIds);
+            }
+
+            if (Array.isArray(response.primary_category) && response.primary_category.length > 0) {
+              const raw = response.primary_category[0];
+              const id = typeof raw === 'object' && raw !== null ? (raw._id || raw.id) : raw;
+              setPrimaryCategory(id ? String(id) : '');
+            } else if (response.primary_category) {
+              const raw = response.primary_category;
+              const id = typeof raw === 'object' && raw !== null ? (raw._id || raw.id) : raw;
+              setPrimaryCategory(id ? String(id) : '');
+            } else if (catIds.length > 0) {
+              setPrimaryCategory(String(catIds[0]));
             }
 
             // Handle Tags
@@ -608,7 +646,10 @@ export default function VideoEditorPage() {
         featuredImage,
         status: 'draft',
         author: author || null,
+        authors,
+        editor: editor || null,
         categories,
+        primary_category: primaryCategory ? [primaryCategory] : [],
         tags,
         seoScore,
         videoUrl: youtubeUrl,
@@ -674,7 +715,10 @@ export default function VideoEditorPage() {
         featuredImage,
         status: 'pending',
         author: author || null,
+        authors,
+        editor: editor || null,
         categories,
+        primary_category: primaryCategory ? [primaryCategory] : [],
         tags,
         seoScore,
         videoUrl: youtubeUrl,
@@ -733,7 +777,10 @@ export default function VideoEditorPage() {
         featuredImage,
         status: 'published',
         author: author || null,
+        authors,
+        editor: editor || null,
         categories,
+        primary_category: primaryCategory ? [primaryCategory] : [],
         tags,
         seoScore,
         videoUrl: youtubeUrl,
@@ -803,7 +850,10 @@ export default function VideoEditorPage() {
         featuredImage,
         status: 'published',
         author: author || null,
+        authors,
+        editor: editor || null,
         categories,
+        primary_category: primaryCategory ? [primaryCategory] : [],
         tags,
         seoScore,
         videoUrl: youtubeUrl,
@@ -844,9 +894,46 @@ export default function VideoEditorPage() {
     setCategories(prev =>
       prev.includes(categoryId)
         ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
+        : (prev.length >= 3 ? prev : [...prev, categoryId])
     );
   };
+
+  useEffect(() => {
+    if (!primaryCategory) {
+      if (categories.length > 0) setPrimaryCategory(String(categories[0]));
+      return;
+    }
+    if (!categories.includes(primaryCategory)) {
+      setPrimaryCategory(categories.length > 0 ? String(categories[0]) : '');
+    }
+  }, [categories, primaryCategory]);
+
+  useEffect(() => {
+    if (!author) return;
+    if (!authors.includes(author)) setAuthors([author, ...authors].filter((v, i, arr) => arr.indexOf(v) === i));
+  }, [author, authors]);
+
+  const toggleAuthor = (authorId) => {
+    setAuthors((prev) => {
+      if (prev.includes(authorId)) {
+        const next = prev.filter((id) => id !== authorId);
+        if (authorId === author) {
+          setAuthor(next[0] ? String(next[0]) : '');
+        }
+        if (authorId === editor) {
+          setEditor('');
+        }
+        return next;
+      }
+      const next = [...prev, authorId];
+      if (!author) setAuthor(String(authorId));
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (editor && author && editor === author) setEditor('');
+  }, [editor, author]);
 
   const toggleTag = (tagId) => {
     setTags(prev =>
@@ -1135,11 +1222,49 @@ export default function VideoEditorPage() {
                         </div>
                         <div className="max-h-48 overflow-y-auto">
                           {filteredAuthors.length > 0 ? filteredAuthors.map((authorOption) => (
-                            <button key={authorOption.id} onClick={() => { setAuthor(String(authorOption.id)); handleAuthorDropdownToggle(false); }} className={`w-full text-left px-4 py-3 ${isDark ? "hover:bg-gray-700 text-gray-200" : "hover:bg-emerald-50 text-gray-900"} ${author === authorOption.id ? (isDark ? "bg-gray-700 font-medium" : "bg-emerald-50 font-medium") : ""}`}>{authorOption.name}</button>
+                            <div key={authorOption.id} className={`flex items-center justify-between px-4 py-3 ${isDark ? "hover:bg-gray-700 text-gray-200" : "hover:bg-emerald-50 text-gray-900"}`}>
+                              <button type="button" onClick={() => { setAuthor(String(authorOption.id)); if (!authors.includes(String(authorOption.id))) setAuthors(prev => [String(authorOption.id), ...prev].filter((v, i, arr) => arr.indexOf(v) === i)); handleAuthorDropdownToggle(false); }} className="flex-1 text-left">
+                                <div className="font-medium">{authorOption.name}</div>
+                                <div className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>{authorOption.email || ''}</div>
+                              </button>
+                              <input type="checkbox" checked={authors.includes(String(authorOption.id))} onChange={() => toggleAuthor(String(authorOption.id))} className="ml-3" />
+                            </div>
                           )) : <div className={`p-4 text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>No authors found</div>}
                         </div>
                       </div>
                     )}
+                  </div>
+                </div>
+
+                {authors.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {authors.map((id) => {
+                      const user = availableAuthors.find((u) => String(u.id) === String(id));
+                      if (!user) return null;
+                      const isPrimary = String(id) === String(author);
+                      return (
+                        <span key={user.id} className={`text-xs px-3 py-1 rounded-full flex items-center gap-2 ${isDark ? "bg-slate-700 text-slate-200" : "bg-slate-100 text-slate-700"}`}>
+                          {isPrimary ? `${user.name} (Primary)` : user.name}
+                          <button onClick={() => toggleAuthor(String(user.id))} className="opacity-70 hover:opacity-100">×</button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div>
+                  <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Editor (optional)</label>
+                  <div className="relative mt-2">
+                    <select
+                      value={editor}
+                      onChange={(e) => setEditor(e.target.value)}
+                      className={`w-full p-2 rounded-lg border ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-100 text-gray-900"}`}
+                    >
+                      <option value="">Same as author</option>
+                      {availableAuthors.filter((u) => String(u.id) !== String(author)).map((u) => (
+                        <option key={u.id} value={String(u.id)}>{u.name}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -1178,6 +1303,25 @@ export default function VideoEditorPage() {
                       })}
                     </div>
                   )}
+                </div>
+
+                <div>
+                  <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Primary Category</label>
+                  <select
+                    value={primaryCategory}
+                    onChange={(e) => setPrimaryCategory(e.target.value)}
+                    className={`w-full mt-2 p-2 rounded-lg border ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-100 text-gray-900"}`}
+                    disabled={categories.length === 0}
+                  >
+                    <option value="">Select primary</option>
+                    {categories.map((catId) => {
+                      const cat = availableCategories.find((c) => c._id === catId);
+                      if (!cat) return null;
+                      return (
+                        <option key={cat._id} value={String(cat._id)}>{cat.name}</option>
+                      );
+                    })}
+                  </select>
                 </div>
 
                 <div>

@@ -95,7 +95,10 @@ export default function LiveBlogEditorPage() {
   const [publishDate, setPublishDate] = useState('');
   const [publishTime, setPublishTime] = useState('');
   const [author, setAuthor] = useState('');
+  const [authors, setAuthors] = useState([]);
+  const [editor, setEditor] = useState('');
   const [categories, setCategories] = useState([]);
+  const [primaryCategory, setPrimaryCategory] = useState('');
   const [tags, setTags] = useState([]);
 
   // multi-select dropdowns
@@ -161,7 +164,32 @@ useEffect(() => {
       setContent(post.content || "");
 
       setAuthor(post.author?._id || post.author || "");
+      if (Array.isArray(post.authors) && post.authors.length > 0) {
+        const ids = post.authors
+          .map((a) => (typeof a === 'object' && a !== null ? (a._id || a.id) : a))
+          .filter(Boolean)
+          .map((v) => String(v));
+        setAuthors(ids);
+      } else if (post.author) {
+        const authId = post.author?._id || post.author;
+        setAuthors(authId ? [String(authId)] : []);
+      }
+      if (post.editor) {
+        const editorId = typeof post.editor === 'object' ? (post.editor._id || post.editor.id) : post.editor;
+        setEditor(editorId ? String(editorId) : '');
+      } else {
+        setEditor('');
+      }
       setCategories((post.categories || []).map(c => c._id || c));
+      if (Array.isArray(post.primary_category) && post.primary_category.length > 0) {
+        const raw = post.primary_category[0];
+        const id = typeof raw === 'object' && raw !== null ? (raw._id || raw.id) : raw;
+        setPrimaryCategory(id ? String(id) : '');
+      } else if (post.primary_category) {
+        const raw = post.primary_category;
+        const id = typeof raw === 'object' && raw !== null ? (raw._id || raw.id) : raw;
+        setPrimaryCategory(id ? String(id) : '');
+      }
       setTags((post.tags || []).map(t => t._id || t));
 
       setFeaturedImage(post.featuredImage || null);
@@ -392,7 +420,10 @@ const buildPayload = (status) => ({
   seoScore,
 
   author,
+  authors,
+  editor: editor || null,
   categories,
+  primary_category: primaryCategory ? [primaryCategory] : [],
   tags,
 
   status,
@@ -624,9 +655,45 @@ const handleUpdate = async () => {
 
 // multi-select handlers//
   const toggleCategory = (categoryId) => {
-    setCategories(prev => prev.includes(categoryId) ? prev.filter(id => id !== categoryId) : [...prev, categoryId]);
+    setCategories(prev => prev.includes(categoryId) ? prev.filter(id => id !== categoryId) : (prev.length >= 3 ? prev : [...prev, categoryId]));
   };
 
+  useEffect(() => {
+    if (!primaryCategory) {
+      if (categories.length > 0) setPrimaryCategory(String(categories[0]));
+      return;
+    }
+    if (!categories.includes(primaryCategory)) {
+      setPrimaryCategory(categories.length > 0 ? String(categories[0]) : '');
+    }
+  }, [categories, primaryCategory]);
+
+  useEffect(() => {
+    if (!author) return;
+    if (!authors.includes(author)) setAuthors([author, ...authors].filter((v, i, arr) => arr.indexOf(v) === i));
+  }, [author, authors]);
+
+  const toggleAuthor = (authorId) => {
+    setAuthors((prev) => {
+      if (prev.includes(authorId)) {
+        const next = prev.filter((id) => id !== authorId);
+        if (authorId === author) {
+          setAuthor(next[0] ? String(next[0]) : '');
+        }
+        if (authorId === editor) {
+          setEditor('');
+        }
+        return next;
+      }
+      const next = [...prev, authorId];
+      if (!author) setAuthor(String(authorId));
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (editor && author && editor === author) setEditor('');
+  }, [editor, author]);
   const toggleTag = (tagId) => {
     setTags(prev => prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]);
   };
@@ -1060,19 +1127,20 @@ const sortedUpdates = [...updates].sort(
         <div className="max-h-48 overflow-y-auto">
           {filteredAuthors.length > 0 ? (
             filteredAuthors.map((a) => (
-              <button
-                key={a._id}
-                type="button"
-                onClick={() => {
-                  setAuthor(a._id);
-                  handleAuthorDropdownToggle(false);
-                }}
-                className={`w-full text-left px-4 py-3 hover:bg-emerald-50 ${
-                  author === a._id ? "bg-emerald-50 font-medium" : ""
-                }`}
-              >
-                {a.name}
-              </button>
+              <div key={a._id} className={`flex items-center justify-between px-4 py-3 hover:bg-emerald-50 ${String(author) === String(a._id) ? "bg-emerald-50 font-medium" : ""}`}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthor(String(a._id));
+                    if (!authors.includes(String(a._id))) setAuthors((prev) => [String(a._id), ...prev].filter((v, i, arr) => arr.indexOf(v) === i));
+                    handleAuthorDropdownToggle(false);
+                  }}
+                  className="flex-1 text-left"
+                >
+                  {a.name}
+                </button>
+                <input type="checkbox" checked={authors.includes(String(a._id))} onChange={() => toggleAuthor(String(a._id))} className="ml-3" />
+              </div>
             ))
           ) : (
             <div className="p-4 text-sm text-gray-500">
@@ -1082,6 +1150,38 @@ const sortedUpdates = [...updates].sort(
         </div>
       </div>
     )}
+  </div>
+</div>
+
+{authors.length > 0 && (
+  <div className="mt-3 flex flex-wrap gap-2">
+    {authors.map((id) => {
+      const user = availableAuthors.find((u) => String(u._id) === String(id));
+      if (!user) return null;
+      const isPrimary = String(id) === String(author);
+      return (
+        <span key={user._id} className={`text-xs px-3 py-1 rounded-full flex items-center gap-2 ${isDark ? "bg-slate-700 text-slate-200" : "bg-slate-100 text-slate-700"}`}>
+          {isPrimary ? `${user.name} (Primary)` : user.name}
+          <button onClick={() => toggleAuthor(String(user._id))} className="opacity-70 hover:opacity-100">×</button>
+        </span>
+      );
+    })}
+  </div>
+)}
+
+<div className="mt-6">
+  <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Editor (optional)</label>
+  <div className="relative mt-2">
+    <select
+      value={editor}
+      onChange={(e) => setEditor(e.target.value)}
+      className={`w-full p-2 rounded-lg border ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-100 text-gray-900"}`}
+    >
+      <option value="">Same as author</option>
+      {availableAuthors.filter((u) => String(u._id) !== String(author)).map((u) => (
+        <option key={u._id} value={String(u._id)}>{u.name}</option>
+      ))}
+    </select>
   </div>
 </div>
 
@@ -1121,6 +1221,25 @@ const sortedUpdates = [...updates].sort(
                     </div>
                   )}
                 </div>
+
+              <div>
+                <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Primary Category</label>
+                <select
+                  value={primaryCategory}
+                  onChange={(e) => setPrimaryCategory(e.target.value)}
+                  className={`w-full mt-2 p-2 rounded-lg border ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-100 text-gray-900"}`}
+                  disabled={categories.length === 0}
+                >
+                  <option value="">Select primary</option>
+                  {categories.map((catId) => {
+                    const cat = availableCategories.find((c) => c._id === catId);
+                    if (!cat) return null;
+                    return (
+                      <option key={cat._id} value={String(cat._id)}>{cat.name}</option>
+                    );
+                  })}
+                </select>
+              </div>
 
                 <div>
                   <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Tags</label>

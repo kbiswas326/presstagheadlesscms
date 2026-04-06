@@ -140,12 +140,56 @@ async function populatePost(post, db) {
     }
   }
 
+  const rawAuthors = Array.isArray(post.authors) ? post.authors : [];
+  const authorIds = rawAuthors.map((v) => toObjectId(v)).filter(Boolean);
+  const authors = authorIds.length > 0
+    ? await db.collection('users').find({ _id: { $in: authorIds } }, { projection: { password: 0 } }).toArray()
+    : [];
+
+  const primaryAuthorId = author ? String(author._id) : (rawAuthor ? String(rawAuthor._id || rawAuthor) : '');
+  const authorById = new Map(authors.map((u) => [String(u._id), u]));
+  const orderedAuthors = authorIds
+    .map((id) => authorById.get(String(id)))
+    .filter(Boolean);
+
+  const mergedAuthors = orderedAuthors.length > 0
+    ? (
+        primaryAuthorId
+          ? [
+              ...(authorById.get(primaryAuthorId) ? [authorById.get(primaryAuthorId)] : (author ? [author] : [])),
+              ...orderedAuthors.filter((u) => String(u._id) !== String(primaryAuthorId)),
+            ]
+          : orderedAuthors
+      )
+    : (author ? [author] : []);
+
+  let editor = null;
+  const rawEditor = post.editor || post.editorId;
+  if (rawEditor) {
+    const editorId = toObjectId(rawEditor);
+    if (editorId) {
+      editor = await db.collection('users').findOne({ _id: editorId }, { projection: { password: 0 } });
+    }
+  }
+
+  if (editor && author && String(editor._id) === String(author._id)) editor = null;
+
+  if (primaryCategory && Array.isArray(categories) && categories.length > 0) {
+    const primaryId = String(primaryCategory._id);
+    categories = [
+      primaryCategory,
+      ...categories.filter((c) => String(c?._id) !== primaryId),
+    ];
+  }
+
   return {
     ...post,
     categories,
     tags,
     primary_category: primaryCategoryIds,
     author: author || post.author,
+    authors: mergedAuthors,
+    editor: editor || post.editor,
   };
 }
 
@@ -209,7 +253,10 @@ router.get('/', async (req, res) => {
     if (status && status !== 'All') query.status = status;
     if (type && type !== 'All') query.type = type;
     if (search) query.title = { $regex: search, $options: 'i' };
-    if (author && ObjectId.isValid(author)) query.author = new ObjectId(author);
+    if (author && ObjectId.isValid(author)) {
+      const oid = new ObjectId(author);
+      query.$or = (query.$or || []).concat([{ author: oid }, { authors: oid }]);
+    }
 
     // Category filter
     if (category && category !== 'All') {
@@ -240,20 +287,88 @@ router.get('/', async (req, res) => {
       { $lookup: { from: 'categories', localField: 'primary_category', foreignField: '_id', as: 'primaryCategoryPop' } },
       { $lookup: { from: 'tags', localField: 'tags', foreignField: '_id', as: 'tagsPop' } },
       { $lookup: { from: 'users', localField: 'author', foreignField: '_id', as: 'authorPop' } },
+      { $lookup: { from: 'users', localField: 'authors', foreignField: '_id', as: 'authorsPop' } },
+      { $lookup: { from: 'users', localField: 'editor', foreignField: '_id', as: 'editorPop' } },
       {
         $addFields: {
           categories: {
             $cond: [
               { $gt: [{ $size: '$categoriesPop' }, 0] },
-              '$categoriesPop',
+              {
+                $filter: {
+                  input: {
+                    $map: {
+                      input: '$categories',
+                      as: 'cid',
+                      in: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: '$categoriesPop',
+                              as: 'c',
+                              cond: { $eq: ['$$c._id', '$$cid'] },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    },
+                  },
+                  as: 'c',
+                  cond: { $ne: ['$$c', null] },
+                },
+              },
               '$primaryCategoryPop',
             ],
           },
           tags: '$tagsPop',
           author: { $arrayElemAt: ['$authorPop', 0] },
+          authors: {
+            $cond: [
+              { $gt: [{ $size: '$authorsPop' }, 0] },
+              {
+                $filter: {
+                  input: {
+                    $map: {
+                      input: '$authors',
+                      as: 'aid',
+                      in: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: '$authorsPop',
+                              as: 'a',
+                              cond: { $eq: ['$$a._id', '$$aid'] },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    },
+                  },
+                  as: 'a',
+                  cond: { $ne: ['$$a', null] },
+                },
+              },
+              [],
+            ],
+          },
+          editor: {
+            $cond: [
+              {
+                $and: [
+                  { $gt: [{ $size: '$editorPop' }, 0] },
+                  { $gt: [{ $size: '$authorPop' }, 0] },
+                  { $eq: [{ $arrayElemAt: ['$editorPop._id', 0] }, { $arrayElemAt: ['$authorPop._id', 0] }] },
+                ],
+              },
+              null,
+              { $arrayElemAt: ['$editorPop', 0] },
+            ],
+          },
         },
       },
-      { $project: { categoriesPop: 0, primaryCategoryPop: 0, tagsPop: 0, authorPop: 0, 'author.password': 0 } },
+      { $project: { categoriesPop: 0, primaryCategoryPop: 0, tagsPop: 0, authorPop: 0, authorsPop: 0, editorPop: 0, 'author.password': 0, 'authors.password': 0, 'editor.password': 0 } },
     ]).toArray();
 
     res.json({
@@ -466,9 +581,13 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const now = new Date();
     const status = typeof req.body.status === 'string' ? req.body.status.toLowerCase().trim() : 'draft';
+    const hasExplicitAuthor =
+      !!req.body.author ||
+      !!req.body.primaryAuthor ||
+      (Array.isArray(req.body.authors) && req.body.authors.length > 0);
     const payload = {
       ...req.body,
-      author: req.body.author || req.user._id,
+      ...(hasExplicitAuthor ? {} : { author: req.user._id }),
       status,
       publishedAt: status === 'published' ? now : null,
     };
@@ -493,20 +612,88 @@ router.get('/:id', async (req, res) => {
       { $lookup: { from: 'categories', localField: 'primary_category', foreignField: '_id', as: 'primaryCategoryPop' } },
       { $lookup: { from: 'tags', localField: 'tags', foreignField: '_id', as: 'tagsPop' } },
       { $lookup: { from: 'users', localField: 'author', foreignField: '_id', as: 'authorPop' } },
+      { $lookup: { from: 'users', localField: 'authors', foreignField: '_id', as: 'authorsPop' } },
+      { $lookup: { from: 'users', localField: 'editor', foreignField: '_id', as: 'editorPop' } },
       {
         $addFields: {
           categories: {
             $cond: [
               { $gt: [{ $size: '$categoriesPop' }, 0] },
-              '$categoriesPop',
+              {
+                $filter: {
+                  input: {
+                    $map: {
+                      input: '$categories',
+                      as: 'cid',
+                      in: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: '$categoriesPop',
+                              as: 'c',
+                              cond: { $eq: ['$$c._id', '$$cid'] },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    },
+                  },
+                  as: 'c',
+                  cond: { $ne: ['$$c', null] },
+                },
+              },
               '$primaryCategoryPop',
             ],
           },
           tags: '$tagsPop',
           author: { $arrayElemAt: ['$authorPop', 0] },
+          authors: {
+            $cond: [
+              { $gt: [{ $size: '$authorsPop' }, 0] },
+              {
+                $filter: {
+                  input: {
+                    $map: {
+                      input: '$authors',
+                      as: 'aid',
+                      in: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: '$authorsPop',
+                              as: 'a',
+                              cond: { $eq: ['$$a._id', '$$aid'] },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    },
+                  },
+                  as: 'a',
+                  cond: { $ne: ['$$a', null] },
+                },
+              },
+              [],
+            ],
+          },
+          editor: {
+            $cond: [
+              {
+                $and: [
+                  { $gt: [{ $size: '$editorPop' }, 0] },
+                  { $gt: [{ $size: '$authorPop' }, 0] },
+                  { $eq: [{ $arrayElemAt: ['$editorPop._id', 0] }, { $arrayElemAt: ['$authorPop._id', 0] }] },
+                ],
+              },
+              null,
+              { $arrayElemAt: ['$editorPop', 0] },
+            ],
+          },
         },
       },
-      { $project: { categoriesPop: 0, primaryCategoryPop: 0, tagsPop: 0, authorPop: 0, 'author.password': 0 } },
+      { $project: { categoriesPop: 0, primaryCategoryPop: 0, tagsPop: 0, authorPop: 0, authorsPop: 0, editorPop: 0, 'author.password': 0, 'authors.password': 0, 'editor.password': 0 } },
     ]).toArray();
 
     const post = rows[0];
