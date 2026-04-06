@@ -561,7 +561,7 @@ useEffect(() => {
 
         {!loading && images.length > 0 && filteredImages.length === 0 && (
           <p className="col-span-full text-center text-gray-400 py-20">
-            No images found matching "{searchQuery}".
+            No images found matching &quot;{searchQuery}&quot;.
           </p>
         )}
         </div>

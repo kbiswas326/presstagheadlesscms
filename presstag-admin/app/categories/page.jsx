@@ -53,7 +53,7 @@ export default function CategoriesPage() {
   const fetchCategories = async () => {
     try {
       setIsLoading(true);
-      const data = await getCategories();
+      const data = await getCategories({ withCounts: false });
       // Ensure we have an array
       const cats = Array.isArray(data.categories) ? data.categories : (Array.isArray(data) ? data : []);
       // Map _id to id if needed

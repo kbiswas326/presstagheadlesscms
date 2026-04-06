@@ -52,7 +52,7 @@ export default function TagsPage() {
   const fetchTags = async () => {
     try {
       setIsLoading(true);
-      const data = await getTags();
+      const data = await getTags({ withCounts: false });
       const t = Array.isArray(data.tags) ? data.tags : (Array.isArray(data) ? data : []);
       const mappedTags = t.map(tag => ({
         ...tag,

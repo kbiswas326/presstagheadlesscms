@@ -9,6 +9,7 @@ import { ArrowLeft, ChevronDown, CheckCircle2, XCircle, AlertCircle, X } from 'l
 import { getTenantId, posts } from '../../../../../lib/api';
 import { useUser } from '../../../../context/UserContext';
 import { useTheme } from '../../../../context/ThemeContext';
+import { countInternalExternalLinks } from '../../../../../utils/linkAnalysis';
 
 // Load TinyMCE dynamically
 const Editor = dynamic(() => import('@tinymce/tinymce-react').then(mod => mod.Editor), {
@@ -21,10 +22,27 @@ export default function VideoEditorPage() {
   const params = useParams();
   const [postId, setPostId] = useState(params?.id);
   const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
+  const [siteUrl, setSiteUrl] = useState('');
 
   useEffect(() => {
     setPostId(params?.id);
   }, [params?.id]);
+
+  useEffect(() => {
+    const loadSiteUrl = async () => {
+      try {
+        const token = localStorage.getItem('token') || '';
+        const res = await fetch(`${BASE}/api/layout-config`, {
+          headers: { Authorization: `Bearer ${token}`, 'x-tenant-id': getTenantId() },
+          cache: 'no-store',
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setSiteUrl(data?.branding?.siteUrl || '');
+      } catch {}
+    };
+    loadSiteUrl();
+  }, [BASE]);
 
   // Post status and Auto-save
   const [postStatus, setPostStatus] = useState('draft');
@@ -381,12 +399,7 @@ export default function VideoEditorPage() {
     return headings;
   };
 
-  // Helper: Count links
-  const countLinks = (html) => {
-    const internal = (html.match(/<a[^>]*href=["'](?!http)/gi) || []).length;
-    const external = (html.match(/<a[^>]*href=["']http/gi) || []).length;
-    return { internal, external };
-  };
+  const countLinks = (html) => countInternalExternalLinks(html, siteUrl);
 
   // Comprehensive SEO Analysis
   useEffect(() => {

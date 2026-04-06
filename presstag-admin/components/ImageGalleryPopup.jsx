@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import Cookies from "js-cookie";
 import ImageGallaryPagination from "./ImagegalleryPagination";
 import { getTenantId } from "../lib/api";
@@ -344,7 +345,7 @@ const ImageGalleryPopup = ({ onSelect, onClose, onImageSelect }) => {
                   <div className="w-full relative h-[200px] ">
                     <Image
                       src={imagePreview}
-                      alt={imageAltTexts || `""`}
+                      alt={imageAltTexts || ''}
                       layout="fill"
                       objectFit="cover"
                       className="transition-transform group-hover:scale-105"

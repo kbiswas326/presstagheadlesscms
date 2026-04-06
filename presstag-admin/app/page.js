@@ -6,7 +6,7 @@ import Link from "next/link";
 import { 
   FileText, Video, Image as ImageIcon, Smartphone, Radio, 
   Clock, CheckCircle, FileEdit, Plus, BarChart2,
-  ArrowRight, TrendingUp
+  ArrowRight, TrendingUp, TrendingDown, Users, Hash
 } from "lucide-react";
 import { auth as authAPI, getTenantId } from "../lib/api";
 import { useRouter } from "next/navigation";
@@ -24,6 +24,10 @@ export default function HomePage() {
   const [recentDrafts, setRecentDrafts] = useState([]);
   const [pendingPosts, setPendingPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [rangeDays, setRangeDays] = useState(7);
+  const [insights, setInsights] = useState(null);
+  const [gaSummary, setGaSummary] = useState(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
 
   // ✅ FIX: NEXT_PUBLIC_API_URL already ends without /api in some setups.
   // The stats endpoint is at /api/posts/stats — build the URL carefully.
@@ -100,6 +104,39 @@ export default function HomePage() {
     fetchDashboardData();
   }, []);
 
+  useEffect(() => {
+    const fetchInsights = async () => {
+      try {
+        setInsightsLoading(true);
+        const token = localStorage.getItem('token') || '';
+        const headers = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'x-tenant-id': getTenantId(),
+        };
+
+        const [insightsRes, gaRes] = await Promise.all([
+          fetch(`${BASE}/api/posts/insights?days=${rangeDays}`, { headers, cache: 'no-store' }),
+          fetch(`${BASE}/api/analytics/ga4/summary?days=${rangeDays}`, { headers, cache: 'no-store' }),
+        ]);
+
+        if (insightsRes.ok) setInsights(await insightsRes.json());
+        else setInsights(null);
+
+        if (gaRes.ok) setGaSummary(await gaRes.json());
+        else setGaSummary(null);
+      } catch (error) {
+        console.error("Insights fetch error:", error);
+        setInsights(null);
+        setGaSummary(null);
+      } finally {
+        setInsightsLoading(false);
+      }
+    };
+
+    fetchInsights();
+  }, [BASE, rangeDays]);
+
   const getGreeting = () => {
     const h = new Date().getHours();
     if (h < 12) return "Good morning";
@@ -144,9 +181,33 @@ export default function HomePage() {
 
         {/* Stats Cards — numbers come from /api/posts/stats, never from post array length */}
         <section>
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart2 className="w-5 h-5 text-blue-600" />
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Content Analytics</h2>
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <BarChart2 className="w-5 h-5 text-blue-600" />
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Content Analytics</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setRangeDays(7)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                  rangeDays === 7
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                7 Days
+              </button>
+              <button
+                onClick={() => setRangeDays(30)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                  rangeDays === 30
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                30 Days
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <StatCard
@@ -178,6 +239,90 @@ export default function HomePage() {
               dot="bg-purple-500"
             />
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <InsightCard
+              label={`Published (last ${rangeDays} days)`}
+              value={insights?.published?.current ?? '—'}
+              loading={insightsLoading}
+              icon={<TrendingUp className="w-5 h-5 text-green-600" />}
+              delta={insights?.published?.delta}
+              deltaPct={insights?.published?.deltaPct}
+              compareLabel={`vs prev ${rangeDays} days`}
+            />
+            <KeyValueCard
+              label={`Top Author (last ${rangeDays} days)`}
+              value={insights?.topAuthor?.name || '—'}
+              subValue={insights?.topAuthor?.count ? `${insights.topAuthor.count} posts` : ''}
+              loading={insightsLoading}
+              icon={<Users className="w-5 h-5 text-blue-600" />}
+            />
+            <KeyValueCard
+              label={`Top Category (last ${rangeDays} days)`}
+              value={insights?.topCategory?.name || '—'}
+              subValue={insights?.topCategory?.count ? `${insights.topCategory.count} posts` : ''}
+              loading={insightsLoading}
+              icon={<Hash className="w-5 h-5 text-purple-600" />}
+            />
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="w-5 h-5 text-emerald-600" />
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Traffic (Google Analytics)</h2>
+          </div>
+          {gaSummary?.configured ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <StatCard
+                label={`Active Users (${rangeDays}d)`}
+                value={Number(gaSummary?.totals?.activeUsers || 0).toLocaleString()}
+                color="bg-emerald-50 dark:bg-emerald-900/20"
+                textColor="text-emerald-700 dark:text-emerald-400"
+                dot="bg-emerald-500"
+              />
+              <StatCard
+                label={`Sessions (${rangeDays}d)`}
+                value={Number(gaSummary?.totals?.sessions || 0).toLocaleString()}
+                color="bg-blue-50 dark:bg-blue-900/20"
+                textColor="text-blue-700 dark:text-blue-400"
+                dot="bg-blue-500"
+              />
+              <StatCard
+                label={`Page Views (${rangeDays}d)`}
+                value={Number(gaSummary?.totals?.pageViews || 0).toLocaleString()}
+                color="bg-purple-50 dark:bg-purple-900/20"
+                textColor="text-purple-700 dark:text-purple-400"
+                dot="bg-purple-500"
+              />
+
+              <div className="lg:col-span-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900 dark:text-white">Top Pages</h3>
+                  <span className="text-xs text-gray-400">Last {rangeDays} days</span>
+                </div>
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {(gaSummary.topPages || []).slice(0, 8).map((p) => (
+                    <div key={p.path} className="p-4 flex items-center justify-between">
+                      <div className="min-w-0 pr-4">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{p.path}</p>
+                      </div>
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-200">{Number(p.views || 0).toLocaleString()}</span>
+                    </div>
+                  ))}
+                  {(gaSummary.topPages || []).length === 0 && (
+                    <div className="p-10 text-center text-gray-400 text-sm">
+                      No GA data found for this range.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 text-sm text-gray-600 dark:text-gray-300">
+              Connect GA4 in Settings → Website Customization → Integrations to show traffic snippets on this dashboard.
+            </div>
+          )}
         </section>
 
         {/* Quick Actions */}
@@ -271,6 +416,54 @@ export default function HomePage() {
           </section>
 
         </div>
+      </div>
+    </div>
+  );
+}
+
+function InsightCard({ label, value, icon, delta, deltaPct, compareLabel, loading }) {
+  const numericValue = typeof value === 'number' ? value : Number(value);
+  const displayValue = Number.isFinite(numericValue) ? numericValue.toLocaleString() : String(value ?? '—');
+  const d = typeof delta === 'number' ? delta : (delta === 0 ? 0 : null);
+  const pct = typeof deltaPct === 'number' ? deltaPct : null;
+  const isUp = typeof d === 'number' ? d >= 0 : null;
+  const trendColor = isUp === null ? 'text-gray-500' : (isUp ? 'text-emerald-600' : 'text-red-600');
+  const trendBg = isUp === null ? 'bg-gray-50 dark:bg-gray-700/40' : (isUp ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20');
+
+  return (
+    <div className={`${trendBg} rounded-2xl p-6 border border-black/5 dark:border-white/10 shadow-sm`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</p>
+        </div>
+        {icon}
+      </div>
+      <div className="text-4xl font-bold text-gray-900 dark:text-white">
+        {loading ? '—' : displayValue}
+      </div>
+      <div className={`mt-2 text-xs font-semibold flex items-center gap-2 ${trendColor}`}>
+        {typeof d === 'number' ? (isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />) : null}
+        {typeof d === 'number'
+          ? `${d >= 0 ? '+' : ''}${d.toLocaleString()}${pct !== null ? ` (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)` : ''} ${compareLabel || ''}`
+          : (loading ? '' : 'No comparison data')}
+      </div>
+    </div>
+  );
+}
+
+function KeyValueCard({ label, value, subValue, icon, loading }) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</p>
+        {icon}
+      </div>
+      <div className="text-2xl font-bold text-gray-900 dark:text-white truncate">
+        {loading ? '—' : (value || '—')}
+      </div>
+      <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+        {loading ? '' : (subValue || '')}
       </div>
     </div>
   );

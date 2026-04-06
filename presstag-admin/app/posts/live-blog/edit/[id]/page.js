@@ -21,10 +21,11 @@ import {
   Edit2
 } from 'lucide-react';
 import MediaImagesSelector from '../../../../media/MediaImagesSelector';
-import { posts } from '../../../../../lib/api';
+import { posts, getTenantId } from '../../../../../lib/api';
 import { useParams } from "next/navigation";
 import { getUsers, getCategories, getTags } from '../../../../../lib/api';
 import { useTheme } from '../../../../context/ThemeContext';
+import { countInternalExternalLinks } from '../../../../../utils/linkAnalysis';
 
 
 // Load TinyMCE dynamically
@@ -37,6 +38,8 @@ export default function LiveBlogEditorPage() {
   const [activeTab, setActiveTab] = useState('content');
   const [isContentExpanded, setIsContentExpanded] = useState(true);
   const router = useRouter();
+  const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
+  const [siteUrl, setSiteUrl] = useState('');
 
   // Loading and Alert states
   const [isLoading, setIsLoading] = useState(false);
@@ -51,6 +54,22 @@ export default function LiveBlogEditorPage() {
   const params = useParams();
   const postId = params?.id;
   const isEditMode = Boolean(postId) && postId !== 'new';
+
+  useEffect(() => {
+    const loadSiteUrl = async () => {
+      try {
+        const token = localStorage.getItem('token') || '';
+        const res = await fetch(`${BASE}/api/layout-config`, {
+          headers: { Authorization: `Bearer ${token}`, 'x-tenant-id': getTenantId() },
+          cache: 'no-store',
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setSiteUrl(data?.branding?.siteUrl || '');
+      } catch {}
+    };
+    loadSiteUrl();
+  }, [BASE]);
 
 
   // live status
@@ -419,11 +438,7 @@ const buildPayload = (status) => ({
     };
   };
 
-  const countLinks = (html) => {
-    const internal = (html.match(/<a[^>]*href=["'](?!http)/gi) || []).length;
-    const external = (html.match(/<a[^>]*href=["']http/gi) || []).length;
-    return { internal, external };
-  };
+  const countLinks = (html) => countInternalExternalLinks(html, siteUrl);
 
   // SEO analysis effect (kept consistent with ArticleEditorPage)
   useEffect(() => {
@@ -1272,7 +1287,7 @@ const sortedUpdates = [...updates].sort(
       </p>
     ) : (
       <p className="text-sm">
-        Click "Add Update" to create your first live update
+        Click &quot;Add Update&quot; to create your first live update
       </p>
     )}
   </div>

@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Plus, Trash2, X, Upload, Eye, EyeOff, Save, RotateCcw, Check, Layout, Menu, Globe, columns, Columns, Link as LinkIcon, Info, Mail, Edit2, GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronDown, Plus, Trash2, X, Upload, Eye, EyeOff, Save, RotateCcw, Check, Layout, Menu, Globe, columns, Columns, Link as LinkIcon, Info, Mail, Edit2, GripVertical, ArrowUp, ArrowDown, BarChart2 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-hot-toast';
 import { uploadImage, getImageUrl } from '../../../lib/imageHelper';
@@ -20,6 +20,8 @@ export default function CustomizationPage() {
   const fileInputRef = useRef(null);
   const [showFallbackImagePicker, setShowFallbackImagePicker] = useState(false);
   const [showFaviconPicker, setShowFaviconPicker] = useState(false);
+  const [gaOAuthStatus, setGaOAuthStatus] = useState({ configured: false, connected: false });
+  const [gaOAuthLoading, setGaOAuthLoading] = useState(false);
 
   const [settings, setSettings] = useState({
     navbar: {
@@ -65,6 +67,16 @@ export default function CustomizationPage() {
   categoryPrefix: 'category',
   tagPrefix: 'tag',
 
+  homeMetaTitle: '',
+  homeMetaDescription: '',
+  categoryMetaTitleTemplate: 'Category: {category} | {site}',
+  categoryMetaDescriptionTemplate: 'Read the latest {category} news on {site}',
+  tagMetaTitleTemplate: 'Tag: {tag} | {site}',
+  tagMetaDescriptionTemplate: 'Read posts tagged {tag} on {site}',
+  authorMetaTitleTemplate: '{author} | {site}',
+  authorMetaDescriptionTemplate: 'Read articles by {author} on {site}',
+  defaultOgImage: '',
+
   metaTitleTemplate: '{title} | {site}',
   metaDescriptionTemplate: 'Read {title} on {site}',
 },
@@ -74,11 +86,20 @@ export default function CustomizationPage() {
   primaryColor: '#185EFD',
   siteTitle: 'SportzPoint',
   siteTagline: '',
+  siteUrl: '',
   logoDisplayMode: 'both',
-  showTaglineInHeader: true,
+  showTaglineInHeader: false,
   logoFile: null,
   fallbackImage: ''
 }
+
+    ,
+    analytics: {
+      gaMeasurementId: '',
+      gaPropertyId: '',
+      googleSiteVerification: '',
+      facebookAppId: ''
+    }
 
   });
 
@@ -121,7 +142,8 @@ export default function CustomizationPage() {
                 quickLinks: ensureArray(data.footer?.quickLinks, data.footer?.quickLinks || prev.footer.quickLinks)
             },
             seo: { ...prev.seo, ...data.seo },
-            branding: { ...prev.branding, ...data.branding }
+            branding: { ...prev.branding, ...data.branding },
+            analytics: { ...prev.analytics, ...data.analytics }
           }));
         }
       } catch (err) {
@@ -130,6 +152,10 @@ export default function CustomizationPage() {
       }
     };
     loadSettings();
+  }, []);
+
+  useEffect(() => {
+    refreshGaOAuthStatus();
   }, []);
 
   const handleSaveSettings = async () => {
@@ -156,6 +182,60 @@ export default function CustomizationPage() {
       console.error('Save error:', err);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const refreshGaOAuthStatus = async () => {
+    try {
+      setGaOAuthLoading(true);
+      const token = localStorage.getItem('token') || '';
+      const res = await fetch(`${BASE}/api/analytics/ga4/oauth/status`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() },
+        cache: 'no-store',
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setGaOAuthStatus({
+        configured: Boolean(data?.configured),
+        connected: Boolean(data?.connected),
+      });
+    } finally {
+      setGaOAuthLoading(false);
+    }
+  };
+
+  const handleConnectGA = async () => {
+    try {
+      const token = localStorage.getItem('token') || '';
+      const res = await fetch(`${BASE}/api/analytics/ga4/oauth/url?returnTo=${encodeURIComponent('/settings/customization?tab=integrations')}`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data?.error || 'Failed to start Google Analytics connection');
+        return;
+      }
+      if (data?.authUrl) window.location.href = data.authUrl;
+    } catch (err) {
+      toast.error('Failed to start Google Analytics connection');
+    }
+  };
+
+  const handleDisconnectGA = async () => {
+    try {
+      const token = localStorage.getItem('token') || '';
+      const res = await fetch(`${BASE}/api/analytics/ga4/oauth/disconnect`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() },
+      });
+      if (!res.ok) {
+        toast.error('Failed to disconnect Google Analytics');
+        return;
+      }
+      toast.success('Google Analytics disconnected');
+      await refreshGaOAuthStatus();
+    } catch {
+      toast.error('Failed to disconnect Google Analytics');
     }
   };
 
@@ -413,6 +493,7 @@ export default function CustomizationPage() {
   { id: 'sidebar', label: 'Sidebar', icon: <Columns size={18} /> },
   { id: 'footer', label: 'Footer', icon: <LinkIcon size={18} /> },
   { id: 'seo', label: 'SEO & URLs', icon: <Globe size={18} /> },
+  { id: 'integrations', label: 'Integrations', icon: <BarChart2 size={18} /> },
 ];
 
   return (
@@ -421,7 +502,7 @@ export default function CustomizationPage() {
       <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 p-6 ${panel}`}>
         <div>
           <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Website Customization</h1>
-          <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} mt-1`}>Manage your website's layout, branding, and appearance</p>
+          <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} mt-1`}>Manage your website&apos;s layout, branding, and appearance</p>
         </div>
         <button
           onClick={handleSaveSettings}
@@ -568,7 +649,7 @@ export default function CustomizationPage() {
                   <label className="flex items-center gap-2 mt-4 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={settings.branding.showTaglineInHeader !== false}
+                      checked={settings.branding.showTaglineInHeader === true}
                       onChange={(e) => setSettings(prev => ({ ...prev, branding: { ...prev.branding, showTaglineInHeader: e.target.checked } }))}
                       className={checkboxClass}
                     />
@@ -593,9 +674,6 @@ export default function CustomizationPage() {
                             >
                               Change Logo
                             </button>
-                            <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                Recommended size: 200x80px (PNG)
-                            </span>
                         </div>
                             <button 
                               onClick={() => setSettings(prev => ({ ...prev, branding: { ...prev.branding, logo: null, logoFile: null } }))}
@@ -621,7 +699,7 @@ export default function CustomizationPage() {
                     />
                   </div>
                   <p className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                      Recommended size: Height 40px-60px. Supports PNG (transparent), JPG, SVG.
+                      Recommended: Height 40px–60px. Supports SVG, PNG (transparent), JPG.
                   </p>
                 </div>
                 {/* ================= FALLBACK IMAGE ================= */}
@@ -683,7 +761,11 @@ export default function CustomizationPage() {
   {showFaviconPicker && (
     <MediaImagesSelector
       onSelect={(img) => {
-        const imageUrl = img.url || img.src || img.fullUrl;
+        let imageUrl = img.url || img.src || img.fullUrl;
+        if (typeof imageUrl === 'string') {
+          const uploadsIndex = imageUrl.indexOf('/uploads/');
+          if (uploadsIndex >= 0) imageUrl = imageUrl.slice(uploadsIndex);
+        }
         setSettings(prev => ({
           ...prev,
           branding: {
@@ -1243,9 +1325,299 @@ export default function CustomizationPage() {
         />
       </div>
 
+      <div>
+        <h3 className="text-md font-semibold mb-3">Homepage SEO</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className={label}>Homepage Meta Title</label>
+            <input
+              type="text"
+              value={settings.seo.homeMetaTitle || ''}
+              onChange={(e) =>
+                setSettings(prev => ({
+                  ...prev,
+                  seo: { ...prev.seo, homeMetaTitle: e.target.value }
+                }))
+              }
+              className={inputClass}
+              placeholder="Leave empty to use Site Title / Tagline"
+            />
+          </div>
+          <div>
+            <label className={label}>Homepage Meta Description</label>
+            <input
+              type="text"
+              value={settings.seo.homeMetaDescription || ''}
+              onChange={(e) =>
+                setSettings(prev => ({
+                  ...prev,
+                  seo: { ...prev.seo, homeMetaDescription: e.target.value }
+                }))
+              }
+              className={inputClass}
+              placeholder="Shown on Google and social previews"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className={label}>Default Social Share Image (OG)</label>
+            <input
+              type="text"
+              value={settings.seo.defaultOgImage || ''}
+              onChange={(e) =>
+                setSettings(prev => ({
+                  ...prev,
+                  seo: { ...prev.seo, defaultOgImage: e.target.value }
+                }))
+              }
+              className={inputClass}
+              placeholder="https://... or /uploads/..."
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-md font-semibold mb-3">Archive SEO Templates</h3>
+        <p className="text-xs mt-1 text-gray-400">
+          If a Category, Tag, or Author SEO field is empty, the site uses these templates automatically. To override, edit that Category, Tag, or Author and set its SEO fields.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className={label}>Category Meta Title</label>
+            <input
+              type="text"
+              value={settings.seo.categoryMetaTitleTemplate || ''}
+              onChange={(e) =>
+                setSettings(prev => ({
+                  ...prev,
+                  seo: { ...prev.seo, categoryMetaTitleTemplate: e.target.value }
+                }))
+              }
+              className={inputClass}
+              placeholder="Category: {category} | {site}"
+            />
+          </div>
+          <div>
+            <label className={label}>Category Meta Description</label>
+            <input
+              type="text"
+              value={settings.seo.categoryMetaDescriptionTemplate || ''}
+              onChange={(e) =>
+                setSettings(prev => ({
+                  ...prev,
+                  seo: { ...prev.seo, categoryMetaDescriptionTemplate: e.target.value }
+                }))
+              }
+              className={inputClass}
+              placeholder="Read the latest {category} news on {site}"
+            />
+          </div>
+          <div>
+            <label className={label}>Tag Meta Title</label>
+            <input
+              type="text"
+              value={settings.seo.tagMetaTitleTemplate || ''}
+              onChange={(e) =>
+                setSettings(prev => ({
+                  ...prev,
+                  seo: { ...prev.seo, tagMetaTitleTemplate: e.target.value }
+                }))
+              }
+              className={inputClass}
+              placeholder="Tag: {tag} | {site}"
+            />
+          </div>
+          <div>
+            <label className={label}>Tag Meta Description</label>
+            <input
+              type="text"
+              value={settings.seo.tagMetaDescriptionTemplate || ''}
+              onChange={(e) =>
+                setSettings(prev => ({
+                  ...prev,
+                  seo: { ...prev.seo, tagMetaDescriptionTemplate: e.target.value }
+                }))
+              }
+              className={inputClass}
+              placeholder="Read posts tagged {tag} on {site}"
+            />
+          </div>
+          <div>
+            <label className={label}>Author Meta Title</label>
+            <input
+              type="text"
+              value={settings.seo.authorMetaTitleTemplate || ''}
+              onChange={(e) =>
+                setSettings(prev => ({
+                  ...prev,
+                  seo: { ...prev.seo, authorMetaTitleTemplate: e.target.value }
+                }))
+              }
+              className={inputClass}
+              placeholder="{author} | {site}"
+            />
+          </div>
+          <div>
+            <label className={label}>Author Meta Description</label>
+            <input
+              type="text"
+              value={settings.seo.authorMetaDescriptionTemplate || ''}
+              onChange={(e) =>
+                setSettings(prev => ({
+                  ...prev,
+                  seo: { ...prev.seo, authorMetaDescriptionTemplate: e.target.value }
+                }))
+              }
+              className={inputClass}
+              placeholder="Read articles by {author} on {site}"
+            />
+          </div>
+        </div>
+        <p className="text-xs mt-2 text-gray-400">
+          Available: {'{site}'}, {'{category}'}, {'{tag}'}, {'{author}'}
+        </p>
+      </div>
+
     </div>
   </div>
 )}
+
+          {/* ================= Integrations ================= */}
+          {activeTab === 'integrations' && (
+            <div className={`${panel} p-6`}>
+              <h2 className={sectionTitle}>
+                <BarChart2 size={20} /> Integrations
+              </h2>
+
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-md font-semibold mb-3">Site URL</h3>
+                  <p className="text-xs mt-1 text-gray-400">
+                    Used for internal link detection in SEO analysis and for resolving social share URLs.
+                  </p>
+                  <input
+                    type="text"
+                    value={settings.branding.siteUrl || ''}
+                    onChange={(e) =>
+                      setSettings(prev => ({
+                        ...prev,
+                        branding: { ...prev.branding, siteUrl: e.target.value }
+                      }))
+                    }
+                    className={inputClass}
+                    placeholder="https://www.sportzpoint.com"
+                  />
+                </div>
+
+                <div>
+                  <h3 className="text-md font-semibold mb-3">Google Analytics (GA4)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className={label}>Measurement ID</label>
+                      <input
+                        type="text"
+                        value={settings.analytics?.gaMeasurementId || ''}
+                        onChange={(e) =>
+                          setSettings(prev => ({
+                            ...prev,
+                            analytics: { ...prev.analytics, gaMeasurementId: e.target.value }
+                          }))
+                        }
+                        className={inputClass}
+                        placeholder="G-XXXXXXXXXX"
+                      />
+                    </div>
+                    <div>
+                      <label className={label}>GA4 Property ID (for dashboard reports)</label>
+                      <input
+                        type="text"
+                        value={settings.analytics?.gaPropertyId || ''}
+                        onChange={(e) =>
+                          setSettings(prev => ({
+                            ...prev,
+                            analytics: { ...prev.analytics, gaPropertyId: e.target.value }
+                          }))
+                        }
+                        className={inputClass}
+                        placeholder="123456789"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleConnectGA}
+                      disabled={!gaOAuthStatus.configured || gaOAuthLoading}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                        !gaOAuthStatus.configured || gaOAuthLoading
+                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      {gaOAuthStatus.connected ? 'Reconnect Google Analytics' : 'Connect Google Analytics'}
+                    </button>
+                    {gaOAuthStatus.connected && (
+                      <button
+                        type="button"
+                        onClick={handleDisconnectGA}
+                        className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-500/10 text-red-600 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+                      >
+                        Disconnect
+                      </button>
+                    )}
+                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                      gaOAuthStatus.connected
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                        : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                    }`}>
+                      {gaOAuthLoading ? 'Checking…' : (gaOAuthStatus.connected ? 'Connected' : 'Not connected')}
+                    </span>
+                  </div>
+                  {!gaOAuthStatus.configured && (
+                    <p className="text-xs mt-2 text-gray-400">
+                      To enable one-click connect (WordPress-style), set GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, GOOGLE_OAUTH_REDIRECT_URI, ANALYTICS_OAUTH_STATE_SECRET, ANALYTICS_TOKEN_ENC_KEY, and ADMIN_URL on the backend.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-md font-semibold mb-3">Verification</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className={label}>Google Site Verification</label>
+                      <input
+                        type="text"
+                        value={settings.analytics?.googleSiteVerification || ''}
+                        onChange={(e) =>
+                          setSettings(prev => ({
+                            ...prev,
+                            analytics: { ...prev.analytics, googleSiteVerification: e.target.value }
+                          }))
+                        }
+                        className={inputClass}
+                        placeholder="verification token"
+                      />
+                    </div>
+                    <div>
+                      <label className={label}>Facebook App ID</label>
+                      <input
+                        type="text"
+                        value={settings.analytics?.facebookAppId || ''}
+                        onChange={(e) =>
+                          setSettings(prev => ({
+                            ...prev,
+                            analytics: { ...prev.analytics, facebookAppId: e.target.value }
+                          }))
+                        }
+                        className={inputClass}
+                        placeholder="1234567890"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
