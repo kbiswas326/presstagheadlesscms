@@ -60,6 +60,64 @@ async function ensureCategories(post) {
   return post;
 }
 
+function isUserObject(value) {
+  return !!(value && typeof value === 'object' && (value._id || value.id) && (value.name || value.slug || value.email));
+}
+
+async function ensurePeople(post) {
+  if (!post) return post;
+
+  const fetchPublicUser = async (id) => {
+    if (!id) return null;
+    const res = await fetchWithTenant(`/users/public/${id}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return res.json();
+  };
+
+  const authorObj = isUserObject(post.author) ? post.author : null;
+  const primaryAuthorId = authorObj?._id ? String(authorObj._id) : (typeof post.author === 'string' ? post.author : '');
+
+  const rawAuthors = Array.isArray(post.authors) ? post.authors : [];
+  const authorObjects = rawAuthors.filter(isUserObject);
+  const authorIds = rawAuthors
+    .map((v) => (typeof v === 'string' ? v : String(v?._id || v?.id || '')))
+    .filter(Boolean);
+
+  const idsToFetch = authorIds.filter((id) => !authorObjects.some((u) => String(u._id || u.id) === String(id)));
+  const fetchedAuthors = idsToFetch.length > 0 ? (await Promise.all(idsToFetch.map(fetchPublicUser))).filter(Boolean) : [];
+
+  let resolvedAuthors = [...authorObjects, ...fetchedAuthors];
+  if (resolvedAuthors.length === 0 && authorObj) resolvedAuthors = [authorObj];
+
+  if (primaryAuthorId) {
+    const primary = resolvedAuthors.find((u) => String(u._id || u.id) === String(primaryAuthorId)) || authorObj;
+    if (primary) {
+      resolvedAuthors = [
+        primary,
+        ...resolvedAuthors.filter((u) => String(u._id || u.id) !== String(primaryAuthorId)),
+      ];
+    }
+  }
+
+  let resolvedEditor = isUserObject(post.editor) ? post.editor : null;
+  const editorId = !resolvedEditor && typeof post.editor === 'string' ? post.editor : '';
+  if (!resolvedEditor && editorId) {
+    resolvedEditor = typeof post.editorName === 'string' && post.editorName.trim()
+      ? { _id: editorId, name: post.editorName }
+      : await fetchPublicUser(editorId);
+  }
+
+  if (resolvedEditor && primaryAuthorId && String(resolvedEditor._id || resolvedEditor.id) === String(primaryAuthorId)) {
+    resolvedEditor = null;
+  }
+
+  return {
+    ...post,
+    authors: resolvedAuthors,
+    editor: resolvedEditor,
+  };
+}
+
 export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const slugParts = resolvedParams.slug;
@@ -127,6 +185,7 @@ if (!post) {
 
   if (post) post.gallery = post.gallery || post.images;
   post = await ensureCategories(post);
+  post = await ensurePeople(post);
 
   const cleanType = post.type?.toLowerCase().trim();
   const isGallery = cleanType === 'photo gallery' || cleanType === 'photo-gallery';
@@ -166,11 +225,13 @@ if (!post) {
   const mainImage = getImageUrl(post.featuredImage) || getImageUrl(post.banner_image) || getImageUrl(post.coverImage);
 
   const authorsList = Array.isArray(post.authors) && post.authors.length > 0
-    ? post.authors
-    : (post.author ? [post.author] : []);
+    ? post.authors.filter(isUserObject)
+    : (isUserObject(post.author) ? [post.author] : []);
   const primaryAuthor = authorsList[0] || post.author || null;
-  const editorUser = post.editor && typeof post.editor === 'object' ? post.editor : null;
-  const showEditor = !!(editorUser && primaryAuthor && String(editorUser._id || '') !== String(primaryAuthor._id || ''));
+  const editorUser = isUserObject(post.editor) ? post.editor : null;
+  const editorDisplayName = (editorUser?.name || (typeof post.editorName === 'string' ? post.editorName : '')).trim();
+  const editorId = editorUser?._id ? String(editorUser._id) : (typeof post.editor === 'string' ? post.editor : '');
+  const showEditor = !!(editorDisplayName && primaryAuthor && String(editorId) !== String(primaryAuthor._id || ''));
 
   const getYouTubeId = (url) => {
     if (!url) return null;
@@ -276,7 +337,7 @@ if (!post) {
                   </span>
                   <span className="text-xs text-gray-500">
                     {formattedDate} • {readTime} min read
-                    {showEditor ? ` • Edited by ${editorUser.name || 'Editor'}` : ''}
+                    {showEditor ? ` • Edited by ${editorDisplayName}` : ''}
                   </span>
                 </div>
               </div>

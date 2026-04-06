@@ -73,10 +73,13 @@ const LiveBlogViewer = ({ post }) => {
       ? authors
       : (author ? [author] : []);
     const primaryAuthor = authorsList[0] || author || null;
+    const safeAuthors = authorsList.filter((a) => a && typeof a === 'object' && (a._id || a.id));
     const editorUser = editor && typeof editor === 'object' ? editor : null;
-    const showEditor = !!(editorUser && primaryAuthor && String(editorUser._id || '') !== String(primaryAuthor._id || ''));
-    const byline = authorsList.length > 0
-      ? authorsList.map((a) => a?.name).filter(Boolean).join(', ')
+    const editorDisplayName = (editorUser?.name || (typeof post?.editorName === 'string' ? post.editorName : '')).trim();
+    const editorId = editorUser?._id ? String(editorUser._id) : (typeof editor === 'string' ? editor : '');
+    const showEditor = !!(editorDisplayName && primaryAuthor && String(editorId) !== String(primaryAuthor?._id || ''));
+    const byline = safeAuthors.length > 0
+      ? safeAuthors.map((a) => a?.name).filter(Boolean).join(', ')
       : (authorName || 'SportzPoint Desk');
 
     return (
@@ -139,7 +142,7 @@ const LiveBlogViewer = ({ post }) => {
                                                 year: 'numeric',
                                                 month: 'long',
                                                 day: 'numeric'
-                                            }) : 'Just Now'}{showEditor ? ` • Edited by ${editorUser.name || 'Editor'}` : ''}
+                                            }) : 'Just Now'}{showEditor ? ` • Edited by ${editorDisplayName}` : ''}
                                         </span>
                                     </div>
                                 </div>

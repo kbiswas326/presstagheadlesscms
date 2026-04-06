@@ -162,10 +162,13 @@ const GalleryClient = ({ post }) => {
                                 ? post.authors
                                 : (post.author ? [post.author] : []);
                               const primaryAuthor = authorsList[0] || post.author || null;
+                              const safeAuthors = authorsList.filter((a) => a && typeof a === 'object' && (a._id || a.id));
                               const editorUser = post.editor && typeof post.editor === 'object' ? post.editor : null;
-                              const showEditor = !!(editorUser && primaryAuthor && String(editorUser._id || '') !== String(primaryAuthor._id || ''));
-                              const byline = authorsList.length > 0
-                                ? authorsList.map((a) => a?.name).filter(Boolean).join(', ')
+                              const editorDisplayName = (editorUser?.name || (typeof post.editorName === 'string' ? post.editorName : '')).trim();
+                              const editorId = editorUser?._id ? String(editorUser._id) : (typeof post.editor === 'string' ? post.editor : '');
+                              const showEditor = !!(editorDisplayName && primaryAuthor && String(editorId) !== String(primaryAuthor?._id || ''));
+                              const byline = safeAuthors.length > 0
+                                ? safeAuthors.map((a) => a?.name).filter(Boolean).join(', ')
                                 : (post.authorName || 'SportzPoint Editor');
                               return (
                                 <div className="flex items-center justify-between border-b border-gray-100 pb-6 mb-6">
@@ -183,7 +186,7 @@ const GalleryClient = ({ post }) => {
                                             {byline}
                                         </span>
                                         <span className="text-xs text-gray-500">
-                                            {formattedDate}{showEditor ? ` • Edited by ${editorUser.name || 'Editor'}` : ''}
+                                            {formattedDate}{showEditor ? ` • Edited by ${editorDisplayName}` : ''}
                                         </span>
                                     </div>
                                 </div>
