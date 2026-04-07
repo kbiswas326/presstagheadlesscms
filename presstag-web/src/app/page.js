@@ -43,6 +43,7 @@ export default async function Page() {
 
   const primaryColor = config?.branding?.primaryColor || '#006356';
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
+  const tagPrefix = String(config?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
 
   // HERO POSTS
   const heroPosts = await getPosts({ limit: 5 });
@@ -89,7 +90,7 @@ export default async function Page() {
           posts = posts.slice(0, limit);
 
           if (section.sourceType === 'category') viewAllUrl = `/category/${section.sourceValue}`;
-          else if (section.sourceType === 'tag') viewAllUrl = `/tag/${section.sourceValue}`;
+          else if (section.sourceType === 'tag') viewAllUrl = `/${tagPrefix}/${section.sourceValue}`;
           else if (section.sourceType === 'author') viewAllUrl = `/author/${section.sourceValue}`;
         }
 

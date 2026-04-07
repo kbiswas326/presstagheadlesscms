@@ -4,7 +4,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getCategories, getPostById } from '../../../lib/api';
 import { notFound, redirect } from 'next/navigation';
-import { FaFacebook, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 import { Inter, Merriweather } from 'next/font/google';
 import VideoPlayer from '../../../components/VideoPlayer';
 import WebStoryViewer from '../../../components/WebStoryViewer';
@@ -14,8 +13,10 @@ import EmbedScripts from '../../../components/EmbedScripts';
 import Sidebar from '../../../components/Sidebar';
 import AdSpot from '../../../components/AdSpot';
 import ArticleContent from '../../../components/ArticleContent';
+import SocialShareButtons from '../../../components/SocialShareButtons';
 import { getImageUrl } from '@/lib/imageHelper';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
+import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 
 const inter = Inter({ subsets: ['latin'] });
 const merriweather = Merriweather({ 
@@ -79,9 +80,11 @@ export default async function PostPage({ params }) {
   let post = await getPostById(resolvedParams.id, { cache: 'no-store' });
   if (post) post.gallery = post.gallery || post.images;
 
-  if (!post) {
-    notFound();
-  }
+
+  const layoutConfig = await fetchWithTenant('/layout-config', { cache: 'no-store' })
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null);
+  const tagPrefix = String(layoutConfig?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
 
   if ((!post.categories || post.categories.length === 0) && (Array.isArray(post.primary_category) ? post.primary_category.length > 0 : !!post.primary_category)) {
     const ids = Array.isArray(post.primary_category) ? post.primary_category : [post.primary_category];
@@ -268,12 +271,7 @@ export default async function PostPage({ params }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-gray-500 font-medium text-sm hidden sm:block">Share On:</span>
-            <FaFacebook className="text-blue-600 hover:text-blue-700 cursor-pointer transition" size={20} />
-            <FaTwitter className="text-sky-500 hover:text-sky-600 cursor-pointer transition" size={20} />
-            <FaWhatsapp className="text-green-500 hover:text-green-600 cursor-pointer transition" size={20} />
-          </div>
+          <SocialShareButtons title={post.title} />
         </div>
       </header>
       
@@ -325,7 +323,7 @@ export default async function PostPage({ params }) {
                 {post.tags.map((tag, idx) => (
                     <Link 
                         key={idx}
-                        href={`/tag/${typeof tag === 'string' ? tag.toLowerCase().replace(/\s+/g, '-') : tag.slug}`}
+                        href={`/${tagPrefix}/${typeof tag === 'string' ? tag.toLowerCase().replace(/\s+/g, '-') : tag.slug}`}
                         className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200 transition-colors"
                     >
                         {typeof tag === 'string' ? tag : tag.name}

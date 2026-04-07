@@ -242,7 +242,7 @@ router.get('/', async (req, res) => {
   try {
     const { 
       status, type, author, category, tag, 
-      page = 1, limit = 20, sort, search 
+      page = 1, limit = 20, sort, search, previousSlug
     } = req.query;
 
     const db = getDB(req.tenantId);
@@ -251,12 +251,16 @@ router.get('/', async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     const query = {};
+    const and = [];
     if (status && status !== 'All') query.status = status;
     if (type && type !== 'All') query.type = type;
     if (search) query.title = { $regex: search, $options: 'i' };
+    if (previousSlug && typeof previousSlug === 'string' && previousSlug.trim()) {
+      query.previousSlugs = previousSlug.trim();
+    }
     if (author && ObjectId.isValid(author)) {
       const oid = new ObjectId(author);
-      query.$or = (query.$or || []).concat([{ author: oid }, { authors: oid }]);
+      and.push({ $or: [{ author: oid }, { authors: oid }] });
     }
 
     // Category filter
@@ -268,9 +272,26 @@ router.get('/', async (req, res) => {
       }
       if (ObjectId.isValid(categoryId)) {
         const oid = new ObjectId(categoryId);
-        query.$or = [{ categories: oid }, { primary_category: oid }];
+        and.push({ $or: [{ categories: oid }, { primary_category: oid }] });
       }
     }
+
+    if (tag && tag !== 'All') {
+      const tagValue = String(tag).trim();
+      if (tagValue) {
+        const ors = [];
+        if (ObjectId.isValid(tagValue)) {
+          ors.push({ tags: new ObjectId(tagValue) });
+        } else {
+          const tagObj = await db.collection('tags').findOne({ slug: tagValue }, { projection: { _id: 1 } });
+          if (tagObj?._id) ors.push({ tags: tagObj._id });
+          ors.push({ tags: tagValue });
+        }
+        if (ors.length > 0) and.push({ $or: ors });
+      }
+    }
+
+    if (and.length > 0) query.$and = and;
 
     // Sort
     let sortConfig = { publishedAt: -1, createdAt: -1 };

@@ -30,23 +30,20 @@ async function getTagPosts(slug, page = 1) {
       throw new Error('Failed to fetch posts');
     }
     const data = await res.json();
-    
+
     let articles = [];
     let totalPages = 1;
-    
+
     if (Array.isArray(data)) {
-        const totalCount = data.length;
-        totalPages = Math.ceil(totalCount / limit);
-        
-        // Slice the array for the current page
-        const startIndex = (page - 1) * limit;
-        articles = data.slice(startIndex, startIndex + limit);
-        
+      const totalCount = data.length;
+      totalPages = Math.ceil(totalCount / limit);
+      const startIndex = (page - 1) * limit;
+      articles = data.slice(startIndex, startIndex + limit);
     } else if (data.posts && Array.isArray(data.posts)) {
-        articles = data.posts;
-        totalPages = data.pagination?.totalPages || Math.ceil((data.pagination?.total || articles.length) / limit);
+      articles = data.posts;
+      totalPages = data.pagination?.totalPages || Math.ceil((data.pagination?.total || articles.length) / limit);
     }
-    
+
     return { articles, totalPages };
   } catch (error) {
     console.error("Error fetching tag posts:", error);
@@ -97,24 +94,23 @@ export async function generateMetadata({ params }) {
 export default async function TagPage({ params, searchParams }) {
   const resolvedParams = await params;
   const { slug } = resolvedParams;
-  
+
   const resolvedSearchParams = await searchParams;
   const page = Number(resolvedSearchParams?.page) || 1;
-  
+
   if (!slug) {
     return <div className="container mx-auto px-4 py-8">Invalid tag</div>;
   }
 
   const config = await getLayoutConfig();
   const preferredPrefix = String(config?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
-  if (preferredPrefix !== 'tag') {
+  if (preferredPrefix !== 'tags') {
     const qs = page && page > 1 ? `?page=${page}` : '';
     permanentRedirect(`/${preferredPrefix}/${slug}${qs}`);
   }
 
   const { articles: posts, totalPages } = await getTagPosts(slug, page);
-  
-  // Format title from slug
+
   const title = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
   return (
@@ -124,26 +120,27 @@ export default async function TagPage({ params, searchParams }) {
           Tag: <span className="text-emerald-600">{title}</span>
         </h1>
       </div>
-      
+
       {posts.length > 0 ? (
         <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {posts.map((post, i) => (
-                <ArticleGridCard key={i} post={post} />
-              ))}
-            </div>
-            
-            <Pagination 
-                currentPage={page} 
-                totalPages={totalPages} 
-                baseUrl={`/${preferredPrefix}/${slug}`} 
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {posts.map((post, i) => (
+              <ArticleGridCard key={i} post={post} />
+            ))}
+          </div>
+
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            baseUrl={`/${preferredPrefix}/${slug}`}
+          />
         </>
       ) : (
         <div className="text-center py-20">
-            <h2 className="text-xl text-gray-500">No posts found for this tag.</h2>
+          <h2 className="text-xl text-gray-500">No posts found for this tag.</h2>
         </div>
       )}
     </div>
   );
 }
+

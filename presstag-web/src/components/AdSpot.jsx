@@ -25,7 +25,7 @@ export default function AdSpot({ position, className = '', index }) {
       if (pathname === '/' && pageTypes.includes('home')) return true;
       if (pathname.startsWith('/posts/') && pageTypes.includes('post')) return true;
       if (pathname.startsWith('/category/') && pageTypes.includes('category')) return true;
-      if (pathname.startsWith('/tag/') && pageTypes.includes('tag')) return true;
+      if ((pathname.startsWith('/tag/') || pathname.startsWith('/tags/')) && pageTypes.includes('tag')) return true;
       if (pathname.startsWith('/author/') && pageTypes.includes('author')) return true;
       if (pathname.startsWith('/search') && pageTypes.includes('search')) return true;
 
@@ -34,6 +34,7 @@ export default function AdSpot({ position, className = '', index }) {
         pathname.startsWith('/posts/') ||
         pathname.startsWith('/category/') ||
         pathname.startsWith('/tag/') ||
+        pathname.startsWith('/tags/') ||
         pathname.startsWith('/author/') ||
         pathname.startsWith('/search') ||
         pathname.startsWith('/web-stories/') ||
@@ -46,6 +47,7 @@ export default function AdSpot({ position, className = '', index }) {
       const isSpecialRoute = pathname.startsWith('/posts/') || 
                            pathname.startsWith('/category/') || 
                            pathname.startsWith('/tag/') || 
+                           pathname.startsWith('/tags/') || 
                            pathname.startsWith('/author/') || 
                            pathname.startsWith('/search') ||
                            pathname === '/';

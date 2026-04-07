@@ -491,6 +491,7 @@ export default function CustomizationPage() {
   { id: 'navbar', label: 'Navigation', icon: <Menu size={18} /> },
   { id: 'homepage', label: 'Homepage', icon: <Globe size={18} /> },
   { id: 'sidebar', label: 'Sidebar', icon: <Columns size={18} /> },
+  { id: 'social', label: 'Social Links', icon: <LinkIcon size={18} /> },
   { id: 'footer', label: 'Footer', icon: <LinkIcon size={18} /> },
   { id: 'seo', label: 'SEO & URLs', icon: <Globe size={18} /> },
   { id: 'integrations', label: 'Integrations', icon: <BarChart2 size={18} /> },
@@ -1091,6 +1092,76 @@ export default function CustomizationPage() {
             </div>
           )}
 
+          {activeTab === 'social' && (
+            <div className={`${panel} p-6`}>
+              <h2 className={sectionTitle}><LinkIcon size={20} /> Social Links</h2>
+              <div className="space-y-6">
+                <div className={`${isDark ? 'text-gray-300' : 'text-gray-600'} text-sm`}>
+                  Add your social profile URLs. These links appear in the sidebar “Follow Us” widget (and footer social section if enabled).
+                </div>
+
+                {(() => {
+                  const platforms = [
+                    { key: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/yourpage' },
+                    { key: 'twitter', label: 'X (Twitter)', placeholder: 'https://x.com/yourhandle' },
+                    { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/yourhandle' },
+                    { key: 'youtube', label: 'YouTube', placeholder: 'https://youtube.com/@yourchannel' },
+                    { key: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/company/yourcompany' },
+                    { key: 'tiktok', label: 'TikTok', placeholder: 'https://tiktok.com/@yourhandle' },
+                    { key: 'pinterest', label: 'Pinterest', placeholder: 'https://pinterest.com/yourprofile' },
+                    { key: 'reddit', label: 'Reddit', placeholder: 'https://reddit.com/user/youruser' },
+                    { key: 'whatsapp', label: 'WhatsApp', placeholder: 'https://wa.me/1234567890' },
+                    { key: 'telegram', label: 'Telegram', placeholder: 'https://t.me/yourchannel' },
+                  ];
+
+                  const widgets = Array.isArray(settings.sidebar?.widgets) ? settings.sidebar.widgets : [];
+                  const socialWidget = widgets.find((w) => w?.type === 'social_links' || w?.type === 'social') || null;
+                  const list = Array.isArray(socialWidget?.socialLinks) ? socialWidget.socialLinks : [];
+                  const getUrl = (platform) => list.find((l) => (l?.platform || '').toLowerCase() === platform)?.url || '';
+                  const setUrl = (platform, url) => {
+                    const nextUrl = String(url || '').trim();
+                    setSettings((prev) => {
+                      const prevWidgets = Array.isArray(prev.sidebar?.widgets) ? prev.sidebar.widgets : [];
+                      const socialIdx = prevWidgets.findIndex((w) => w?.type === 'social_links' || w?.type === 'social');
+                      const nextWidgets = [...prevWidgets];
+                      const baseWidget = socialIdx >= 0 ? nextWidgets[socialIdx] : { type: 'social_links', title: 'Follow Us' };
+                      const prevLinks = Array.isArray(baseWidget?.socialLinks) ? baseWidget.socialLinks : [];
+                      const nextLinks = prevLinks.filter((l) => (l?.platform || '').toLowerCase() !== platform);
+                      if (nextUrl) nextLinks.push({ platform, url: nextUrl });
+                      const updatedWidget = { ...baseWidget, socialLinks: nextLinks };
+                      if (socialIdx >= 0) nextWidgets[socialIdx] = updatedWidget;
+                      else nextWidgets.push(updatedWidget);
+                      return {
+                        ...prev,
+                        sidebar: {
+                          ...(prev.sidebar || {}),
+                          widgets: nextWidgets,
+                        },
+                      };
+                    });
+                  };
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {platforms.map((p) => (
+                        <div key={p.key}>
+                          <label className={label}>{p.label}</label>
+                          <input
+                            type="url"
+                            value={getUrl(p.key)}
+                            onChange={(e) => setUrl(p.key, e.target.value)}
+                            className={inputClass}
+                            placeholder={p.placeholder}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
           {/* Footer Section */}
           {activeTab === 'footer' && (
             <div className={`${panel} p-6`}>
@@ -1291,6 +1362,43 @@ export default function CustomizationPage() {
             settings.seo.pageUrlStructure
               .replace('{slug}', 'contact')
           }
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-md font-semibold mb-3">Archive URL Prefixes</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className={label}>Category Prefix</label>
+            <input
+              type="text"
+              value={settings.seo.categoryPrefix || 'category'}
+              onChange={(e) =>
+                setSettings(prev => ({
+                  ...prev,
+                  seo: { ...prev.seo, categoryPrefix: e.target.value }
+                }))
+              }
+              className={inputClass}
+              placeholder="category"
+            />
+          </div>
+          <div>
+            <label className={label}>Tag Prefix</label>
+            <select
+              value={settings.seo.tagPrefix || 'tag'}
+              onChange={(e) =>
+                setSettings(prev => ({
+                  ...prev,
+                  seo: { ...prev.seo, tagPrefix: e.target.value }
+                }))
+              }
+              className={selectClass}
+            >
+              <option value="tag">tag</option>
+              <option value="tags">tags</option>
+            </select>
+          </div>
         </div>
       </div>
 

@@ -1,11 +1,12 @@
 "use client";
 import React, { useEffect } from 'react';
 import Image from 'next/image';
-import { FaShareAlt, FaFacebook, FaTwitter, FaWhatsapp, FaLinkedin, FaMapPin, FaSync } from 'react-icons/fa';
+import { FaShareAlt, FaLinkedin, FaMapPin, FaSync } from 'react-icons/fa';
 import { Merriweather } from 'next/font/google';
 import Sidebar from './Sidebar';
 import AdSpot from './AdSpot';
 import { getImageUrl } from '@/lib/imageHelper';
+import SocialShareButtons from './SocialShareButtons';
 
 const merriweather = Merriweather({ 
   weight: ['300', '400', '700', '900'],
@@ -148,12 +149,7 @@ const LiveBlogViewer = ({ post }) => {
                                 </div>
 
                                 {/* Social Share */}
-                                <div className="flex items-center gap-3">
-                                    <span className="text-gray-500 font-medium text-sm hidden sm:block">Share On:</span>
-                                    <FaFacebook className="text-blue-600 hover:text-blue-700 cursor-pointer transition" size={20} />
-                                    <FaTwitter className="text-sky-500 hover:text-sky-600 cursor-pointer transition" size={20} />
-                                    <FaWhatsapp className="text-green-500 hover:text-green-600 cursor-pointer transition" size={20} />
-                                </div>
+                                <SocialShareButtons title={title} />
                             </div>
                         </header>
 

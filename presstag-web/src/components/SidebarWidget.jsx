@@ -344,12 +344,10 @@ const SocialLinksWidget = ({ widget }) => {
     }
   };
 
-  const links = widget.socialLinks && widget.socialLinks.length > 0 ? widget.socialLinks : [
-    { platform: 'facebook', url: '#' },
-    { platform: 'twitter', url: '#' },
-    { platform: 'instagram', url: '#' },
-    { platform: 'youtube', url: '#' },
-  ];
+  const links = (Array.isArray(widget.socialLinks) ? widget.socialLinks : [])
+    .filter((l) => l && typeof l.url === 'string' && l.url.trim() && l.url.trim() !== '#');
+
+  if (links.length === 0) return null;
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">

@@ -3,7 +3,6 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { FaFacebook, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 import { Merriweather } from 'next/font/google';
 import VideoPlayer from '../../components/VideoPlayer';
 import LiveBlogViewer from '../../components/LiveBlogViewer';
@@ -12,6 +11,7 @@ import EmbedScripts from '../../components/EmbedScripts';
 import Sidebar from '../../components/Sidebar';
 import AdSpot from '../../components/AdSpot';
 import ArticleContent from '../../components/ArticleContent';
+import SocialShareButtons from '../../components/SocialShareButtons';
 import { getImageUrl } from '@/lib/imageHelper';
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
@@ -33,7 +33,7 @@ async function getPostBySlug(slug) {
 
 async function getPostByPreviousSlug(slug) {
   try {
-    const res = await fetchWithTenant(`/posts?previousSlug=${slug}`, { cache: 'no-store' });
+    const res = await fetchWithTenant(`/posts?status=published&limit=1&previousSlug=${slug}`, { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
       const posts = Array.isArray(data) ? data : (data.posts || []);
@@ -186,6 +186,10 @@ if (!post) {
   if (post) post.gallery = post.gallery || post.images;
   post = await ensureCategories(post);
   post = await ensurePeople(post);
+  const layoutConfig = await fetchWithTenant('/layout-config', { cache: 'no-store' })
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null);
+  const tagPrefix = String(layoutConfig?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
 
   const cleanType = post.type?.toLowerCase().trim();
   const isGallery = cleanType === 'photo gallery' || cleanType === 'photo-gallery';
@@ -343,10 +347,7 @@ if (!post) {
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="text-gray-500 font-medium text-sm hidden sm:block">Share On:</span>
-                <FaFacebook className="text-blue-600 hover:text-blue-700 cursor-pointer transition" size={20} />
-                <FaTwitter className="text-sky-500 hover:text-sky-600 cursor-pointer transition" size={20} />
-                <FaWhatsapp className="text-green-500 hover:text-green-600 cursor-pointer transition" size={20} />
+                <SocialShareButtons title={post.title} />
               </div>
             </div>
           </header>
@@ -387,7 +388,7 @@ if (!post) {
                 {post.tags.map((tag, idx) => (
                   <Link
                     key={idx}
-                    href={`/tag/${typeof tag === 'string' ? tag.toLowerCase().replace(/\s+/g, '-') : tag.slug}`}
+                    href={`/${tagPrefix}/${typeof tag === 'string' ? tag.toLowerCase().replace(/\s+/g, '-') : tag.slug}`}
                     className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200 transition-colors"
                   >
                     {typeof tag === 'string' ? tag : tag.name}
