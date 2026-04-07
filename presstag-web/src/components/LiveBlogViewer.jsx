@@ -1,12 +1,12 @@
 "use client";
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { FaShareAlt, FaLinkedin, FaMapPin, FaSync } from 'react-icons/fa';
 import { Merriweather } from 'next/font/google';
 import Sidebar from './Sidebar';
 import AdSpot from './AdSpot';
-import { getImageUrl } from '@/lib/imageHelper';
 import SocialShareButtons from './SocialShareButtons';
+import { fetchWithTenant } from '@/lib/fetchWithTenant';
 
 const merriweather = Merriweather({ 
   weight: ['300', '400', '700', '900'],
@@ -16,6 +16,12 @@ const merriweather = Merriweather({
 });
 
 const LiveBlogViewer = ({ post }) => {
+    const [livePost, setLivePost] = useState(post);
+
+    useEffect(() => {
+        setLivePost(post);
+    }, [post]);
+
     const { 
         title, 
         summary,
@@ -32,15 +38,55 @@ const LiveBlogViewer = ({ post }) => {
         featuredImageCaption,
         content, // Main content before updates
         tags = []
-    } = post;
+    } = livePost || {};
 
     useEffect(() => {
-        console.log('LiveBlogViewer Post Data:', post);
-        console.log('Featured Image:', featuredImage);
-    }, [post, featuredImage]);
+        if (!livePost?.isLive) return;
+        const slug = livePost?.slug;
+        if (!slug) return;
+        let cancelled = false;
 
-    // Helper for images
-    const getImageUrl = (img) => {
+        const tick = async () => {
+            try {
+                const res = await fetchWithTenant(`/posts/slug/${encodeURIComponent(String(slug))}`, { cache: 'no-store' });
+                if (!res.ok) return;
+                const latest = await res.json();
+                if (cancelled || !latest) return;
+                setLivePost((prev) => {
+                    if (!prev) return latest;
+
+                    const prevTitle = String(prev?.title || '');
+                    const nextTitle = String(latest?.title || '');
+                    if (prevTitle && nextTitle && prevTitle !== nextTitle) {
+                        if (typeof window !== 'undefined') window.location.reload();
+                        return prev;
+                    }
+
+                    const prevKey = String(prev?.updatedAt || '');
+                    const nextKey = String(latest?.updatedAt || '');
+                    const prevUpdatesCount = Array.isArray(prev?.liveUpdates) ? prev.liveUpdates.length : 0;
+                    const nextUpdatesCount = Array.isArray(latest?.liveUpdates) ? latest.liveUpdates.length : 0;
+                    if (prevKey === nextKey && prevUpdatesCount === nextUpdatesCount) return prev;
+
+                    return {
+                        ...prev,
+                        isLive: !!latest?.isLive,
+                        updatedAt: latest?.updatedAt || prev?.updatedAt,
+                        liveUpdates: Array.isArray(latest?.liveUpdates) ? latest.liveUpdates : [],
+                    };
+                });
+            } catch {}
+        };
+
+        tick();
+        const intervalId = setInterval(tick, 20000);
+        return () => {
+            cancelled = true;
+            clearInterval(intervalId);
+        };
+    }, [livePost?.isLive, livePost?.slug]);
+
+    const resolveImageUrl = (img) => {
         if (!img) return null;
         const url = typeof img === 'string' ? img : img?.url;
         
@@ -62,6 +108,39 @@ const LiveBlogViewer = ({ post }) => {
         
         return `${baseUrl}${path}`;
     };
+
+    const formatUpdateTimestamp = useMemo(() => {
+        const formatInTimeZone = (date, timeZone) => {
+            try {
+                return new Intl.DateTimeFormat('en-GB', {
+                    timeZone,
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true,
+                }).format(date);
+            } catch {
+                return date.toLocaleString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true,
+                });
+            }
+        };
+
+        return (timestamp) => {
+            const date = timestamp ? new Date(timestamp) : null;
+            if (!date || Number.isNaN(date.getTime())) return '';
+            const ist = `${formatInTimeZone(date, 'Asia/Kolkata')} IST`;
+            const gmt = `${formatInTimeZone(date, 'UTC')} GMT`;
+            return `${ist} • ${gmt}`;
+        };
+    }, []);
 
     // Sort updates: Pinned first, then Newest first
     const sortedUpdates = [...liveUpdates].sort((a, b) => {
@@ -154,11 +233,11 @@ const LiveBlogViewer = ({ post }) => {
                         </header>
 
                         {/* Featured Image - 16:9 988x556 with Caption Below */}
-                        {featuredImage && getImageUrl(featuredImage) && (
+                        {featuredImage && resolveImageUrl(featuredImage) && (
                             <figure className="w-full mb-8 rounded-xl overflow-hidden shadow-md bg-white border border-gray-100">
                                 <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
                                     <img
-                                        src={getImageUrl(featuredImage)}
+                                        src={resolveImageUrl(featuredImage)}
                                         alt={title}
                                         className="w-full h-full object-cover"
                                     />
@@ -217,14 +296,7 @@ const LiveBlogViewer = ({ post }) => {
                                     {/* Updates List */}
                                     <div className="space-y-8">
                                         {sortedUpdates.map((update, idx) => {
-                                            const updateTime = new Date(update.timestamp);
-                                            const dateTimeString = updateTime.toLocaleString([], { 
-                                                month: 'short', 
-                                                day: 'numeric', 
-                                                year: 'numeric', 
-                                                hour: '2-digit', 
-                                                minute: '2-digit' 
-                                            });
+                                            const dateTimeString = formatUpdateTimestamp(update?.timestamp);
 
                                             return (
                                                 <React.Fragment key={idx}>
