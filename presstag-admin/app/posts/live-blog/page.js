@@ -49,17 +49,25 @@ export default function LiveBlogs() {
         authorMap[u._id || u.id] = u.name;
       });
 
-      const allLiveBlogPosts = [];
-      let page = 1;
-      const limit = 50;
-      while (true) {
-        const result = await posts.getByStatus('published', { page, limit, type: 'live-blog' });
-        const pagePosts = Array.isArray(result) ? result : (result?.posts || []);
-        allLiveBlogPosts.push(...pagePosts);
-        const pagination = !Array.isArray(result) ? result?.pagination : null;
-        if (!pagination?.hasNext) break;
-        page += 1;
-        if (page > 50) break;
+      const limit = 200;
+      const first = await posts.getByStatus('published', { page: 1, limit, type: 'live-blog' });
+      const allLiveBlogPosts = Array.isArray(first) ? first : (first?.posts || []);
+      const pagination = !Array.isArray(first) ? first?.pagination : null;
+      const totalPages = Math.max(1, Number(pagination?.totalPages || 1));
+
+      const pagesToFetch = [];
+      for (let p = 2; p <= totalPages; p += 1) pagesToFetch.push(p);
+
+      const concurrency = 6;
+      for (let i = 0; i < pagesToFetch.length; i += concurrency) {
+        const batch = pagesToFetch.slice(i, i + concurrency);
+        const results = await Promise.all(
+          batch.map((page) => posts.getByStatus('published', { page, limit, type: 'live-blog' }))
+        );
+        for (const result of results) {
+          const pagePosts = Array.isArray(result) ? result : (result?.posts || []);
+          allLiveBlogPosts.push(...pagePosts);
+        }
       }
       
       // Filter for live-blog type and map to component structure

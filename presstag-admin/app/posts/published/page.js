@@ -159,16 +159,6 @@ export default function PublishedPosts() {
     fetchOverallTotal();
   }, [fetchTypeTotals, fetchOverallTotal]);
 
-  useEffect(() => {
-    const onFocus = () => {
-      fetchTypeTotals();
-      fetchOverallTotal();
-      fetchPage(currentPage);
-    };
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, [fetchTypeTotals, fetchOverallTotal, fetchPage, currentPage]);
-
   // ✅ Fetch one page at a time from backend
   const fetchPage = useCallback(async (page) => {
     try {
@@ -203,6 +193,16 @@ export default function PublishedPosts() {
   useEffect(() => {
     fetchPage(currentPage);
   }, [currentPage, fetchPage]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      fetchTypeTotals();
+      fetchOverallTotal();
+      fetchPage(currentPage);
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [fetchTypeTotals, fetchOverallTotal, fetchPage, currentPage]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
