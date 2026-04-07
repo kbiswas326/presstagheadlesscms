@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { FaShareAlt, FaLinkedin, FaMapPin, FaSync } from 'react-icons/fa';
 import { Merriweather } from 'next/font/google';
 import Sidebar from './Sidebar';
@@ -185,37 +186,72 @@ const LiveBlogViewer = ({ post }) => {
       : (authorName || 'SportzPoint Desk');
 
     return (
-        <article className="min-h-screen bg-white pb-20">
-            <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 pt-6 pb-12">
-                <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
+        <div className={`min-h-screen bg-gray-50 ${merriweather.className}`}>
+            <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
                     <main className="w-full lg:w-[72%] bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-8" ref={embedsRootRef}>
-                        {/* --- ARTICLE HEADER SECTION (Identical to PostPage) --- */}
                         <header className="w-full pt-4 pb-6">
-                            {/* Categories */}
-                            <div className="flex gap-2 mb-4 text-sm font-bold uppercase tracking-wider items-center">
-                               {isLive && (
-                                    <div className="flex items-center gap-2 mr-2">
-                                         <span className="relative flex h-2 w-2">
-                                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>
-                                           <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
-                                         </span>
-                                         <span className="text-red-600 font-bold animate-pulse">LIVE Blog</span>
+                            <nav className="flex items-center text-xs text-gray-500 mb-4 whitespace-nowrap overflow-hidden">
+                                <Link
+                                    href="/"
+                                    className="transition-colors hover:text-[var(--primary-color)] flex-shrink-0"
+                                    style={{ '--primary-color': 'var(--primary-color)' }}
+                                >
+                                    Home
+                                </Link>
+                                {categories?.[0] ? (
+                                    <>
+                                        <span className="mx-2 text-gray-300 flex-shrink-0">/</span>
+                                        <Link
+                                            href={`/category/${typeof categories[0] === 'string' ? categories[0] : (categories[0]?.slug || categories[0]?.name || categories[0]?.title || '')}`}
+                                            className="transition-colors font-medium hover:text-[var(--primary-color)] flex-shrink-0"
+                                        >
+                                            {String(typeof categories[0] === 'string' ? categories[0] : (categories[0]?.name || categories[0]?.title || categories[0]?.slug || ''))
+                                                .replace(/Ãƒâ€”/g, "")
+                                                .replace(/Ã—/g, "")
+                                                .trim()}
+                                        </Link>
+                                    </>
+                                ) : null}
+                                <span className="mx-2 text-gray-300 flex-shrink-0">/</span>
+                                <span className="text-gray-400 truncate min-w-0 flex-1">
+                                    {title}
+                                </span>
+                            </nav>
+
+                            <div className="flex flex-wrap gap-2 mb-4 items-center">
+                                {isLive ? (
+                                    <div className="flex items-center gap-2 mr-1">
+                                        <span className="relative flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+                                        </span>
+                                        <span className="text-red-600 font-bold uppercase tracking-wider text-xs">Live Blog</span>
                                     </div>
-                               )}
-                               
-                               {categories && categories.length > 0 ? (
-                                   categories.slice(0, 3).map((cat, idx) => (
-                                       <span key={idx} className="text-green-600 cursor-pointer hover:underline">
-                                           {typeof cat === 'string' ? cat : cat.name || 'News'}
-                                       </span>
-                                   ))
-                               ) : (
-                                   <span className="text-green-600">Live Blog</span>
-                               )}
+                                ) : null}
+
+                                {categories && categories.length > 0 ? (
+                                    categories.map((cat, index) => (
+                                        <Link
+                                            key={index}
+                                            href={`/category/${typeof cat === 'string' ? cat : (cat?.slug || cat?.name || cat?.title || '')}`}
+                                            className="px-3 py-1 bg-gray-50 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-100 transition-colors cursor-pointer"
+                                            style={{ color: 'var(--primary-color)' }}
+                                        >
+                                            {String(typeof cat === 'string' ? cat : (cat?.name || cat?.title || cat?.slug || ''))
+                                                .replace(/Ãƒâ€”/g, "")
+                                                .replace(/Ã—/g, "")
+                                                .trim()}
+                                        </Link>
+                                    ))
+                                ) : (
+                                    <span className="px-3 py-1 bg-gray-50 text-xs font-bold uppercase tracking-wider rounded-sm" style={{ color: 'var(--primary-color)' }}>
+                                        Live Blog
+                                    </span>
+                                )}
                             </div>
 
                             {/* Title */}
-                            <h1 className={`${merriweather.className} text-3xl md:text-5xl font-black text-gray-900 leading-tight mb-4`}>
+                            <h1 className="text-3xl md:text-5xl font-black text-gray-900 leading-tight mb-4">
                                 {title}
                             </h1>
 
@@ -387,8 +423,7 @@ const LiveBlogViewer = ({ post }) => {
                         <Sidebar currentPostId={post?.slug || post?._id} categorySlug={post?.categories?.[0]?.slug} excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)} />
                     </aside>
                 </div>
-            </div>
-        </article>
+        </div>
     );
 };
 

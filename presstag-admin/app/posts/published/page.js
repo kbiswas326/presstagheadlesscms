@@ -119,47 +119,55 @@ export default function PublishedPosts() {
     return labels.join(', ') || 'Uncategorized';
   };
 
-  useEffect(() => {
-    const fetchTypeTotals = async () => {
-      const getTotalForType = async (typeVariants) => {
-        const results = await Promise.all(
-          typeVariants.map(async (type) => {
-            const res = await postsAPI.getByStatus('published', { page: 1, limit: 1, type });
-            if (res?.error) return 0;
-            return res?.pagination?.total ?? 0;
-          })
-        );
-        return Math.max(0, ...results);
-      };
-
-      try {
-        const [article, video, gallery, webStory, liveBlog] = await Promise.all([
-          getTotalForType(['article']),
-          getTotalForType(['video']),
-          getTotalForType(['photo-gallery', 'photo gallery']),
-          getTotalForType(['web-story', 'web story']),
-          getTotalForType(['live-blog', 'live blog']),
-        ]);
-
-        setPublishedTypeTotals({ article, video, gallery, webStory, liveBlog });
-      } catch {
-        setPublishedTypeTotals({ article: 0, video: 0, gallery: 0, webStory: 0, liveBlog: 0 });
-      }
+  const fetchTypeTotals = useCallback(async () => {
+    const getTotalForType = async (typeVariants) => {
+      const results = await Promise.all(
+        typeVariants.map(async (type) => {
+          const res = await postsAPI.getByStatus('published', { page: 1, limit: 1, type });
+          if (res?.error) return 0;
+          return res?.pagination?.total ?? 0;
+        })
+      );
+      return Math.max(0, ...results);
     };
 
+    try {
+      const [article, video, gallery, webStory, liveBlog] = await Promise.all([
+        getTotalForType(['article']),
+        getTotalForType(['video']),
+        getTotalForType(['photo-gallery', 'photo gallery']),
+        getTotalForType(['web-story', 'web story']),
+        getTotalForType(['live-blog', 'live blog']),
+      ]);
+
+      setPublishedTypeTotals({ article, video, gallery, webStory, liveBlog });
+    } catch {
+      setPublishedTypeTotals({ article: 0, video: 0, gallery: 0, webStory: 0, liveBlog: 0 });
+    }
+  }, []);
+
+  const fetchOverallTotal = useCallback(async () => {
+    try {
+      const res = await postsAPI.getByStatus('published', { page: 1, limit: 1 });
+      if (res?.error) return;
+      setTotalPublished(res?.pagination?.total ?? 0);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
     fetchTypeTotals();
-  }, []);
+    fetchOverallTotal();
+  }, [fetchTypeTotals, fetchOverallTotal]);
 
   useEffect(() => {
-    const fetchOverallTotal = async () => {
-      try {
-        const res = await postsAPI.getByStatus('published', { page: 1, limit: 1 });
-        if (res?.error) return;
-        setTotalPublished(res?.pagination?.total ?? 0);
-      } catch {}
+    const onFocus = () => {
+      fetchTypeTotals();
+      fetchOverallTotal();
+      fetchPage(currentPage);
     };
-    fetchOverallTotal();
-  }, []);
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [fetchTypeTotals, fetchOverallTotal, fetchPage, currentPage]);
 
   // ✅ Fetch one page at a time from backend
   const fetchPage = useCallback(async (page) => {
@@ -411,9 +419,9 @@ export default function PublishedPosts() {
               <option value="All">All Types</option>
               <option value="article">Article</option>
               <option value="video">Video</option>
-              <option value="photo gallery">Gallery</option>
-              <option value="web story">Web Story</option>
-              <option value="live blog">Live Blog</option>
+              <option value="photo-gallery">Gallery</option>
+              <option value="web-story">Web Story</option>
+              <option value="live-blog">Live Blog</option>
             </select>
             <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
               className="px-4 py-3 bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl text-slate-900 dark:text-white">

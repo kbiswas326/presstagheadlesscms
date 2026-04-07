@@ -253,7 +253,19 @@ router.get('/', async (req, res) => {
     const query = {};
     const and = [];
     if (status && status !== 'All') query.status = status;
-    if (type && type !== 'All') query.type = type;
+    if (type && type !== 'All') {
+      const rawType = String(type || '');
+      const normalizedType = rawType.toLowerCase().trim();
+      const typeVariantsByCanonical = {
+        article: ['article', 'Article'],
+        video: ['video', 'Video'],
+        'photo-gallery': ['photo-gallery', 'photo gallery', 'Photo Gallery', 'photoGallery', 'photo_gallery'],
+        'web-story': ['web-story', 'web story', 'Web Story', 'webStory', 'WebStory', 'story', 'Story'],
+        'live-blog': ['live-blog', 'live blog', 'Live Blog', 'LiveBlog', 'liveblog'],
+      };
+      const variants = typeVariantsByCanonical[normalizedType];
+      query.type = variants ? { $in: variants } : rawType;
+    }
     if (search) query.title = { $regex: search, $options: 'i' };
     if (previousSlug && typeof previousSlug === 'string' && previousSlug.trim()) {
       query.previousSlugs = previousSlug.trim();

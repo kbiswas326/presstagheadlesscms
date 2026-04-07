@@ -99,6 +99,7 @@ export default function ArticleEditorPage() {
   const [availableAuthors, setAvailableAuthors] = useState([]);
   const [availableCategories, setAvailableCategories] = useState([]);
   const [availableTags, setAvailableTags] = useState([]);
+  const [authorsLoading, setAuthorsLoading] = useState(true);
 
   // Auto-set current date and time
   useEffect(() => {
@@ -129,6 +130,7 @@ export default function ArticleEditorPage() {
   useEffect(() => {
     const fetchAllData = async () => {
       try {
+        setAuthorsLoading(true);
         const token = localStorage.getItem('token');
         const headers = { 'Authorization': `Bearer ${token}`, 'x-tenant-id': getTenantId() };
 
@@ -162,6 +164,8 @@ export default function ArticleEditorPage() {
         }
       } catch (err) {
         console.error('FetchAllData error:', err);
+      } finally {
+        setAuthorsLoading(false);
       }
     };
 
@@ -1219,7 +1223,9 @@ export default function ArticleEditorPage() {
                           <input type="text" placeholder="Search authors..." value={authorSearch} onChange={(e) => setAuthorSearch(e.target.value)} className={`w-full p-2 rounded-md border ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-white border-gray-200 text-gray-900"}`} />
                         </div>
                         <div className="max-h-48 overflow-y-auto">
-                          {filteredAuthors.length > 0 ? filteredAuthors.map((authorOption) => (
+                          {authorsLoading ? (
+                            <div className={`p-4 text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>Loading authors...</div>
+                          ) : filteredAuthors.length > 0 ? filteredAuthors.map((authorOption) => (
                             <div key={authorOption.id} className={`flex items-center justify-between px-4 py-3 ${isDark ? "hover:bg-gray-700 text-gray-200" : "hover:bg-emerald-50 text-gray-900"}`}>
                               <button type="button" onClick={() => { setAuthor(String(authorOption.id)); if (!authors.includes(String(authorOption.id))) setAuthors(prev => [String(authorOption.id), ...prev].filter((v, i, arr) => arr.indexOf(v) === i)); handleAuthorDropdownToggle(false); }} className="flex-1 text-left">
                                 <div className="font-medium">{authorOption.name}</div>

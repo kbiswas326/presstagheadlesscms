@@ -61,7 +61,7 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
     
     <nav className={`${liveScoreToggle===true?'hidden':'block'} sticky top-0 z-[998]`}>
       {/* Main navigation bar with dynamic background */}
-      <div style={{ backgroundColor: primaryColor }} className="text-white">
+      <div style={{ backgroundColor: primaryColor }} className="text-white relative">
         <div className="container mx-auto px-4 lg:px-8">
           <div className="flex items-center justify-between h-12">
             {/* Logo section */}
@@ -132,16 +132,17 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
               </button>
             </div>
           </div>
-          
-          {/* Mobile Menu */}
-           <AnimatePresence>
-            {isMenuOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="lg:hidden bg-white text-black border-t border-gray-200 shadow-lg"
-              >
+        </div>
+
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="lg:hidden absolute left-0 right-0 top-12 bg-white text-black border-t border-gray-200 shadow-lg overflow-hidden"
+            >
+              <div className="container mx-auto px-4 lg:px-8">
                 <ul className="flex flex-col py-2">
                   {navigationItems && navigationItems.map((item, index) => (
                     <li key={index}>
@@ -155,19 +156,20 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
                     </li>
                   ))}
                 </ul>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          
-           {/* Search Overlay */}
-          <AnimatePresence>
-            {search === "add" && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="absolute top-12 left-0 w-full bg-white shadow-md p-4 flex items-center gap-2"
-              >
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {search === "add" && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute top-12 left-0 w-full bg-white shadow-md"
+            >
+              <div className="container mx-auto px-4 lg:px-8 p-4 flex items-center gap-2">
                 <input
                   type="text"
                   placeholder="Search..."
@@ -177,22 +179,22 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
                   className="flex-1 border border-gray-300 rounded px-3 py-2 text-black focus:outline-none focus:border-emerald-600"
                   autoFocus
                 />
-                <button 
-                    onClick={handleSearchSubmit}
-                    className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700"
+                <button
+                  onClick={handleSearchSubmit}
+                  className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700"
                 >
-                    Search
+                  Search
                 </button>
-                <button 
-                    onClick={() => setSearch("remove")}
-                    className="text-gray-500 hover:text-gray-700"
+                <button
+                  onClick={() => setSearch("remove")}
+                  className="text-gray-500 hover:text-gray-700"
                 >
-                    <RxCross2 className="h-6 w-6" />
+                  <RxCross2 className="h-6 w-6" />
                 </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </nav>
   );
