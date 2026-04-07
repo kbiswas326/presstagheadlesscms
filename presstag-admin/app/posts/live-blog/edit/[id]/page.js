@@ -365,8 +365,7 @@ useEffect(() => {
         ? { 
             ...update, 
             title: updateTitle.trim(), 
-            content: updateContent.trim(),
-            timestamp: new Date().toISOString()
+            content: updateContent.trim()
           } 
         : update
     );
