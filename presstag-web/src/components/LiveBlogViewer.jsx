@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { FaShareAlt, FaLinkedin, FaMapPin, FaSync } from 'react-icons/fa';
 import { Merriweather } from 'next/font/google';
@@ -17,6 +17,7 @@ const merriweather = Merriweather({
 
 const LiveBlogViewer = ({ post }) => {
     const [livePost, setLivePost] = useState(post);
+    const embedsRootRef = useRef(null);
 
     useEffect(() => {
         setLivePost(post);
@@ -39,6 +40,27 @@ const LiveBlogViewer = ({ post }) => {
         content, // Main content before updates
         tags = []
     } = livePost || {};
+
+    useEffect(() => {
+        const root = embedsRootRef.current;
+        if (!root) return;
+
+        const processEmbeds = () => {
+            try {
+                if (window.twttr?.widgets?.load) window.twttr.widgets.load(root);
+            } catch {}
+            try {
+                if (window.instgrm?.Embeds?.process) window.instgrm.Embeds.process();
+            } catch {}
+        };
+
+        const t1 = setTimeout(processEmbeds, 0);
+        const t2 = setTimeout(processEmbeds, 1000);
+        return () => {
+            clearTimeout(t1);
+            clearTimeout(t2);
+        };
+    }, [updatedAt, liveUpdates?.length]);
 
     useEffect(() => {
         if (!livePost?.isLive) return;
@@ -166,7 +188,7 @@ const LiveBlogViewer = ({ post }) => {
         <article className="min-h-screen bg-white pb-20">
             <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 pt-6 pb-12">
                 <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
-                    <main className="w-full lg:w-[72%] bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-8">
+                    <main className="w-full lg:w-[72%] bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-8" ref={embedsRootRef}>
                         {/* --- ARTICLE HEADER SECTION (Identical to PostPage) --- */}
                         <header className="w-full pt-4 pb-6">
                             {/* Categories */}
