@@ -86,6 +86,25 @@ export default function LiveBlogEditorPage() {
   const [updateTitle, setUpdateTitle] = useState('');
   const [updateContent, setUpdateContent] = useState('');
 
+  const normalizeLiveUpdates = (list) => {
+    const updatesList = Array.isArray(list) ? list : [];
+    const seen = new Set();
+    return updatesList.map((u, idx) => {
+      const base = u && typeof u === 'object' ? u : {};
+      const candidateId = base._id || base.id || base.updateId;
+      const timestamp = base.timestamp || '';
+      const rawId = candidateId || (timestamp ? `ts:${timestamp}` : `idx:${idx}`);
+      let nextId = String(rawId);
+      while (seen.has(nextId)) nextId = `${nextId}:${idx}`;
+      seen.add(nextId);
+      return {
+        ...base,
+        _id: nextId,
+        pinned: !!base.pinned,
+      };
+    });
+  };
+
   // featured image
   const [featuredImage, setFeaturedImage] = useState(null);
   const [showMediaSelector, setShowMediaSelector] = useState(false);
@@ -195,7 +214,7 @@ useEffect(() => {
       setFeaturedImage(post.featuredImage || null);
 
       setLiveStatus(post.isLive ? "live" : "stopped");
-      setUpdates(post.liveUpdates || []);
+      setUpdates(normalizeLiveUpdates(post.liveUpdates || []));
 
       setMetaTitle(post.seo?.metaTitle || "");
       setMetaDescription(post.seo?.metaDescription || "");
@@ -283,6 +302,7 @@ useEffect(() => {
       
       // Override updates with the provided latest list
       payload.liveUpdates = currentUpdates.map(u => ({
+        _id: u._id,
         title: u.title,
         content: u.content,
         timestamp: u.timestamp,
@@ -404,6 +424,7 @@ const buildPayload = (status) => ({
   isLive: liveStatus === "live",
 
   liveUpdates: updates.map(u => ({
+    _id: u._id,
     title: u.title,
     content: u.content,
     timestamp: u.timestamp,
