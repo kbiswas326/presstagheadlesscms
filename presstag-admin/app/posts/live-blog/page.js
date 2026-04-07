@@ -41,21 +41,30 @@ export default function LiveBlogs() {
   const fetchLiveBlogs = async () => {
     setLoading(true);
     try {
-      // Fetch published posts AND users in parallel
-      const [allPublished, usersData] = await Promise.all([
-        posts.getByStatus('published'),
-        getUsers()
-      ]);
+      const usersData = await getUsers();
 
       const users = usersData.users || usersData || [];
       const authorMap = {};
       users.forEach(u => {
         authorMap[u._id || u.id] = u.name;
       });
+
+      const allLiveBlogPosts = [];
+      let page = 1;
+      const limit = 50;
+      while (true) {
+        const result = await posts.getByStatus('published', { page, limit, type: 'live-blog' });
+        const pagePosts = Array.isArray(result) ? result : (result?.posts || []);
+        allLiveBlogPosts.push(...pagePosts);
+        const pagination = !Array.isArray(result) ? result?.pagination : null;
+        if (!pagination?.hasNext) break;
+        page += 1;
+        if (page > 50) break;
+      }
       
       // Filter for live-blog type and map to component structure
-      const blogs = allPublished
-        .filter(p => p.type === 'live-blog')
+      const blogs = allLiveBlogPosts
+        .filter(p => String(p?.type || '').toLowerCase().trim() === 'live-blog')
         .map(p => {
             let authorName = "Editor Team";
             if (p.author) {
