@@ -194,16 +194,6 @@ export default function PublishedPosts() {
     fetchPage(currentPage);
   }, [currentPage, fetchPage]);
 
-  useEffect(() => {
-    const onFocus = () => {
-      fetchTypeTotals();
-      fetchOverallTotal();
-      fetchPage(currentPage);
-    };
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, [fetchTypeTotals, fetchOverallTotal, fetchPage, currentPage]);
-
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);

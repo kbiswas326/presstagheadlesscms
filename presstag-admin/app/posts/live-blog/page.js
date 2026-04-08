@@ -72,7 +72,10 @@ export default function LiveBlogs() {
       
       // Filter for live-blog type and map to component structure
       const blogs = allLiveBlogPosts
-        .filter(p => String(p?.type || '').toLowerCase().trim() === 'live-blog')
+        .filter(p => {
+          const t = String(p?.type || '').toLowerCase().trim();
+          return t === 'live-blog' || t === 'live blog';
+        })
         .map(p => {
             let authorName = "Editor Team";
             if (p.author) {
