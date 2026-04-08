@@ -172,6 +172,18 @@ export default function ArticleEditorPage() {
     fetchAllData();
   }, []);
 
+  useEffect(() => {
+    if (authorsLoading) return;
+    if (!author) return;
+    const exists = Array.isArray(availableAuthors)
+      ? availableAuthors.some((a) => String(a?.id) === String(author))
+      : false;
+    if (exists) return;
+    setAuthor('');
+    setAuthors((prev) => (Array.isArray(prev) ? prev.filter((id) => String(id) !== String(author)) : []));
+    setError(null);
+  }, [authorsLoading, availableAuthors, author]);
+
   // Fetch existing post data if editing
   useEffect(() => {
     const fetchPost = async () => {
@@ -663,7 +675,7 @@ export default function ArticleEditorPage() {
       }
       
       if (response && response.error) {
-        setError(response.error);
+        if (!isAutoSave) setError(response.error);
       } else {
         setLastSaved(new Date());
         setHasUnsavedChanges(false);

@@ -58,6 +58,7 @@ export const posts = {
     if (options.category && options.category !== 'All') params.set('category', String(options.category));
     if (options.tag && options.tag !== 'All') params.set('tag', String(options.tag));
     if (options.sort) params.set('sort', String(options.sort));
+    if (options.lite) params.set('lite', '1');
 
     const res = await fetch(`${API_BASE}/posts?${params.toString()}`, {
       headers: getHeaders()

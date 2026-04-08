@@ -14,6 +14,7 @@ import Sidebar from '../../../components/Sidebar';
 import AdSpot from '../../../components/AdSpot';
 import ArticleContent from '../../../components/ArticleContent';
 import SocialShareButtons from '../../../components/SocialShareButtons';
+import ResponsivePostGrid from '../../../components/ResponsivePostGrid';
 import { getImageUrl } from '@/lib/imageHelper';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
@@ -76,15 +77,16 @@ export async function generateMetadata({ params }) {
 
 export default async function PostPage({ params }) {
   const resolvedParams = await params;
-  // Don't cache post pages - always fetch fresh to get latest publish time
-  let post = await getPostById(resolvedParams.id, { cache: 'no-store' });
+  let post = await getPostById(resolvedParams.id, { revalidate: 30 });
   if (post) post.gallery = post.gallery || post.images;
 
 
-  const layoutConfig = await fetchWithTenant('/layout-config', { cache: 'no-store' })
+  const layoutConfig = await fetchWithTenant('/layout-config', { next: { revalidate: 300 } })
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
   const tagPrefix = String(layoutConfig?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
+  const primaryColor = layoutConfig?.branding?.primaryColor || '#006356';
+  const urlStructure = layoutConfig?.seo?.postUrlStructure || '/{category}/{slug}';
 
   if ((!post.categories || post.categories.length === 0) && (Array.isArray(post.primary_category) ? post.primary_category.length > 0 : !!post.primary_category)) {
     const ids = Array.isArray(post.primary_category) ? post.primary_category : [post.primary_category];
@@ -166,6 +168,24 @@ export default async function PostPage({ params }) {
   };
 
   const videoId = isVideo && post.videoUrl ? getYouTubeId(post.videoUrl) : null;
+  const primaryCategorySlug = post.categories?.[0]?.slug || post.categories?.[0]?.name || post.categories?.[0]?.title || '';
+  const relatedPosts = await (async () => {
+    if (!primaryCategorySlug) return [];
+    try {
+      const res = await fetchWithTenant(
+        `/posts?status=published&category=${encodeURIComponent(String(primaryCategorySlug))}&limit=12&lite=1`,
+        { next: { revalidate: 60 } }
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (data.posts || []);
+      return list
+        .filter((p) => p && String(p.slug || p._id || '') !== String(post.slug || post._id || ''))
+        .slice(0, 8);
+    } catch {
+      return [];
+    }
+  })();
 
   return (
     <div className={`min-h-screen bg-gray-50 ${merriweather.className}`}>
@@ -362,6 +382,17 @@ export default async function PostPage({ params }) {
                </div>
           </div>
       )}
+
+      <div className="mt-10">
+        <ResponsivePostGrid
+          posts={relatedPosts}
+          title="Related Posts"
+          sectionName="Related Posts"
+          primaryColor={primaryColor}
+          viewAllUrl={primaryCategorySlug ? `/category/${primaryCategorySlug}` : undefined}
+          urlStructure={urlStructure}
+        />
+      </div>
 
         </main>
 

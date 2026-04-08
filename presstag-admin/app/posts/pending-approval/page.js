@@ -174,6 +174,7 @@ export default function PendingPosts() {
           type: filterType,
           category: filterCategory,
           author: filterAuthor,
+          lite: true,
         });
 
         if (response?.error) {

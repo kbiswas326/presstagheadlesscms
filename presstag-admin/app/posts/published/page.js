@@ -172,6 +172,7 @@ export default function PublishedPosts() {
         type: filterType,
         category: filterCategory,
         author: filterAuthor,
+        lite: true,
       });
 
       if (res?.error) throw new Error(res.error);

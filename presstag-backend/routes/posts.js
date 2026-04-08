@@ -242,13 +242,14 @@ router.get('/', async (req, res) => {
   try {
     const { 
       status, type, author, category, tag, 
-      page = 1, limit = 20, sort, search, previousSlug
+      page = 1, limit = 20, sort, search, previousSlug, lite
     } = req.query;
 
     const db = getDB(req.tenantId);
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 20;
     const skip = (pageNum - 1) * limitNum;
+    const liteMode = ['1', 'true', 'yes'].includes(String(lite || '').toLowerCase().trim());
 
     const query = {};
     const and = [];
@@ -312,8 +313,22 @@ router.get('/', async (req, res) => {
     // ✅ 1. Get accurate total count for the SPECIFIC query (Crucial for 14k+ articles)
     const total = await db.collection('posts').countDocuments(query);
 
-    const postsWithRelations = await db.collection('posts').aggregate([
-      { $match: query },
+    const pipeline = [{ $match: query }];
+
+    if (liteMode) {
+      pipeline.push({
+        $project: {
+          content: 0,
+          excerpt: 0,
+          images: 0,
+          stories: 0,
+          liveUpdates: 0,
+          seo: 0,
+        },
+      });
+    }
+
+    pipeline.push(
       { $sort: sortConfig },
       { $skip: skip },
       { $limit: limitNum },
@@ -403,7 +418,9 @@ router.get('/', async (req, res) => {
         },
       },
       { $project: { categoriesPop: 0, primaryCategoryPop: 0, tagsPop: 0, authorPop: 0, authorsPop: 0, editorPop: 0, 'author.password': 0, 'authors.password': 0, 'editor.password': 0 } },
-    ]).toArray();
+    );
+
+    const postsWithRelations = await db.collection('posts').aggregate(pipeline).toArray();
 
     res.json({
       posts: postsWithRelations.filter(Boolean),

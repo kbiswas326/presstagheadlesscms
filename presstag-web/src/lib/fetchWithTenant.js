@@ -34,6 +34,10 @@ export async function fetchWithTenant(path, options = {}) {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   const url = `${API_URL}${cleanPath}`;
   
+  const isServer = typeof window === 'undefined';
+  const defaultCache = options.cache ?? (isServer ? 'force-cache' : 'no-store');
+  const defaultNext = options.next ?? (isServer && defaultCache !== 'no-store' ? { revalidate: 60 } : undefined);
+
   const defaultOptions = {
     ...options,
     headers: {
@@ -41,8 +45,8 @@ export async function fetchWithTenant(path, options = {}) {
       'x-tenant-id': resolveTenantId(),
       ...options.headers,
     },
-    // ✅ CRITICAL: 'no-store' ensures admin changes reflect immediately
-    cache: options.cache || 'no-store', 
+    cache: defaultCache,
+    next: defaultNext,
   };
 
   return fetch(url, defaultOptions);
