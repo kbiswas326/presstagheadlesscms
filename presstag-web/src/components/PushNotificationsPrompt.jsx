@@ -95,7 +95,19 @@ export default function PushNotificationsPrompt() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 px-4 pb-20">
-      <div className="mx-auto max-w-5xl rounded-xl border border-gray-200 bg-white shadow-lg p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+      <div className="relative mx-auto max-w-5xl rounded-xl border border-gray-200 bg-white shadow-lg p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <button
+          type="button"
+          onClick={() => dismiss('dismissed')}
+          className="absolute right-3 top-3 p-2 rounded-lg hover:bg-gray-50 text-gray-500"
+          aria-label="Close notifications prompt"
+          disabled={busy}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
         <div className="flex-1 text-sm text-gray-700">
           Enable notifications to get alerts when new articles are published (including live blog updates you publish).
         </div>
@@ -122,4 +134,3 @@ export default function PushNotificationsPrompt() {
     </div>
   );
 }
-
