@@ -10,7 +10,6 @@ import WebStoryViewer from '../../../components/WebStoryViewer';
 import LiveBlogViewer from '../../../components/LiveBlogViewer';
 import GalleryClient from '../../../components/GalleryClient';
 import EmbedScripts from '../../../components/EmbedScripts';
-import Sidebar from '../../../components/Sidebar';
 import AdSpot from '../../../components/AdSpot';
 import ArticleContent from '../../../components/ArticleContent';
 import SocialShareButtons from '../../../components/SocialShareButtons';

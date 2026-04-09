@@ -3,11 +3,64 @@
 import React, { useEffect } from 'react';
 import AdSpot from './AdSpot';
 
+const inferImageDimensions = (src) => {
+  const url = String(src || '');
+  const fitIn = url.match(/fit-in\/(\d+)x(\d+)/i);
+  if (fitIn) return { width: fitIn[1], height: fitIn[2] };
+
+  const whQuery = url.match(/[?&](?:w|width)=(\d+).*?[?&](?:h|height)=(\d+)/i);
+  if (whQuery) return { width: whQuery[1], height: whQuery[2] };
+
+  const hwQuery = url.match(/[?&](?:h|height)=(\d+).*?[?&](?:w|width)=(\d+)/i);
+  if (hwQuery) return { width: hwQuery[2], height: hwQuery[1] };
+
+  const dimInPath = url.match(/\/(\d{2,5})x(\d{2,5})\b/i);
+  if (dimInPath) return { width: dimInPath[1], height: dimInPath[2] };
+
+  return null;
+};
+
+const optimizeInlineImages = (html) => {
+  const raw = String(html || '');
+  if (!raw.includes('<img')) return raw;
+
+  return raw.replace(/<img\b([^>]*)>/gi, (full, attrs) => {
+    const hasLoading = /\bloading\s*=\s*["'][^"']*["']/i.test(attrs);
+    const hasDecoding = /\bdecoding\s*=\s*["'][^"']*["']/i.test(attrs);
+    const hasFetchPriority = /\bfetchpriority\s*=\s*["'][^"']*["']/i.test(attrs);
+    const hasWidth = /\bwidth\s*=\s*["']?\d+["']?/i.test(attrs);
+    const hasHeight = /\bheight\s*=\s*["']?\d+["']?/i.test(attrs);
+
+    let nextAttrs = attrs;
+
+    if (!hasLoading) nextAttrs += ' loading="lazy"';
+    if (!hasDecoding) nextAttrs += ' decoding="async"';
+    if (!hasFetchPriority) nextAttrs += ' fetchpriority="low"';
+
+    if (!hasWidth || !hasHeight) {
+      const srcMatch = nextAttrs.match(/\bsrc\s*=\s*["']([^"']+)["']/i);
+      const dims = inferImageDimensions(srcMatch?.[1]);
+      const width = dims?.width || '1200';
+      const height = dims?.height || '675';
+      if (!hasWidth) nextAttrs += ` width="${width}"`;
+      if (!hasHeight) nextAttrs += ` height="${height}"`;
+    }
+
+    if (!/\bstyle\s*=\s*["'][^"']*["']/i.test(nextAttrs)) {
+      nextAttrs += ' style="height:auto;max-width:100%"';
+    }
+
+    return `<img${nextAttrs}>`;
+  });
+};
+
 export default function ArticleContent({ content }) {
   const safeContent = content || '';
 
   // Fix image URLs: replace port 5000 with 5001 (for backward compatibility)
-  const fixedContent = safeContent.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001');
+  const fixedContent = optimizeInlineImages(
+    safeContent.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001')
+  );
 
   useEffect(() => {
     if (!safeContent) return;
@@ -71,7 +124,7 @@ export default function ArticleContent({ content }) {
   const rest = paragraphs.slice(earlyParagraphCount);
 
   return (
-    <>
+    <div style={{ contentVisibility: 'auto', containIntrinsicSize: '1200px' }}>
       {early.map((html, idx) => {
         const paragraphIndex = idx + 1;
         const showParagraphAd = paragraphIndex === 2 || paragraphIndex === 4 || paragraphIndex === 6;
@@ -88,6 +141,6 @@ export default function ArticleContent({ content }) {
       {rest.length > 0 ? (
         <div className={proseClasses} style={proseStyle} dangerouslySetInnerHTML={{ __html: rest.join('') }} />
       ) : null}
-    </>
+    </div>
   );
 }
