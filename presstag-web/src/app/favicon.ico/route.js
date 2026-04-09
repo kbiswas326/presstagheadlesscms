@@ -10,6 +10,8 @@ export async function GET(request) {
     }
   })();
 
+  let target = `${origin}/favicon.svg`;
+
   try {
     const res = await fetchLayoutConfig({ next: { revalidate: 3600 } });
     if (res.ok) {
@@ -20,38 +22,19 @@ export async function GET(request) {
         config?.branding?.logo ||
         '/favicon.svg'
       );
-
       if (candidate) {
         const url = new URL(candidate, origin);
         if (updatedAt) url.searchParams.set('v', String(updatedAt));
-
-        const upstream = await fetch(url.toString(), { next: { revalidate: 86400 } });
-        if (upstream.ok) {
-          const buffer = await upstream.arrayBuffer();
-          const contentType = upstream.headers.get('content-type') || 'image/x-icon';
-          return new Response(buffer, {
-            headers: {
-              'Content-Type': contentType,
-              'Cache-Control': 'public, max-age=0, s-maxage=86400, stale-while-revalidate=31536000',
-            },
-          });
-        }
+        target = url.toString();
       }
     }
   } catch {}
 
-  const fallbackUrl = new URL('/favicon.svg', origin).toString();
-  const upstream = await fetch(fallbackUrl, { next: { revalidate: 86400 } }).catch(() => null);
-  if (upstream && upstream.ok) {
-    const buffer = await upstream.arrayBuffer();
-    const contentType = upstream.headers.get('content-type') || 'image/svg+xml';
-    return new Response(buffer, {
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=0, s-maxage=86400, stale-while-revalidate=31536000',
-      },
-    });
-  }
-
-  return new Response('', { status: 204 });
+  return new Response(null, {
+    status: 302,
+    headers: {
+      'Location': target,
+      'Cache-Control': 'public, max-age=0, s-maxage=86400, stale-while-revalidate=31536000',
+    },
+  });
 }
