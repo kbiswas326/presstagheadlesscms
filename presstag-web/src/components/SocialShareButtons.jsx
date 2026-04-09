@@ -1,7 +1,44 @@
 'use client';
 
 import React, { useCallback } from 'react';
-import { FaFacebook, FaTwitter, FaWhatsapp, FaLink } from 'react-icons/fa';
+
+const Icon = ({ title, children }) => (
+  <svg
+    width="1em"
+    height="1em"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden={title ? undefined : true}
+    role={title ? 'img' : 'presentation'}
+  >
+    {title ? <title>{title}</title> : null}
+    {children}
+  </svg>
+);
+
+const FacebookIcon = () => (
+  <Icon title="Facebook">
+    <path d="M13.5 22v-8.2h2.8l.4-3.2h-3.2V8.6c0-.9.3-1.6 1.7-1.6h1.7V4.1c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.3H7.4v3.2h2.8V22h3.3z" />
+  </Icon>
+);
+
+const XIcon = () => (
+  <Icon title="X">
+    <path d="M18.9 2H22l-6.8 7.8L23.3 22h-6.4l-5-6.1L6.6 22H3.5l7.4-8.5L1 2h6.6l4.5 5.4L18.9 2zm-1.1 18h1.7L6.8 3.9H5.1L17.8 20z" />
+  </Icon>
+);
+
+const WhatsAppIcon = () => (
+  <Icon title="WhatsApp">
+    <path d="M20.5 3.5A10 10 0 0 0 4 18.9L3 22l3.2-1a10 10 0 0 0 4.8 1.2h.1a10 10 0 0 0 9.4-13.7zm-9.4 16.9h-.1a8.4 8.4 0 0 1-4.3-1.2l-.3-.2-1.9.6.6-1.8-.2-.3a8.4 8.4 0 1 1 6.2 2.9zm4.9-6.3c-.3-.1-1.6-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.8.9-1 1.1-.2.2-.4.2-.7.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.6c.2-.2.2-.4.3-.6.1-.2 0-.4 0-.6s-.7-1.7-1-2.3c-.3-.6-.6-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.2 1.1-1.2 2.7 1.2 3.1 1.3 3.3c.1.2 2.3 3.6 5.6 5 3.3 1.4 3.3.9 3.9.8.6-.1 1.6-.7 1.9-1.3.2-.6.2-1.1.2-1.3-.1-.1-.3-.2-.6-.3z" />
+  </Icon>
+);
+
+const LinkIcon = () => (
+  <Icon title="Copy link">
+    <path d="M10.6 13.4a1 1 0 0 1 0-1.4l2.4-2.4a1 1 0 1 1 1.4 1.4l-2.4 2.4a1 1 0 0 1-1.4 0zm-2.1 2.1a4 4 0 0 1 0-5.7l2.1-2.1a4 4 0 0 1 5.7 0 1 1 0 1 1-1.4 1.4 2 2 0 0 0-2.8 0l-2.1 2.1a2 2 0 0 0 2.8 2.8 1 1 0 1 1 1.4 1.4 4 4 0 0 1-5.7 0zm7-7a4 4 0 0 1 0 5.7l-2.1 2.1a4 4 0 0 1-5.7 0 1 1 0 1 1 1.4-1.4 2 2 0 0 0 2.8 0l2.1-2.1a2 2 0 0 0-2.8-2.8 1 1 0 1 1-1.4-1.4 4 4 0 0 1 5.7 0z" />
+  </Icon>
+);
 
 const encode = (value) => encodeURIComponent(String(value || '').trim());
 
@@ -74,7 +111,9 @@ export default function SocialShareButtons({ title = '', url: urlProp = '', show
         aria-label="Share on Facebook"
         title="Facebook"
       >
-        <FaFacebook size={size} />
+        <span style={{ fontSize: size }} className="inline-flex">
+          <FacebookIcon />
+        </span>
       </button>
       <button
         type="button"
@@ -83,7 +122,9 @@ export default function SocialShareButtons({ title = '', url: urlProp = '', show
         aria-label="Share on X"
         title="X"
       >
-        <FaTwitter size={size} />
+        <span style={{ fontSize: size }} className="inline-flex">
+          <XIcon />
+        </span>
       </button>
       <button
         type="button"
@@ -92,7 +133,9 @@ export default function SocialShareButtons({ title = '', url: urlProp = '', show
         aria-label="Share on WhatsApp"
         title="WhatsApp"
       >
-        <FaWhatsapp size={size} />
+        <span style={{ fontSize: size }} className="inline-flex">
+          <WhatsAppIcon />
+        </span>
       </button>
       <button
         type="button"
@@ -101,9 +144,10 @@ export default function SocialShareButtons({ title = '', url: urlProp = '', show
         aria-label="Copy link"
         title="Copy link"
       >
-        <FaLink size={size - 1} />
+        <span style={{ fontSize: size - 1 }} className="inline-flex">
+          <LinkIcon />
+        </span>
       </button>
     </div>
   );
 }
-

@@ -1,10 +1,10 @@
-﻿'use client';
+'use client';
 
 import { useEffect } from 'react';
+import Script from 'next/script';
 
 export default function EmbedScripts() {
   useEffect(() => {
-    // Ensure embeds are processed when the component mounts
     const processEmbeds = () => {
       if (window.twttr?.widgets?.load) {
         window.twttr.widgets.load();
@@ -14,10 +14,26 @@ export default function EmbedScripts() {
       }
     };
 
-    // Call after a delay to ensure scripts are loaded
-    const timer = setTimeout(processEmbeds, 1000);
-    return () => clearTimeout(timer);
+    const timers = [];
+    timers.push(setTimeout(processEmbeds, 0));
+    timers.push(setTimeout(processEmbeds, 1000));
+    timers.push(setTimeout(processEmbeds, 2500));
+    return () => timers.forEach((t) => clearTimeout(t));
   }, []);
 
-  return null;
+  return (
+    <>
+      <Script
+        src="https://platform.twitter.com/widgets.js"
+        strategy="lazyOnload"
+        async
+        charSet="utf-8"
+      />
+      <Script
+        src="https://www.instagram.com/embed.js"
+        strategy="lazyOnload"
+        async
+      />
+    </>
+  );
 }

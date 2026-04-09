@@ -179,9 +179,11 @@ const Footer = ({ config }) => {
                             href={link.url} 
                             target="_blank" 
                             rel="noopener noreferrer"
+                            aria-label={link.platform || 'Social link'}
                             className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-white"
                          >
                             <SocialIcon platform={link.platform} />
+                            <span className="sr-only">{link.platform || 'Social link'}</span>
                          </a>
                        ))}
                     </div>

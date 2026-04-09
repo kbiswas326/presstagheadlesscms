@@ -57,6 +57,9 @@ export async function generateMetadata() {
       template: `%s | ${siteTitle}`
     },
     description: description,
+    alternates: {
+      canonical: '/',
+    },
     icons: {
       icon: iconUrl,
       shortcut: iconUrl,
@@ -82,6 +85,16 @@ export async function generateMetadata() {
   };
 }
 
+export async function generateViewport() {
+  const config = await getLayoutConfig();
+  const primaryColor = String(config?.branding?.primaryColor || '').trim();
+  return {
+    width: 'device-width',
+    initialScale: 1,
+    themeColor: primaryColor || undefined,
+  };
+}
+
 async function getLayoutConfig() {
   try {
     const res = await fetchLayoutConfig();
@@ -92,7 +105,7 @@ async function getLayoutConfig() {
 
 async function getAds() {
   try {
-    const res = await fetchWithTenant('/ad-blocks', { cache: 'no-store' });
+    const res = await fetchWithTenant('/ad-blocks', { next: { revalidate: 60 } });
     if (res.ok) return res.json();
   } catch(e) { console.error(e); }
   return [];
@@ -106,9 +119,10 @@ export default async function RootLayout({ children }) {
   const faviconUrl = faviconHref
     ? `${faviconHref}${faviconVersion ? `${faviconHref.includes('?') ? '&' : '?'}v=${faviconVersion}` : ''}`
     : '';
+  const primaryColor = config?.branding?.primaryColor || '#006356';
 
   return (
-    <html lang="en" className={`${roboto.variable} ${ptSerif.variable}`}>
+    <html lang="en" className={`${roboto.variable} ${ptSerif.variable}`} style={{ '--primary-color': primaryColor }}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -120,18 +134,6 @@ export default async function RootLayout({ children }) {
           </>
         ) : null}
         <GoogleAnalytics measurementId={config?.analytics?.gaMeasurementId} />
-        {/* Load embed scripts early with inline initialization */}
-        <Script 
-          src="https://platform.twitter.com/widgets.js" 
-          strategy="afterInteractive"
-          async
-          charset="utf-8"
-        />
-        <Script 
-          src="https://www.instagram.com/embed.js" 
-          strategy="afterInteractive"
-          async
-        />
       </head>
       <body className="flex flex-col min-h-screen">
         <ScrollToTop />

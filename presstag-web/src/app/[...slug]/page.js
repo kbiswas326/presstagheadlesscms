@@ -124,7 +124,7 @@ export async function generateMetadata({ params }) {
   const lastSegment = slugParts[slugParts.length - 1];
   const [post, config] = await Promise.all([
     getPostBySlug(lastSegment),
-    fetchWithTenant('/layout-config', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    fetchWithTenant('/layout-config', { next: { revalidate: 300 } }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
   ]);
 
   if (!post) return { title: 'Post Not Found' };
@@ -145,6 +145,9 @@ export async function generateMetadata({ params }) {
   return {
     title: post.seo?.metaTitle || post.title,
     description: post.seo?.metaDescription || post.summary,
+    alternates: {
+      canonical: `/posts/${encodeURIComponent(String(post.slug || post._id))}`,
+    },
     openGraph: {
       title: post.seo?.metaTitle || post.title,
       description: post.seo?.metaDescription || post.summary,
@@ -175,7 +178,7 @@ if (!post) {
   // Check if this was an old slug that changed — 301 redirect to new URL
   const oldPost = await getPostByPreviousSlug(lastSegment);
   if (oldPost) {
-    const config = await fetchWithTenant('/layout-config', { cache: 'no-store' }).then(r => r.json()).catch(() => null);
+    const config = await fetchWithTenant('/layout-config', { next: { revalidate: 300 } }).then(r => r.json()).catch(() => null);
     const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
     const { buildPostUrl } = await import('@/lib/urlBuilder');
     redirect(buildPostUrl(oldPost, urlStructure));
@@ -358,7 +361,14 @@ if (!post) {
               <VideoPlayer videoId={videoId} posterUrl={mainImage} title={post.title} />
             ) : mainImage && (
               <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-                <img src={mainImage} alt={post.title} className="w-full h-full object-cover" />
+                <Image
+                  src={mainImage}
+                  alt={post.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 72vw"
+                  className="object-cover"
+                  priority
+                />
               </div>
             )}
             {(post.featuredImageCaption || post.featuredImage?.caption || post.caption || post.summary || post.excerpt) && (

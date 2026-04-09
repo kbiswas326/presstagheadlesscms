@@ -31,7 +31,7 @@ export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const [post, config] = await Promise.all([
     getPostById(resolvedParams.id),
-    (await import('@/lib/fetchWithTenant')).fetchWithTenant('/layout-config', { cache: 'no-store' })
+    (await import('@/lib/fetchWithTenant')).fetchWithTenant('/layout-config', { next: { revalidate: 300 } })
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null),
   ]);
@@ -59,6 +59,9 @@ export async function generateMetadata({ params }) {
   return {
     title: post.seo?.metaTitle || post.title,
     description: post.seo?.metaDescription || post.summary,
+    alternates: {
+      canonical: `/posts/${encodeURIComponent(String(post.slug || post._id))}`,
+    },
     openGraph: {
       title: post.seo?.metaTitle || post.title,
       description: post.seo?.metaDescription || post.summary,
@@ -305,10 +308,13 @@ export default async function PostPage({ params }) {
               />
           ) : mainImage && (
               <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-                  <img
+                  <Image
                       src={mainImage}
                       alt={post.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 72vw"
+                      className="object-cover"
+                      priority
                   />
               </div>
           )}

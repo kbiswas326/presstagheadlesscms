@@ -8,26 +8,26 @@ import ResponsivePostGrid from "../components/ResponsivePostGrid";
 import { getFallbackImage, resolvePostImage } from '../lib/imageHelper';
 import { fetchWithTenant, fetchLayoutConfig } from '../lib/fetchWithTenant';
 
-// Force dynamic rendering
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 async function getLayoutConfig() {
   try {
-    const res = await fetchLayoutConfig();
+    const res = await fetchLayoutConfig({ next: { revalidate: 300 } });
     if (res.ok) return res.json();
   } catch (e) { console.error(e); }
   return null;
 }
 
 async function getPosts(params = {}) {
-  const { type = 'latest', value, limit = 10, excludeKeys = [] } = params;
-  let path = `/posts?status=published&limit=${limit}`;
-  if (type === 'category' && value) path += '&category=' + value;
-  else if (type === 'tag' && value) path += '&tag=' + value;
-  else if (type === 'author' && value) path += '&author=' + value;
-  else if ((type === 'content_type' || type === 'type') && value) path += '&type=' + value;
+  const { type = 'latest', value, limit = 10, excludeKeys = [], sort } = params;
+  let path = `/posts?status=published&limit=${limit}&lite=1`;
+  if (type === 'category' && value) path += '&category=' + encodeURIComponent(String(value));
+  else if (type === 'tag' && value) path += '&tag=' + encodeURIComponent(String(value));
+  else if (type === 'author' && value) path += '&author=' + encodeURIComponent(String(value));
+  else if ((type === 'content_type' || type === 'type') && value) path += '&type=' + encodeURIComponent(String(value));
+  if (sort) path += '&sort=' + encodeURIComponent(String(sort));
   try {
-    const res = await fetchWithTenant(path); // ✅ FIXED: was fetchLayoutConfig()
+    const res = await fetchWithTenant(path, { next: { revalidate: 60 } });
     if (!res.ok) return [];
     const data = await res.json();
     const posts = Array.isArray(data) ? data : (data.posts || []);
@@ -76,7 +76,7 @@ export default async function Page() {
             posts = posts.slice(0, limit);
             viewAllUrl = '/posts';
           } else if (section.id === 'trending') {
-            posts = await getPosts({ limit: limit + 5, excludeKeys: excludePostKeys });
+            posts = await getPosts({ limit: limit + 5, excludeKeys: excludePostKeys, sort: 'trending' });
             posts = posts.slice(0, limit);
             viewAllUrl = '/posts?sort=trending';
           }

@@ -1,6 +1,4 @@
-﻿// web> src> components> ArticleGridCard.jsx | Reusable grid card component for displaying post summaries in a visually appealing grid layout, with support for featured images, categories, publish date, and live status. Used in various sections of the website to showcase posts in a compact format. --- IGNORE ---
-"use client";
-
+// web> src> components> ArticleGridCard.jsx | Reusable grid card component for displaying post summaries in a visually appealing grid layout, with support for featured images, categories, publish date, and live status. Used in various sections of the website to showcase posts in a compact format. --- IGNORE ---
 import { formatDate } from "../util/timeFormat";
 import Image from "next/image";
 import React from "react";
@@ -52,6 +50,7 @@ if (imageUrl) {
               src={finalImageSrc}
               alt={post.featuredImage?.altText || post.banner_desc || post.title || ""}
               fill
+              sizes="(max-width: 768px) 85vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
               className="object-cover object-center"
               
               quality={75}
@@ -79,4 +78,3 @@ if (imageUrl) {
 };
 
 export default ArticleGridCard;
-

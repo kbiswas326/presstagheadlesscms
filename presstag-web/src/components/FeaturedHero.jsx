@@ -1,5 +1,4 @@
 /// web>src>components>FeaturedHero.jsx | used for featured hero section ///
-"use client";
 
 import { formatDate } from "../util/timeFormat";
 import { calculateReadTime } from "../util/readTime";
@@ -12,7 +11,6 @@ import { buildPostUrl } from '@/lib/urlBuilder';
 const FeaturedHero = ({ post, urlStructure }) => {
 
   if (!post) return null;
-  console.log('hero image:', post.image, 'featuredImage:', post.featuredImage);
   const postUrl = buildPostUrl(post, urlStructure);
 
 // Use pre-resolved image from page.js, or fall back to deriving it
@@ -78,6 +76,7 @@ if (imageUrl) {
                 src={finalImageSrc}
                 alt={post.featuredImage?.altText || post.title || ""}
                 fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 66vw, 66vw"
                 className="object-cover group-hover:scale-105 transition-transform duration-700"
                 priority
             />

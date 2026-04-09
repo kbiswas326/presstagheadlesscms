@@ -1,5 +1,4 @@
 /// web> src> components> ResponsivePostGrid.jsx | A responsive grid component for displaying a collection of posts, with a section title and optional "View All" link. Adapts to different screen sizes by showing a grid layout on desktop and a horizontal scrollable layout on mobile. --- IGNORE ---
-'use client';
 import React from 'react';
 import ArticleGridCard from './ArticleGridCard';
 import Link from 'next/link';

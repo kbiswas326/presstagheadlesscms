@@ -1,21 +1,11 @@
-"use client";
 import NavigationBar from "./header/Navbar";
-import Footer from "./Footer";
-import { useEffect } from "react";
+import Footer from "./FooterServer";
 import AdSpot from "./AdSpot";
 
 export default function LayoutClient({ children, config }) {
   // Config.navbar can be an array (new) or object (old)
   let navbar = [];
   let branding = config?.branding || {};
-  
-  useEffect(() => {
-    if (branding.primaryColor) {
-      document.documentElement.style.setProperty('--primary-color', branding.primaryColor);
-    } else {
-      document.documentElement.style.setProperty('--primary-color', '#006356');
-    }
-  }, [branding.primaryColor]);
 
   if (Array.isArray(config?.navbar)) {
       navbar = config.navbar;

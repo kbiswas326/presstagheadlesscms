@@ -1,15 +1,50 @@
 "use client";
 import Image from "next/image";
 import React, { useState, useEffect } from "react";
-import { FaSearch } from "react-icons/fa";
-import { RxCross2 } from "react-icons/rx";
-import { HiMenuAlt3 } from "react-icons/hi";
-import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import usePostStore from "../../store/postStore";
 import { usePathname } from 'next/navigation';
 import AdSpot from "../AdSpot";
+
+const Icon = ({ title, children, className }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden={title ? undefined : true}
+    role={title ? 'img' : 'presentation'}
+  >
+    {title ? <title>{title}</title> : null}
+    {children}
+  </svg>
+);
+
+const SearchIcon = (props) => (
+  <Icon title="Search" {...props}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="M21 21l-4.35-4.35" />
+  </Icon>
+);
+
+const MenuIcon = (props) => (
+  <Icon title="Menu" {...props}>
+    <path d="M4 6h16" />
+    <path d="M4 12h16" />
+    <path d="M4 18h16" />
+  </Icon>
+);
+
+const CloseIcon = (props) => (
+  <Icon title="Close" {...props}>
+    <path d="M18 6L6 18" />
+    <path d="M6 6l12 12" />
+  </Icon>
+);
 
 const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
   const [search, setSearch] = useState("remove");
@@ -69,10 +104,14 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
               <Link href="/" className="flex items-center gap-3 cursor-pointer">
                 {/* Logo Image */}
                 {showLogo && (
-                    <img 
-                      src={logoUrl} 
+                    <Image
+                      src={logoUrl}
                       alt={siteTitle}
+                      width={180}
+                      height={36}
+                      sizes="180px"
                       className="h-9 w-auto max-w-[180px] object-contain"
+                      priority
                     />
                 )}
 
@@ -119,7 +158,7 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
                 className="text-white hover:text-gray-200 p-1"
                 aria-label="Search"
               >
-                <FaSearch className="h-4 w-4" />
+                <SearchIcon className="h-4 w-4" />
               </button>
 
               {/* Hamburger Menu Button - Mobile only */}
@@ -128,73 +167,60 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
                 className="lg:hidden text-white hover:text-gray-200 p-1"
                 aria-label="Menu"
               >
-                <HiMenuAlt3 className="h-6 w-6" />
+                <MenuIcon className="h-6 w-6" />
               </button>
             </div>
           </div>
         </div>
 
-        <AnimatePresence>
-          {isMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="lg:hidden absolute left-0 right-0 top-12 bg-white text-black border-t border-gray-200 shadow-lg overflow-hidden"
-            >
-              <div className="container mx-auto px-4 lg:px-8">
-                <ul className="flex flex-col py-2">
-                  {navigationItems && navigationItems.map((item, index) => (
-                    <li key={index}>
-                      <Link
-                        href={item.slug || '/'}
-                        className="block px-4 py-2 hover:bg-gray-100 text-sm font-medium"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div
+          className={`lg:hidden absolute left-0 right-0 top-12 bg-white text-black border-t border-gray-200 shadow-lg overflow-hidden transition-[max-height,opacity] duration-200 ease-out ${isMenuOpen ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+        >
+          <div className="container mx-auto px-4 lg:px-8">
+            <ul className="flex flex-col py-2">
+              {navigationItems && navigationItems.map((item, index) => (
+                <li key={index}>
+                  <Link
+                    href={item.slug || '/'}
+                    className="block px-4 py-2 hover:bg-gray-100 text-sm font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
 
-        <AnimatePresence>
-          {search === "add" && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute top-12 left-0 w-full bg-white shadow-md"
+        <div
+          className={`absolute top-12 left-0 w-full bg-white shadow-md transition-[opacity,transform] duration-200 ease-out ${search === 'add' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}
+        >
+          <div className="container mx-auto px-4 lg:px-8 p-4 flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit(e)}
+              className="flex-1 border border-gray-300 rounded px-3 py-2 text-black focus:outline-none focus:border-emerald-600"
+              autoFocus={search === 'add'}
+            />
+            <button
+              onClick={handleSearchSubmit}
+              className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700"
             >
-              <div className="container mx-auto px-4 lg:px-8 p-4 flex items-center gap-2">
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit(e)}
-                  className="flex-1 border border-gray-300 rounded px-3 py-2 text-black focus:outline-none focus:border-emerald-600"
-                  autoFocus
-                />
-                <button
-                  onClick={handleSearchSubmit}
-                  className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700"
-                >
-                  Search
-                </button>
-                <button
-                  onClick={() => setSearch("remove")}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <RxCross2 className="h-6 w-6" />
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              Search
+            </button>
+            <button
+              onClick={() => setSearch("remove")}
+              className="text-gray-500 hover:text-gray-700"
+              aria-label="Close search"
+            >
+              <CloseIcon className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
       </div>
     </nav>
   );

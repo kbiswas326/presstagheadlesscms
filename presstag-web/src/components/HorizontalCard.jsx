@@ -1,6 +1,4 @@
 // web> src> components> HorizontalCard.jsx | Reusable horizontal card component for displaying post summaries in a compact format, with support for featured images, categories, publish date, and read time. Used in various sections of the website to showcase posts in a visually appealing way. --- IGNORE ---
-"use client";
-
 import { formatDate } from "../util/timeFormat";
 import { calculateReadTime } from "../util/readTime";
 import Image from "next/image";
@@ -52,6 +50,7 @@ if (imageUrl) {
                     src={finalImageSrc}
                     alt={post.featuredImage?.altText || post.title || ""}
                     fill
+                    sizes="(max-width: 768px) 33vw, (max-width: 1024px) 33vw, 25vw"
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                 />
              ) : (
@@ -82,11 +81,7 @@ if (imageUrl) {
                  </span>
              ))}
         </div>
-        <h3 
-            className="text-sm md:text-base font-bold text-gray-900 leading-snug mb-1 transition-colors line-clamp-2"
-            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-color)'}
-            onMouseLeave={(e) => e.currentTarget.style.color = ''}
-        >
+        <h3 className="text-sm md:text-base font-bold text-gray-900 leading-snug mb-1 transition-colors line-clamp-2 group-hover:text-[var(--primary-color)]">
           {post.title}
         </h3>
         <div className="flex items-center text-[11px] text-gray-500 gap-2 mt-auto">
