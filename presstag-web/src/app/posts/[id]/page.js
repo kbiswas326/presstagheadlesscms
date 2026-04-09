@@ -17,7 +17,9 @@ import ResponsivePostGrid from '../../../components/ResponsivePostGrid';
 import { getImageUrl } from '@/lib/imageHelper';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
-import SidebarLazyClient from '../../../components/SidebarLazyClient';
+import SidebarDeferredClient from '../../../components/SidebarDeferredClient';
+
+export const revalidate = 60;
 
 const inter = Inter({ subsets: ['latin'] });
 const merriweather = Merriweather({ 
@@ -409,7 +411,7 @@ export default async function PostPage({ params }) {
         </main>
 
         <aside className="w-full lg:w-[28%] space-y-8 lg:sticky lg:top-0">
-            <SidebarLazyClient currentPostId={post?.slug || post?._id} categorySlug={post?.categories?.[0]?.slug} excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)} />
+            <SidebarDeferredClient currentPostId={post?.slug || post?._id} categorySlug={post?.categories?.[0]?.slug} excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)} />
         </aside>
       </div>
 

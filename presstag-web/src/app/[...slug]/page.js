@@ -14,7 +14,9 @@ import SocialShareButtons from '../../components/SocialShareButtons';
 import { getImageUrl } from '@/lib/imageHelper';
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
-import SidebarLazyClient from '../../components/SidebarLazyClient';
+import SidebarDeferredClient from '../../components/SidebarDeferredClient';
+
+export const revalidate = 60;
 
 const merriweather = Merriweather({
   weight: ['300', '400', '700', '900'],
@@ -25,7 +27,7 @@ const merriweather = Merriweather({
 
 async function getPostBySlug(slug) {
   try {
-    const res = await fetchWithTenant(`/posts/slug/${slug}`, { cache: 'no-store' });
+    const res = await fetchWithTenant(`/posts/slug/${encodeURIComponent(String(slug))}`, { next: { revalidate: 30 } });
     if (res.ok) return res.json();
   } catch (e) { console.error(e); }
   return null;
@@ -33,7 +35,7 @@ async function getPostBySlug(slug) {
 
 async function getPostByPreviousSlug(slug) {
   try {
-    const res = await fetchWithTenant(`/posts?status=published&limit=1&previousSlug=${slug}`, { cache: 'no-store' });
+    const res = await fetchWithTenant(`/posts?status=published&limit=1&previousSlug=${encodeURIComponent(String(slug))}&lite=1`, { next: { revalidate: 300 } });
     if (res.ok) {
       const data = await res.json();
       const posts = Array.isArray(data) ? data : (data.posts || []);
@@ -189,7 +191,7 @@ if (!post) {
   if (post) post.gallery = post.gallery || post.images;
   post = await ensureCategories(post);
   post = await ensurePeople(post);
-  const layoutConfig = await fetchWithTenant('/layout-config', { cache: 'no-store' })
+  const layoutConfig = await fetchWithTenant('/layout-config', { next: { revalidate: 300 } })
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
   const tagPrefix = String(layoutConfig?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
@@ -448,7 +450,7 @@ if (!post) {
         </main>
 
         <aside className="w-full lg:w-[28%] space-y-8 lg:sticky lg:top-0">
-          <SidebarLazyClient currentPostId={post?.slug || post?._id} categorySlug={post?.categories?.[0]?.slug} excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)} />
+          <SidebarDeferredClient currentPostId={post?.slug || post?._id} categorySlug={post?.categories?.[0]?.slug} excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)} />
         </aside>
       </div>
 
