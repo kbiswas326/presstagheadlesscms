@@ -18,6 +18,7 @@ import ResponsivePostGrid from '../../../components/ResponsivePostGrid';
 import { getImageUrl } from '@/lib/imageHelper';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
+import SidebarLazyClient from '../../../components/SidebarLazyClient';
 
 const inter = Inter({ subsets: ['latin'] });
 const merriweather = Merriweather({ 
@@ -171,6 +172,12 @@ export default async function PostPage({ params }) {
   };
 
   const videoId = isVideo && post.videoUrl ? getYouTubeId(post.videoUrl) : null;
+  const contentString = String(post?.content || '');
+  const shouldLoadEmbeds =
+    contentString.includes('twitter-tweet') ||
+    contentString.includes('pbs.twimg.com') ||
+    contentString.includes('instagram-media') ||
+    contentString.includes('instagram.com');
   const primaryCategorySlug = post.categories?.[0]?.slug || post.categories?.[0]?.name || post.categories?.[0]?.title || '';
   const relatedPosts = await (async () => {
     if (!primaryCategorySlug) return [];
@@ -403,11 +410,11 @@ export default async function PostPage({ params }) {
         </main>
 
         <aside className="w-full lg:w-[28%] space-y-8 lg:sticky lg:top-0">
-            <Sidebar currentPostId={post?.slug || post?._id} categorySlug={post?.categories?.[0]?.slug} excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)} />
+            <SidebarLazyClient currentPostId={post?.slug || post?._id} categorySlug={post?.categories?.[0]?.slug} excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)} />
         </aside>
       </div>
 
-      <EmbedScripts />
+      {shouldLoadEmbeds ? <EmbedScripts /> : null}
     </div>
   );
 }

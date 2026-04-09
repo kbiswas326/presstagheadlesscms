@@ -15,6 +15,7 @@ import SocialShareButtons from '../../components/SocialShareButtons';
 import { getImageUrl } from '@/lib/imageHelper';
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
+import SidebarLazyClient from '../../components/SidebarLazyClient';
 
 const merriweather = Merriweather({
   weight: ['300', '400', '700', '900'],
@@ -248,6 +249,12 @@ if (!post) {
   };
 
   const videoId = isVideo && post.videoUrl ? getYouTubeId(post.videoUrl) : null;
+  const contentString = String(post?.content || '');
+  const shouldLoadEmbeds =
+    contentString.includes('twitter-tweet') ||
+    contentString.includes('pbs.twimg.com') ||
+    contentString.includes('instagram-media') ||
+    contentString.includes('instagram.com');
 
   return (
     <div className={`min-h-screen bg-gray-50 ${merriweather.className}`}>
@@ -442,11 +449,11 @@ if (!post) {
         </main>
 
         <aside className="w-full lg:w-[28%] space-y-8 lg:sticky lg:top-0">
-          <Sidebar currentPostId={post?.slug || post?._id} categorySlug={post?.categories?.[0]?.slug} excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)} />
+          <SidebarLazyClient currentPostId={post?.slug || post?._id} categorySlug={post?.categories?.[0]?.slug} excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)} />
         </aside>
       </div>
 
-      <EmbedScripts />
+      {shouldLoadEmbeds ? <EmbedScripts /> : null}
     </div>
   );
 }

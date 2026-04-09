@@ -5,9 +5,11 @@ import Pagination from '../../../components/Pagination';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 import { buildOpenGraphImage, fillTemplate, resolveSiteAssetUrl } from '../../../lib/seo';
 
+export const revalidate = 120;
+
 async function getLayoutConfig() {
   try {
-    const res = await fetchWithTenant('/layout-config', { cache: 'no-store' });
+    const res = await fetchWithTenant('/layout-config', { next: { revalidate: 300 } });
     if (res.ok) return res.json();
   } catch {}
   return null;
@@ -15,7 +17,7 @@ async function getLayoutConfig() {
 
 async function getCategory(slug) {
   try {
-    const res = await fetchWithTenant(`/categories/by-slug/${slug}`, { cache: 'no-store' });
+    const res = await fetchWithTenant(`/categories/by-slug/${slug}`, { next: { revalidate: 600 } });
     if (res.ok) return res.json();
   } catch {}
   return null;
@@ -28,8 +30,8 @@ async function getCategoryPosts(slug, page = 1) {
 
   try {
     const res = await fetchWithTenant(
-      `/posts?category=${slug}&page=${page}&limit=${limit}`,
-      { cache: 'no-store' }
+      `/posts?category=${encodeURIComponent(String(slug))}&page=${page}&limit=${limit}&lite=1`,
+      { next: { revalidate: 120 } }
     );
 
     if (!res.ok) throw new Error('Failed to fetch category posts');
@@ -72,6 +74,9 @@ export async function generateMetadata({ params }) {
   return {
     title,
     description,
+    alternates: {
+      canonical: `/category/${encodeURIComponent(String(slug || ''))}`,
+    },
     openGraph: {
       title,
       description,
