@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import SidebarWidget from './SidebarWidget';
 import AdSpot from './AdSpot';
 
-const Sidebar = ({ currentPostId, categorySlug, authorId, excludePostKeys = [] }) => {
+const Sidebar = ({ variant = 'post', currentPostId, categorySlug, authorId, excludePostKeys = [] }) => {
   const [widgets, setWidgets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [primaryColor, setPrimaryColor] = useState('#006356'); // Default color
@@ -33,8 +33,14 @@ const Sidebar = ({ currentPostId, categorySlug, authorId, excludePostKeys = [] }
                     setUrlStructure(data.seo.postUrlStructure);
                 }
 
-                if (data && data.sidebar && data.sidebar.widgets && data.sidebar.widgets.length > 0) {
-                    setWidgets(data.sidebar.widgets);
+                const sidebarConfig = data?.sidebar || {};
+                const nextWidgets =
+                  variant === 'homepage'
+                    ? (sidebarConfig.homepageWidgets || sidebarConfig.widgets || [])
+                    : (sidebarConfig.postWidgets || sidebarConfig.widgets || []);
+
+                if (Array.isArray(nextWidgets) && nextWidgets.length > 0) {
+                    setWidgets(nextWidgets);
                 } else {
                     setWidgets([
                         { type: 'trending', title: 'Trending Now' },
@@ -61,7 +67,7 @@ const Sidebar = ({ currentPostId, categorySlug, authorId, excludePostKeys = [] }
         }
     };
     fetchConfig();
-  }, []);
+  }, [variant]);
 
   if (loading) {
       return <div className="space-y-8 animate-pulse">

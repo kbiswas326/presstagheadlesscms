@@ -89,7 +89,8 @@ export default async function FooterServer({ config }) {
   const primaryColor = branding?.primaryColor || '#006356';
   const siteTitle = branding?.siteTitle || 'PressTag';
 
-  const socialWidget = sidebarConfig.widgets?.find((w) => w.type === 'social_links' || w.type === 'social');
+  const sidebarWidgets = sidebarConfig.postWidgets || sidebarConfig.homepageWidgets || sidebarConfig.widgets || [];
+  const socialWidget = sidebarWidgets?.find((w) => w.type === 'social_links' || w.type === 'social');
   const socialLinks = socialWidget?.socialLinks || [];
 
   const defaultQuickLinks = [
@@ -256,4 +257,3 @@ export default async function FooterServer({ config }) {
     </footer>
   );
 }
-

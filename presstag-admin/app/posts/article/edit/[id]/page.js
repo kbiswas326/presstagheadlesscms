@@ -751,6 +751,7 @@ export default function ArticleEditorPage() {
         setError(response.error);
       } else {
         setSuccess(postId ? 'Sent for approval' : 'Article sent for approval!');
+        setHasUnsavedChanges(false);
         setTimeout(() => router.push('/posts'), 2000);
       }
     } catch (err) {
@@ -805,6 +806,7 @@ export default function ArticleEditorPage() {
         setError(response.error);
       } else {
         setSuccess('Article published successfully!');
+        setHasUnsavedChanges(false);
         setTimeout(() => router.push('/posts/published'), 2000);
       }
     } catch (err) {
@@ -868,6 +870,7 @@ export default function ArticleEditorPage() {
         setError(response.error);
       } else {
         setSuccess('Article updated successfully!');
+        setHasUnsavedChanges(false);
         setTimeout(() => router.push('/posts/published'), 2000);
       }
     } catch (err) {

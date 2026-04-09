@@ -6,10 +6,36 @@ const authMiddleware = require('../middleware/auth');
 const { getDB } = require('../config/db');
 const { ObjectId } = require('mongodb');
 const { generateKeyTakeaways, generateImageCaption } = require('../utils/ai');
+const webPush = require('web-push');
+const { configureWebPush } = require('./push');
 
 /* =====================================================
    HELPERS
 ===================================================== */
+
+async function sendTenantPush(tenantId, payload) {
+  const cfg = configureWebPush();
+  if (!cfg) return;
+  const db = getDB(tenantId);
+  if (!db) return;
+
+  const subs = await db.collection('pushSubscriptions').find({}).toArray();
+  if (!subs.length) return;
+
+  const message = JSON.stringify(payload);
+  await Promise.allSettled(
+    subs.map(async (sub) => {
+      try {
+        await webPush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, message);
+      } catch (err) {
+        const code = err?.statusCode || err?.status;
+        if (code === 404 || code === 410) {
+          try { await db.collection('pushSubscriptions').deleteOne({ endpoint: sub.endpoint }); } catch {}
+        }
+      }
+    })
+  );
+}
 
 // Helper: Populate categories, primary_category, tags, and author
 async function populatePost(post, db) {
@@ -632,12 +658,13 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const now = new Date();
     const status = typeof req.body.status === 'string' ? req.body.status.toLowerCase().trim() : 'draft';
+    const { notifySubscribers, notifyType, ...restBody } = (req.body && typeof req.body === 'object') ? req.body : {};
     const hasExplicitAuthor =
       !!req.body.author ||
       !!req.body.primaryAuthor ||
       (Array.isArray(req.body.authors) && req.body.authors.length > 0);
     const payload = {
-      ...req.body,
+      ...restBody,
       ...(hasExplicitAuthor ? {} : { author: req.user._id }),
       status,
       publishedAt: status === 'published' ? now : null,
@@ -645,6 +672,17 @@ router.post('/', authMiddleware, async (req, res) => {
     const post = await Post.create(payload, req.tenantId);
     const db = getDB(req.tenantId);
     const enrichedPost = await populatePost(post, db);
+    if (status === 'published' && notifySubscribers !== false) {
+      const idOrSlug = String(post.slug || post._id || '');
+      await sendTenantPush(req.tenantId, {
+        type: notifyType === 'live_update' ? 'live_update' : 'post_published',
+        title: post.title || 'New post published',
+        body: post.summary || post.excerpt || '',
+        url: idOrSlug ? `/posts/${encodeURIComponent(idOrSlug)}` : '/',
+        postId: String(post._id || ''),
+        slug: String(post.slug || ''),
+      });
+    }
     res.status(201).json(enrichedPost || post);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -675,8 +713,45 @@ router.put('/:id', authMiddleware, async (req, res) => {
       if (!found) return res.status(404).json({ error: 'Post not found' });
       targetId = found._id.toString();
     }
-    const post = await Post.update(targetId, req.body, req.tenantId);
+    const previous = await db.collection('posts').findOne({ _id: new ObjectId(targetId) });
+    const prevStatus = String(previous?.status || '').toLowerCase();
+    const prevUpdatesCount = Array.isArray(previous?.liveUpdates) ? previous.liveUpdates.length : 0;
+
+    const { notifySubscribers, notifyType, ...restBody } = (req.body && typeof req.body === 'object') ? req.body : {};
+    const desiredStatus = typeof restBody.status === 'string' ? restBody.status.toLowerCase().trim() : prevStatus;
+    const isStatusPublishTransition = prevStatus !== 'published' && desiredStatus === 'published';
+
+    const updateBody = { ...restBody };
+    if (isStatusPublishTransition && !updateBody.publishedAt) updateBody.publishedAt = new Date();
+
+    const post = await Post.update(targetId, updateBody, req.tenantId);
     const enrichedPost = await populatePost(post, db);
+    const next = enrichedPost || post;
+
+    const nextStatus = String(next?.status || '').toLowerCase();
+    const nextUpdatesCount = Array.isArray(next?.liveUpdates) ? next.liveUpdates.length : 0;
+    const isLiveUpdatePublish =
+      notifySubscribers === true &&
+      notifyType === 'live_update' &&
+      nextStatus === 'published' &&
+      String(next?.type || '').toLowerCase().includes('live') &&
+      nextUpdatesCount > prevUpdatesCount;
+
+    const shouldNotifyPublish = isStatusPublishTransition && notifySubscribers !== false;
+    if (isLiveUpdatePublish || shouldNotifyPublish) {
+      const idOrSlug = String(next.slug || next._id || '');
+      const lastUpdate = Array.isArray(next.liveUpdates) && next.liveUpdates.length > 0 ? next.liveUpdates[next.liveUpdates.length - 1] : null;
+      await sendTenantPush(req.tenantId, {
+        type: isLiveUpdatePublish ? 'live_update' : 'post_published',
+        title: next.title || 'New post published',
+        body: isLiveUpdatePublish
+          ? (String(lastUpdate?.title || lastUpdate?.heading || 'New live update').trim())
+          : (next.summary || next.excerpt || ''),
+        url: idOrSlug ? `/posts/${encodeURIComponent(idOrSlug)}` : '/',
+        postId: String(next._id || ''),
+        slug: String(next.slug || ''),
+      });
+    }
     res.json(enrichedPost || post);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -694,8 +769,24 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
       if (!found) return res.status(404).json({ error: 'Post not found' });
       targetId = found._id.toString();
     }
-    const updateData = { status, updatedAt: new Date(), publishedAt: status === 'published' ? new Date() : null };
+    const previous = await db.collection('posts').findOne({ _id: new ObjectId(targetId) });
+    const prevStatus = String(previous?.status || '').toLowerCase();
+    const nextStatus = typeof status === 'string' ? status.toLowerCase().trim() : prevStatus;
+    const isStatusPublishTransition = prevStatus !== 'published' && nextStatus === 'published';
+
+    const updateData = { status: nextStatus, updatedAt: new Date(), publishedAt: nextStatus === 'published' ? new Date() : null };
     const updated = await Post.update(targetId, updateData, req.tenantId);
+    if (isStatusPublishTransition) {
+      const idOrSlug = String(updated.slug || updated._id || '');
+      await sendTenantPush(req.tenantId, {
+        type: 'post_published',
+        title: updated.title || 'New post published',
+        body: updated.summary || updated.excerpt || '',
+        url: idOrSlug ? `/posts/${encodeURIComponent(idOrSlug)}` : '/',
+        postId: String(updated._id || ''),
+        slug: String(updated.slug || ''),
+      });
+    }
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });

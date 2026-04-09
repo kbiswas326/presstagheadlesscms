@@ -27,6 +27,7 @@
     "mongoose": "^9.0.2",
     "multer": "^2.0.2",
     "node-fetch": "^3.3.2",
-    "resend": "^6.10.0"
+    "resend": "^6.10.0",
+    "web-push": "^3.6.7"
   }
 }

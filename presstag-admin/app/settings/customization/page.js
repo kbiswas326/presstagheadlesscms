@@ -356,76 +356,70 @@ export default function CustomizationPage() {
   };
 
   // --- SIDEBAR LOGIC ---
+  const [sidebarScope, setSidebarScope] = useState('homepage');
+
+  const getSidebarWidgets = () => {
+    if (sidebarScope === 'homepage') return settings.sidebar?.homepageWidgets || [];
+    return settings.sidebar?.postWidgets || settings.sidebar?.widgets || [];
+  };
+
+  const setSidebarWidgets = (nextWidgets) => {
+    setSettings((prev) => {
+      const prevSidebar = prev.sidebar || {};
+      if (sidebarScope === 'homepage') {
+        return { ...prev, sidebar: { ...prevSidebar, homepageWidgets: nextWidgets } };
+      }
+      return { ...prev, sidebar: { ...prevSidebar, postWidgets: nextWidgets } };
+    });
+  };
+
   const addSidebarWidget = () => {
-      setSettings(prev => ({
-          ...prev,
-          sidebar: {
-              ...prev.sidebar,
-              widgets: [...(prev.sidebar.widgets || []), { type: 'trending', title: 'New Widget', limit: 5 }]
-          }
-      }));
+      const widgets = getSidebarWidgets();
+      setSidebarWidgets([...widgets, { type: 'trending', title: 'New Widget', limit: 5 }]);
   };
 
   const updateSidebarWidget = (index, field, value) => {
-      const newWidgets = [...(settings.sidebar.widgets || [])];
+      const newWidgets = [...getSidebarWidgets()];
       newWidgets[index] = { ...newWidgets[index], [field]: value };
-      setSettings(prev => ({
-          ...prev,
-          sidebar: { ...prev.sidebar, widgets: newWidgets }
-      }));
+      setSidebarWidgets(newWidgets);
   };
 
   const removeSidebarWidget = (index) => {
-      const newWidgets = (settings.sidebar.widgets || []).filter((_, i) => i !== index);
-      setSettings(prev => ({
-          ...prev,
-          sidebar: { ...prev.sidebar, widgets: newWidgets }
-      }));
+      const newWidgets = getSidebarWidgets().filter((_, i) => i !== index);
+      setSidebarWidgets(newWidgets);
   };
 
   const moveSidebarWidget = (index, direction) => {
-      const newWidgets = [...(settings.sidebar.widgets || [])];
+      const newWidgets = [...getSidebarWidgets()];
       if (direction === 'up' && index > 0) {
           [newWidgets[index], newWidgets[index - 1]] = [newWidgets[index - 1], newWidgets[index]];
       } else if (direction === 'down' && index < newWidgets.length - 1) {
           [newWidgets[index], newWidgets[index + 1]] = [newWidgets[index + 1], newWidgets[index]];
       }
-      setSettings(prev => ({
-          ...prev,
-          sidebar: { ...prev.sidebar, widgets: newWidgets }
-      }));
+      setSidebarWidgets(newWidgets);
   };
 
   // Social Links Logic inside Sidebar Widget
   const addSocialLink = (widgetIndex) => {
-      const newWidgets = [...(settings.sidebar.widgets || [])];
+      const newWidgets = [...getSidebarWidgets()];
       const currentLinks = newWidgets[widgetIndex].socialLinks || [];
       newWidgets[widgetIndex].socialLinks = [...currentLinks, { platform: 'facebook', url: 'https://' }];
-      setSettings(prev => ({
-          ...prev,
-          sidebar: { ...prev.sidebar, widgets: newWidgets }
-      }));
+      setSidebarWidgets(newWidgets);
   };
 
   const removeSocialLink = (widgetIndex, linkIndex) => {
-      const newWidgets = [...(settings.sidebar.widgets || [])];
+      const newWidgets = [...getSidebarWidgets()];
       const currentLinks = newWidgets[widgetIndex].socialLinks || [];
       newWidgets[widgetIndex].socialLinks = currentLinks.filter((_, i) => i !== linkIndex);
-      setSettings(prev => ({
-          ...prev,
-          sidebar: { ...prev.sidebar, widgets: newWidgets }
-      }));
+      setSidebarWidgets(newWidgets);
   };
 
   const updateSocialLink = (widgetIndex, linkIndex, field, value) => {
-      const newWidgets = [...(settings.sidebar.widgets || [])];
+      const newWidgets = [...getSidebarWidgets()];
       const currentLinks = [...(newWidgets[widgetIndex].socialLinks || [])];
       currentLinks[linkIndex] = { ...currentLinks[linkIndex], [field]: value };
       newWidgets[widgetIndex].socialLinks = currentLinks;
-      setSettings(prev => ({
-          ...prev,
-          sidebar: { ...prev.sidebar, widgets: newWidgets }
-      }));
+      setSidebarWidgets(newWidgets);
   };
 
   const toggleFooterSection = (section) => {
@@ -985,22 +979,32 @@ export default function CustomizationPage() {
             <div className={`${panel} p-6`}>
               <div className="flex items-center justify-between mb-4">
                   <h2 className={sectionTitle}><Columns size={20} /> Sidebar Widgets</h2>
-                  <button 
-                    onClick={addSidebarWidget}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
-                  >
-                    <Plus size={16} /> Add Widget
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <select
+                      value={sidebarScope}
+                      onChange={(e) => setSidebarScope(e.target.value)}
+                      className={selectClass}
+                    >
+                      <option value="homepage">Homepage Sidebar</option>
+                      <option value="post">Post Sidebar</option>
+                    </select>
+                    <button
+                      onClick={addSidebarWidget}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
+                    >
+                      <Plus size={16} /> Add Widget
+                    </button>
+                  </div>
               </div>
               
               <div className="space-y-6">
-                 {(settings.sidebar.widgets || []).map((widget, index) => (
+                 {getSidebarWidgets().map((widget, index) => (
                     <div key={index} className={`p-4 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
                        <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-3">
                              <div className="flex flex-col gap-1">
                                 <button onClick={() => moveSidebarWidget(index, 'up')} disabled={index === 0} className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"><ArrowUp size={14} /></button>
-                                <button onClick={() => moveSidebarWidget(index, 'down')} disabled={index === (settings.sidebar.widgets || []).length - 1} className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"><ArrowDown size={14} /></button>
+                                <button onClick={() => moveSidebarWidget(index, 'down')} disabled={index === getSidebarWidgets().length - 1} className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"><ArrowDown size={14} /></button>
                              </div>
                              <h3 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Widget {index + 1}</h3>
                           </div>

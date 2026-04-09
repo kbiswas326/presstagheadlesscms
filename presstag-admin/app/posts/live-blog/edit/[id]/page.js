@@ -4,7 +4,6 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import Image from 'next/image';
 import {
   ArrowLeft,
   ChevronDown,
@@ -620,27 +619,61 @@ const handlePublish = async () => {
     setIsLoading(true);
     setError(null);
     setSuccess(null);
-    // Update publish date to now (Sync with Article/Video logic)
+    const isLiveWithUpdates = liveStatus === 'live' && Array.isArray(updates) && updates.length > 0;
+    const isPublishUpdate = isEditMode && hasEverBeenPublished && isLiveWithUpdates;
     const now = new Date();
     const currentDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
     const currentTime = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
 
-    setPublishDate(currentDate);
-    setPublishTime(currentTime);
-
-    const payload = buildPayload("published");
-    payload.publishDate = currentDate;
-    payload.publishTime = currentTime;
-    payload.publishedAt = now.toISOString();
-
-    if (isEditMode) {
-      await posts.update(postId, payload);
-    } else {
-      await posts.create(payload);
+    if (!isPublishUpdate) {
+      setPublishDate(currentDate);
+      setPublishTime(currentTime);
     }
 
-    setHasEverBeenPublished(true);
-    router.push("/posts/live-blog");
+    const payload = buildPayload("published");
+    if (!isPublishUpdate) {
+      payload.publishDate = currentDate;
+      payload.publishTime = currentTime;
+      payload.publishedAt = now.toISOString();
+    }
+
+    if (isPublishUpdate) {
+      await posts.update(postId, { ...payload, notifySubscribers: true, notifyType: 'live_update' });
+      const refreshed = await posts.getById(postId);
+      setTitle(refreshed.title || "");
+      setSlug(refreshed.slug || "");
+      setSummary(refreshed.summary || "");
+      setContent(refreshed.content || "");
+      setAuthor(refreshed.author?._id || refreshed.author || "");
+      setCategories((refreshed.categories || []).map(c => c._id || c));
+      if (Array.isArray(refreshed.primary_category) && refreshed.primary_category.length > 0) {
+        const raw = refreshed.primary_category[0];
+        const id = typeof raw === 'object' && raw !== null ? (raw._id || raw.id) : raw;
+        setPrimaryCategory(id ? String(id) : '');
+      } else if (refreshed.primary_category) {
+        const raw = refreshed.primary_category;
+        const id = typeof raw === 'object' && raw !== null ? (raw._id || raw.id) : raw;
+        setPrimaryCategory(id ? String(id) : '');
+      }
+      setTags((refreshed.tags || []).map(t => t._id || t));
+      setFeaturedImage(refreshed.featuredImage || null);
+      setLiveStatus(refreshed.isLive ? "live" : "stopped");
+      setUpdates(normalizeLiveUpdates(refreshed.liveUpdates || []));
+      setSuccess('Live update published successfully!');
+      setHasEverBeenPublished(true);
+      if (liveUpdatesRef.current) {
+        try { liveUpdatesRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
+      }
+    } else {
+      if (isEditMode) {
+        await posts.update(postId, { ...payload, notifySubscribers: true, notifyType: 'post_published' });
+      } else {
+        await posts.create({ ...payload, notifySubscribers: true, notifyType: 'post_published' });
+      }
+      setHasEverBeenPublished(true);
+      setSuccess('Live blog published successfully!');
+      setTimeout(() => router.push("/posts/live-blog"), 1500);
+    }
   } catch (err) {
     console.error("Failed to publish live blog", err);
     setError("Failed to publish live blog: " + err.message);
@@ -1002,11 +1035,12 @@ const sortedUpdates = [...updates].sort(
                   ) : (
                     <div className="space-y-3">
                       <div className={`relative aspect-video rounded-xl overflow-hidden border ${isDark ? "border-gray-700" : "border-gray-200"} group`}>
-                        <Image
+                        <img
                           src={featuredImage.url}
                           alt={featuredImage.altText || 'Featured image'}
-                          fill
-                          className="object-cover transition-transform group-hover:scale-105"
+                          className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+                          loading="lazy"
+                          decoding="async"
                         />
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                           <button
@@ -1541,7 +1575,7 @@ const sortedUpdates = [...updates].sort(
             <div className="p-6 max-h-[70vh] overflow-y-auto">
               {featuredImage && (
                 <div className="mb-6 rounded-lg overflow-hidden">
-                  <Image src={featuredImage.url} alt={featuredImage.altText || 'Featured'} width={1280} height={720} className="w-full h-auto" />
+                  <img src={featuredImage.url} alt={featuredImage.altText || 'Featured'} className="w-full h-auto" loading="lazy" decoding="async" />
                 </div>
               )}
 

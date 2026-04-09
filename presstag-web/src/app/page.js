@@ -176,7 +176,7 @@ export default async function Page() {
 
           {/* SIDEBAR */}
           <div className="lg:col-span-4 lg:sticky lg:top-0">
-            <Sidebar excludePostKeys={excludePostKeys} />
+            <Sidebar variant="homepage" excludePostKeys={excludePostKeys} />
           </div>
 
         </div>
