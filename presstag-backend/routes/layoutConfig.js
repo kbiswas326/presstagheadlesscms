@@ -26,8 +26,13 @@ router.get('/', async (req, res) => {
         sidebar: {
           widgets: [
             { type: 'trending', title: 'Trending Now', limit: 5 },
+            { type: 'recent_posts', title: 'Latest Posts', limit: 5 },
+            { type: 'related_posts', title: 'Related Posts', limit: 5 },
+            { type: 'author_posts', title: 'More from the Author', limit: 5 },
+            { type: 'categories', title: 'Categories' },
             { type: 'newsletter', title: 'Subscribe to our Newsletter' },
-            { type: 'social_links', title: 'Follow Us' }
+            { type: 'social_links', title: 'Follow Us' },
+            { type: 'about', title: 'About', content: '' }
           ]
         },
         footer: {

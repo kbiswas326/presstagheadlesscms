@@ -450,7 +450,12 @@ if (!post) {
         </main>
 
         <aside className="w-full lg:w-[28%] space-y-8 lg:sticky lg:top-0">
-          <SidebarDeferredClient currentPostId={post?.slug || post?._id} categorySlug={post?.categories?.[0]?.slug} excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)} />
+          <SidebarDeferredClient
+            currentPostId={post?.slug || post?._id}
+            categorySlug={post?.categories?.[0]?.slug}
+            authorId={post?.author?._id || post?.authorId || post?.author}
+            excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)}
+          />
         </aside>
       </div>
 

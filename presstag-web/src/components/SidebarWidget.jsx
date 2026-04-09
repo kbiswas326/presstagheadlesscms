@@ -244,8 +244,8 @@ const RelatedPostsWidget = ({ widget, categorySlug, currentPostId, urlStructure,
       try {
         const { fetchWithTenant } = await import('../lib/fetchWithTenant');
         const res = await fetchWithTenant(
-          `/posts?status=published&category=${categorySlug}&limit=${widget.limit || 5}`,
-          { cache: 'no-store' }
+          `/posts?status=published&category=${encodeURIComponent(String(categorySlug))}&limit=${widget.limit || 5}&lite=1`,
+          { next: { revalidate: 60 } }
         );
         if (res.ok) {
           const data = await res.json();
@@ -287,6 +287,75 @@ const RelatedPostsWidget = ({ widget, categorySlug, currentPostId, urlStructure,
           </Link>
         ))}
       </div>
+    </div>
+  );
+};
+
+const AuthorPostsWidget = ({ widget, authorId, currentPostId, urlStructure, fallbackImage }) => {
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    const fetchByAuthor = async () => {
+      if (!authorId) return;
+      try {
+        const { fetchWithTenant } = await import('../lib/fetchWithTenant');
+        const res = await fetchWithTenant(
+          `/posts?status=published&author=${encodeURIComponent(String(authorId))}&limit=${widget.limit || 5}&lite=1`,
+          { next: { revalidate: 60 } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const p = Array.isArray(data) ? data : (data.posts || []);
+          setPosts(p.filter(item => item._id !== currentPostId && item.slug !== currentPostId).slice(0, widget.limit || 4));
+        }
+      } catch (e) { console.error(e); }
+    };
+    fetchByAuthor();
+  }, [authorId, currentPostId, widget.limit]);
+
+  if (posts.length === 0) return null;
+
+  const title = widget.title || "More from the Author";
+
+  return (
+    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+      <h3 className="font-bold text-lg mb-4 border-l-4 pl-2" style={{ borderColor: 'var(--primary-color)' }}>
+        {title}
+      </h3>
+      <div className="space-y-4">
+        {posts.map((post, i) => (
+          <Link href={buildPostUrl(post, urlStructure)} key={i} className="flex items-start gap-3 group">
+            <div className="relative w-24 h-16 flex-shrink-0 overflow-hidden rounded-md">
+              <Image
+                src={resolveImageUrl(post.featuredImage || post.banner_image || post.coverImage, fallbackImage)}
+                alt={post.title}
+                fill
+                className="object-cover group-hover:scale-110 transition-transform duration-300"
+              />
+            </div>
+            <h4
+              className="text-sm font-medium line-clamp-2 transition-colors"
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-color)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}
+            >
+              {post.title}
+            </h4>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const AboutWidget = ({ widget }) => {
+  const content = String(widget?.content || widget?.description || '').trim();
+  if (!content) return null;
+  return (
+    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+      <h3 className="font-bold text-lg mb-4 border-l-4 pl-2" style={{ borderColor: 'var(--primary-color)' }}>
+        {widget.title || "About"}
+      </h3>
+      <div className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{content}</div>
     </div>
   );
 };
@@ -385,7 +454,7 @@ const CategoriesWidget = ({ widget, fallbackImage }) => {
     const fetchCategories = async () => {
       try {
         const { fetchWithTenant } = await import('../lib/fetchWithTenant');
-        const res = await fetchWithTenant('/categories', { cache: 'no-store' });
+        const res = await fetchWithTenant('/categories', { next: { revalidate: 600 } });
         if (res.ok) {
           const data = await res.json();
           setCategories(data.categories || data || []);
@@ -422,17 +491,20 @@ const CategoriesWidget = ({ widget, fallbackImage }) => {
   );
 };
 
-const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#ef4444', fallbackImage = null, excludePostKeys = [], urlStructure }) => {
+const SidebarWidget = ({ widget, currentPostId, categorySlug, authorId, primaryColor = '#ef4444', fallbackImage = null, excludePostKeys = [], urlStructure }) => {
   if (!widget?.type) return null;
 
   if (widget.type === 'trending') {
     return <TrendingWidget widget={widget} currentPostId={currentPostId} excludePostKeys={excludePostKeys} urlStructure={urlStructure} fallbackImage={fallbackImage} />;
   }
-  if (widget.type === 'recent_posts') {
+  if (widget.type === 'recent_posts' || widget.type === 'latest_posts' || widget.type === 'latest') {
     return <RecentPostsWidget widget={widget} urlStructure={urlStructure} fallbackImage={fallbackImage} />;
   }
   if (widget.type === 'related_posts' || widget.type === 'related') {
     return <RelatedPostsWidget widget={widget} categorySlug={categorySlug} currentPostId={currentPostId} urlStructure={urlStructure} fallbackImage={fallbackImage} />;
+  }
+  if (widget.type === 'author_posts' || widget.type === 'more_from_author') {
+    return <AuthorPostsWidget widget={widget} authorId={authorId} currentPostId={currentPostId} urlStructure={urlStructure} fallbackImage={fallbackImage} />;
   }
   if (widget.type === 'newsletter') {
     return <NewsletterWidget widget={widget} primaryColor={primaryColor} />;
@@ -442,6 +514,9 @@ const SidebarWidget = ({ widget, currentPostId, categorySlug, primaryColor = '#e
   }
   if (widget.type === 'ads') {
     return <AdsWidget widget={widget} />;
+  }
+  if (widget.type === 'about') {
+    return <AboutWidget widget={widget} />;
   }
   if (widget.type === 'categories') {
     return <CategoriesWidget widget={widget} fallbackImage={fallbackImage} />;

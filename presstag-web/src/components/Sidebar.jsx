@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import SidebarWidget from './SidebarWidget';
 import AdSpot from './AdSpot';
 
-const Sidebar = ({ currentPostId, categorySlug, excludePostKeys = [] }) => {
+const Sidebar = ({ currentPostId, categorySlug, authorId, excludePostKeys = [] }) => {
   const [widgets, setWidgets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [primaryColor, setPrimaryColor] = useState('#006356'); // Default color
@@ -79,6 +79,7 @@ const Sidebar = ({ currentPostId, categorySlug, excludePostKeys = [] }) => {
                 widget={widget} 
                 currentPostId={currentPostId} 
                 categorySlug={categorySlug} 
+                authorId={authorId}
                 primaryColor={primaryColor}
                 fallbackImage={fallbackImage}
                 excludePostKeys={excludePostKeys}

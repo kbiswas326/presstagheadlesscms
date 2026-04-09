@@ -1021,9 +1021,13 @@ export default function CustomizationPage() {
                                 className={selectClass}
                              >
                                 <option value="trending">Trending Posts</option>
+                                <option value="recent_posts">Latest Posts</option>
+                                <option value="related_posts">Related Posts</option>
+                                <option value="author_posts">More from the Author</option>
                                 <option value="newsletter">Newsletter</option>
                                 <option value="social_links">Social Links</option>
                                 <option value="ads">Advertisement</option>
+                                <option value="categories">Categories</option>
                                 <option value="about">About/Bio</option>
                              </select>
                           </div>
@@ -1038,7 +1042,7 @@ export default function CustomizationPage() {
                              />
                           </div>
                           
-                          {widget.type === 'trending' && (
+                          {(widget.type === 'trending' || widget.type === 'recent_posts' || widget.type === 'related_posts' || widget.type === 'author_posts') && (
                              <div>
                                 <label className={label}>Number of Posts</label>
                                 <input 
@@ -1050,6 +1054,19 @@ export default function CustomizationPage() {
                                    max="10"
                                 />
                              </div>
+                          )}
+
+                          {widget.type === 'about' && (
+                            <div className="md:col-span-2">
+                              <label className={label}>Content</label>
+                              <textarea
+                                value={widget.content || ''}
+                                onChange={(e) => updateSidebarWidget(index, 'content', e.target.value)}
+                                className={inputClass}
+                                rows={4}
+                                placeholder="Write a short about/bio for the sidebar..."
+                              />
+                            </div>
                           )}
 
                           {widget.type === 'social_links' && (
