@@ -56,10 +56,8 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
   
   const primaryColor = branding?.primaryColor || '#006356';
   const siteTitle = branding?.siteTitle || 'PressTag';
-  const siteTagline = branding?.siteTagline || '';
   const logoUrl = branding?.logo || null;
   const displayMode = branding?.logoDisplayMode || 'both'; // 'both', 'logo', 'text'
-  const showTaglineInHeader = branding?.showTaglineInHeader === true;
 
   const showLogo = (displayMode === 'logo' || displayMode === 'both') && logoUrl;
   const showTitle = (displayMode === 'text' || displayMode === 'both') && siteTitle;
@@ -121,11 +119,6 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
                       <span style={{ color: primaryColor }} className="font-bold text-xl tracking-tighter leading-none">
                         {siteTitle}
                       </span>
-                      {showTaglineInHeader && siteTagline && (
-                        <span style={{ color: primaryColor }} className="text-[10px] tracking-wide leading-none opacity-80 mt-0.5">
-                            {siteTagline}
-                        </span>
-                      )}
                     </div>
                 )}
               </Link>
