@@ -85,6 +85,35 @@ function buildPostSnippet(post) {
   return text.length > 160 ? `${text.slice(0, 157)}...` : text;
 }
 
+function getIstDateParts(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return { publishDate: null, publishTime: null };
+  try {
+    const dateParts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(d);
+    const timeParts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(d);
+
+    const y = dateParts.find((p) => p.type === 'year')?.value;
+    const m = dateParts.find((p) => p.type === 'month')?.value;
+    const day = dateParts.find((p) => p.type === 'day')?.value;
+    const h = timeParts.find((p) => p.type === 'hour')?.value;
+    const min = timeParts.find((p) => p.type === 'minute')?.value;
+    if (!y || !m || !day || h == null || min == null) return { publishDate: null, publishTime: null };
+    return { publishDate: `${y}-${m}-${day}`, publishTime: `${h}:${min}` };
+  } catch {
+    return { publishDate: null, publishTime: null };
+  }
+}
+
 // Helper: Populate categories, primary_category, tags, and author
 async function populatePost(post, db) {
   if (!post) return null;
@@ -779,6 +808,17 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     const updateBody = { ...restBody };
     if (isStatusPublishTransition && !updateBody.publishedAt) updateBody.publishedAt = new Date();
+    const shouldBumpPublishedAt =
+      desiredStatus === 'published' &&
+      notifySubscribers === true &&
+      (notifyType === 'post_published' || notifyType === 'live_update');
+    if (shouldBumpPublishedAt) {
+      const now = new Date();
+      const ist = getIstDateParts(now);
+      updateBody.publishedAt = now;
+      if (ist.publishDate) updateBody.publishDate = ist.publishDate;
+      if (ist.publishTime) updateBody.publishTime = ist.publishTime;
+    }
 
     const post = await Post.update(targetId, updateBody, req.tenantId);
     const enrichedPost = await populatePost(post, db);
@@ -792,6 +832,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
       nextStatus === 'published' &&
       String(next?.type || '').toLowerCase().includes('live') &&
       nextUpdatesCount > prevUpdatesCount;
+    const shouldNotifyLiveUpdateAny =
+      notifySubscribers === true &&
+      notifyType === 'live_update' &&
+      nextStatus === 'published' &&
+      String(next?.type || '').toLowerCase().includes('live');
 
     const shouldNotifyPublish = isStatusPublishTransition && notifySubscribers !== false;
     const shouldNotifyExplicitPublish =
@@ -799,13 +844,13 @@ router.put('/:id', authMiddleware, async (req, res) => {
       notifyType === 'post_published' &&
       desiredStatus === 'published';
 
-    if (isLiveUpdatePublish || shouldNotifyPublish || shouldNotifyExplicitPublish) {
+    if (shouldNotifyLiveUpdateAny || shouldNotifyPublish || shouldNotifyExplicitPublish) {
       const idOrSlug = String(next.slug || next._id || '');
       const lastUpdate = Array.isArray(next.liveUpdates) && next.liveUpdates.length > 0 ? next.liveUpdates[next.liveUpdates.length - 1] : null;
       await sendTenantPush(req.tenantId, {
-        type: isLiveUpdatePublish ? 'live_update' : 'post_published',
+        type: shouldNotifyLiveUpdateAny ? 'live_update' : 'post_published',
         title: next.title || 'New post published',
-        body: isLiveUpdatePublish
+        body: shouldNotifyLiveUpdateAny
           ? (String(lastUpdate?.title || lastUpdate?.heading || 'New live update').trim())
           : buildPostSnippet(next),
         image: getNotificationImage(next),

@@ -64,7 +64,6 @@ const LiveBlogViewer = ({ post }) => {
     }, [updatedAt, liveUpdates?.length]);
 
     useEffect(() => {
-        if (!livePost?.isLive) return;
         const slug = livePost?.slug;
         if (!slug) return;
         let cancelled = false;
