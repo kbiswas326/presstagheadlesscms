@@ -19,7 +19,9 @@ const getCookie = (name) => {
 
 const setCookie = (name, value, maxAgeSeconds) => {
   try {
-    document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(String(value))}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`;
+    const expires = new Date(Date.now() + maxAgeSeconds * 1000).toUTCString();
+    const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(String(value))}; Path=/; Max-Age=${maxAgeSeconds}; Expires=${expires}; SameSite=Lax${secure}`;
   } catch {}
 };
 
@@ -83,8 +85,8 @@ export default function CookieConsentBanner() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[9999] px-4 pb-4 pointer-events-none">
-      <div className="relative mx-auto max-w-5xl rounded-xl border border-gray-200 bg-white shadow-lg p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 pointer-events-auto">
+    <div className="fixed inset-x-0 bottom-0 z-[2147483647] px-4 pb-4">
+      <div className="relative mx-auto max-w-5xl rounded-xl border border-gray-200 bg-white shadow-lg p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <button
           type="button"
           onClick={closeForNow}

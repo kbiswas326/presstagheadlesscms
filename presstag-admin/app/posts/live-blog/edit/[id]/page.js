@@ -637,17 +637,13 @@ const handlePublish = async () => {
     const currentDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
     const currentTime = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
 
-    if (!isPublishUpdate) {
-      setPublishDate(currentDate);
-      setPublishTime(currentTime);
-    }
+    setPublishDate(currentDate);
+    setPublishTime(currentTime);
 
     const payload = buildPayload("published");
-    if (!isPublishUpdate) {
-      payload.publishDate = currentDate;
-      payload.publishTime = currentTime;
-      payload.publishedAt = now.toISOString();
-    }
+    payload.publishDate = currentDate;
+    payload.publishTime = currentTime;
+    payload.publishedAt = now.toISOString();
 
     if (isPublishUpdate) {
       await posts.update(postId, { ...payload, notifySubscribers: true, notifyType: 'live_update' });
