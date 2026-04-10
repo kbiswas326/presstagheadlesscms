@@ -94,6 +94,9 @@ const LiveBlogViewer = ({ post }) => {
                     return {
                         ...prev,
                         isLive: !!latest?.isLive,
+                        publishedAt: latest?.publishedAt || prev?.publishedAt,
+                        publishDate: latest?.publishDate || prev?.publishDate,
+                        publishTime: latest?.publishTime || prev?.publishTime,
                         updatedAt: latest?.updatedAt || prev?.updatedAt,
                         liveUpdates: Array.isArray(latest?.liveUpdates) ? latest.liveUpdates : [],
                     };

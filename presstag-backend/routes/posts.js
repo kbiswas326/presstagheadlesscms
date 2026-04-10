@@ -16,21 +16,38 @@ const { configureWebPush } = require('./push');
 async function sendTenantPush(tenantId, payload) {
   const cfg = configureWebPush();
   if (!cfg) return;
-  const db = getDB(tenantId);
-  if (!db) return;
+  const candidates = [
+    String(tenantId || '').trim(),
+    String(process.env.DEFAULT_TENANT_ID || '').trim(),
+    'sportzpoint',
+    'presstag',
+  ].filter(Boolean);
+  const orderedTenants = Array.from(new Set(candidates));
 
-  const subs = await db.collection('pushSubscriptions').find({}).toArray();
-  if (!subs.length) return;
+  const allSubs = [];
+  const seenEndpoints = new Set();
+  for (const t of orderedTenants) {
+    const db = getDB(t);
+    if (!db) continue;
+    const subs = await db.collection('pushSubscriptions').find({}).toArray();
+    for (const sub of subs) {
+      const endpoint = String(sub?.endpoint || '');
+      if (!endpoint || seenEndpoints.has(endpoint)) continue;
+      seenEndpoints.add(endpoint);
+      allSubs.push({ tenantId: t, sub });
+    }
+  }
+  if (!allSubs.length) return;
 
   const message = JSON.stringify(payload);
   await Promise.allSettled(
-    subs.map(async (sub) => {
+    allSubs.map(async ({ tenantId: t, sub }) => {
       try {
         await webPush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, message);
       } catch (err) {
         const code = err?.statusCode || err?.status;
         if (code === 404 || code === 410) {
-          try { await db.collection('pushSubscriptions').deleteOne({ endpoint: sub.endpoint }); } catch {}
+          try { await getDB(t)?.collection('pushSubscriptions')?.deleteOne?.({ endpoint: sub.endpoint }); } catch {}
         }
       }
     })
