@@ -374,9 +374,28 @@ router.get('/', async (req, res) => {
     if (previousSlug && typeof previousSlug === 'string' && previousSlug.trim()) {
       query.previousSlugs = previousSlug.trim();
     }
-    if (author && ObjectId.isValid(author)) {
-      const oid = new ObjectId(author);
-      and.push({ $or: [{ author: oid }, { authors: oid }] });
+    if (author && author !== 'All') {
+      const authorRaw = String(author || '').trim();
+      const authorValue = authorRaw.replace(/^#/, '').toLowerCase();
+      let authorId = null;
+      if (ObjectId.isValid(authorValue)) {
+        authorId = new ObjectId(authorValue);
+      } else if (authorValue) {
+        const bySlug =
+          await db.collection('users').findOne({ slug: authorValue }, { projection: { _id: 1 } }) ||
+          await db.collection('users').findOne({ slug: authorRaw }, { projection: { _id: 1 } });
+        if (bySlug?._id) authorId = bySlug._id;
+        if (!authorId) {
+          const byName = await db.collection('users').findOne(
+            { name: { $regex: `^${authorRaw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
+            { projection: { _id: 1 } }
+          );
+          if (byName?._id) authorId = byName._id;
+        }
+      }
+      if (authorId) {
+        and.push({ $or: [{ author: authorId }, { authors: authorId }] });
+      }
     }
 
     // Category filter

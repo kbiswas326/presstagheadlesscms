@@ -277,13 +277,26 @@ const RelatedPostsWidget = ({ widget, categorySlug, currentPostId, urlStructure,
                 className="object-cover group-hover:scale-110 transition-transform duration-300"
               />
             </div>
-            <h4
-              className="text-sm font-medium line-clamp-2 transition-colors"
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-color)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}
-            >
-              {post.title}
-            </h4>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                {post.isLive && (
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-red-600 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                    LIVE
+                  </span>
+                )}
+              </div>
+              <h4
+                className="text-sm font-medium line-clamp-2 transition-colors mb-1"
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-color)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}
+              >
+                {post.title}
+              </h4>
+              <div className="text-xs text-gray-400">
+                {formatWidgetDate(post.publishDate || post.publishedAt || post.createdAt, post.publishTime)}
+              </div>
+            </div>
           </Link>
         ))}
       </div>
@@ -333,13 +346,26 @@ const AuthorPostsWidget = ({ widget, authorId, currentPostId, urlStructure, fall
                 className="object-cover group-hover:scale-110 transition-transform duration-300"
               />
             </div>
-            <h4
-              className="text-sm font-medium line-clamp-2 transition-colors"
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-color)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}
-            >
-              {post.title}
-            </h4>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                {post.isLive && (
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-red-600 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                    LIVE
+                  </span>
+                )}
+              </div>
+              <h4
+                className="text-sm font-medium line-clamp-2 transition-colors mb-1"
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-color)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}
+              >
+                {post.title}
+              </h4>
+              <div className="text-xs text-gray-400">
+                {formatWidgetDate(post.publishDate || post.publishedAt || post.createdAt, post.publishTime)}
+              </div>
+            </div>
           </Link>
         ))}
       </div>

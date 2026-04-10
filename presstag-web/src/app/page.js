@@ -25,8 +25,8 @@ async function getPosts(params = {}) {
   const normalizedSlug = normalizedValue.replace(/^#/, '').toLowerCase();
   if (type === 'category' && normalizedValue) path += '&category=' + encodeURIComponent(normalizedSlug);
   else if (type === 'tag' && normalizedValue) path += '&tag=' + encodeURIComponent(normalizedSlug);
-  else if (type === 'author' && value) path += '&author=' + encodeURIComponent(String(value));
-  else if ((type === 'content_type' || type === 'type') && value) path += '&type=' + encodeURIComponent(String(value));
+  else if (type === 'author' && normalizedValue) path += '&author=' + encodeURIComponent(normalizedSlug);
+  else if ((type === 'content_type' || type === 'type') && normalizedValue) path += '&type=' + encodeURIComponent(normalizedSlug);
   if (sort) path += '&sort=' + encodeURIComponent(String(sort));
   try {
     const res = await fetchWithTenant(path, { next: { revalidate: 60 } });
@@ -89,11 +89,21 @@ export default async function Page() {
             limit: limit + 5,
             excludeKeys: excludePostKeys,
           });
+          if (posts.length === 0) {
+            posts = await getPosts({
+              type: section.sourceType,
+              value: section.sourceValue,
+              limit: limit + 5,
+              excludeKeys: [],
+            });
+          }
           posts = posts.slice(0, limit);
 
-          if (section.sourceType === 'category') viewAllUrl = `/category/${section.sourceValue}`;
-          else if (section.sourceType === 'tag') viewAllUrl = `/${tagPrefix}/${section.sourceValue}`;
-          else if (section.sourceType === 'author') viewAllUrl = `/author/${section.sourceValue}`;
+          const rawValue = section.sourceValue != null ? String(section.sourceValue).trim() : '';
+          const normalized = rawValue.replace(/^#/, '').toLowerCase();
+          if (section.sourceType === 'category') viewAllUrl = `/category/${normalized}`;
+          else if (section.sourceType === 'tag') viewAllUrl = `/${tagPrefix}/${normalized}`;
+          else if (section.sourceType === 'author') viewAllUrl = `/author/${normalized}`;
         }
 
         return {

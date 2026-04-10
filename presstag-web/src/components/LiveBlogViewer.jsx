@@ -464,7 +464,22 @@ const LiveBlogViewer = ({ post }) => {
 
                     {/* Sidebar */}
                     <aside className="w-full lg:w-[28%] space-y-8 lg:sticky lg:top-0">
-                        <Sidebar currentPostId={post?.slug || post?._id} categorySlug={post?.categories?.[0]?.slug} excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)} />
+                        <Sidebar
+                            currentPostId={String(livePost?.slug || livePost?._id || '') || undefined}
+                            categorySlug={(() => {
+                                const first = Array.isArray(livePost?.categories) ? livePost.categories[0] : null;
+                                if (!first) return undefined;
+                                if (typeof first === 'string') return first;
+                                return first?.slug || first?.name || first?.title || undefined;
+                            })()}
+                            authorId={(() => {
+                                const candidate = primaryAuthor || author || null;
+                                if (!candidate) return undefined;
+                                if (typeof candidate === 'string') return candidate;
+                                return candidate?._id || candidate?.id || undefined;
+                            })()}
+                            excludePostKeys={[String(livePost?.slug || livePost?._id || '')].filter(Boolean)}
+                        />
                     </aside>
                 </div>
         </div>
