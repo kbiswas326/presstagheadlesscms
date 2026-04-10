@@ -699,9 +699,17 @@ const handleUpdate = async () => {
       alert('Open an existing live blog to update');
       return;
     }
-    
-    // Do NOT reset publish date/time on update (Preserve original publish time)
+
+    const now = new Date();
+    const currentDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    const currentTime = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+    setPublishDate(currentDate);
+    setPublishTime(currentTime);
+
     const payload = buildPayload('published');
+    payload.publishDate = currentDate;
+    payload.publishTime = currentTime;
+    payload.publishedAt = now.toISOString();
     
     await posts.update(postId, payload);
     setSuccess('Live blog updated successfully');

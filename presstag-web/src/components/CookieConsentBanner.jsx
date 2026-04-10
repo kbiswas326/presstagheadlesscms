@@ -20,8 +20,10 @@ const getCookie = (name) => {
 const setCookie = (name, value, maxAgeSeconds) => {
   try {
     const expires = new Date(Date.now() + maxAgeSeconds * 1000).toUTCString();
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    const domain = hostname === 'sportzpoint.com' || hostname.endsWith('.sportzpoint.com') ? '; Domain=.sportzpoint.com' : '';
     const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(String(value))}; Path=/; Max-Age=${maxAgeSeconds}; Expires=${expires}; SameSite=Lax${secure}`;
+    document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(String(value))}; Path=/; Max-Age=${maxAgeSeconds}; Expires=${expires}; SameSite=Lax${domain}${secure}`;
   } catch {}
 };
 
