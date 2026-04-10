@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import Script from 'next/script';
 import { FaShareAlt, FaLinkedin, FaMapPin, FaSync } from 'react-icons/fa';
 import { Merriweather } from 'next/font/google';
 import Sidebar from './Sidebar';
@@ -41,6 +42,17 @@ const LiveBlogViewer = ({ post }) => {
         content, // Main content before updates
         tags = []
     } = livePost || {};
+
+    const { hasTwitterEmbeds, hasInstagramEmbeds } = useMemo(() => {
+        const combined = [
+            typeof content === 'string' ? content : '',
+            ...(Array.isArray(liveUpdates) ? liveUpdates.map((u) => (typeof u?.content === 'string' ? u.content : '')) : []),
+        ].join(' ');
+
+        const twitter = /twitter-tweet|platform\.twitter\.com|t\.co\//i.test(combined);
+        const instagram = /instagram-media|www\.instagram\.com\/p\/|data-instgrm-permalink|instagram\.com\/p\//i.test(combined);
+        return { hasTwitterEmbeds: twitter, hasInstagramEmbeds: instagram };
+    }, [content, liveUpdates]);
 
     useEffect(() => {
         const root = embedsRootRef.current;
@@ -191,6 +203,32 @@ const LiveBlogViewer = ({ post }) => {
         <div className={`min-h-screen bg-gray-50 ${merriweather.className}`}>
             <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
                     <main className="w-full lg:w-[72%] bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-8" ref={embedsRootRef}>
+                        {hasTwitterEmbeds && (
+                            <Script
+                                src="https://platform.twitter.com/widgets.js"
+                                strategy="lazyOnload"
+                                async
+                                charSet="utf-8"
+                                onLoad={() => {
+                                    try {
+                                        const root = embedsRootRef.current;
+                                        if (window.twttr?.widgets?.load) window.twttr.widgets.load(root || undefined);
+                                    } catch {}
+                                }}
+                            />
+                        )}
+                        {hasInstagramEmbeds && (
+                            <Script
+                                src="https://www.instagram.com/embed.js"
+                                strategy="lazyOnload"
+                                async
+                                onLoad={() => {
+                                    try {
+                                        if (window.instgrm?.Embeds?.process) window.instgrm.Embeds.process();
+                                    } catch {}
+                                }}
+                            />
+                        )}
                         <header className="w-full pt-4 pb-6">
                             <nav className="flex items-center text-xs text-gray-500 mb-4 whitespace-nowrap overflow-hidden">
                                 <Link
