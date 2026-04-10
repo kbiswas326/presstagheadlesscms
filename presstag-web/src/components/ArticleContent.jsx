@@ -102,7 +102,7 @@ export default function ArticleContent({ content }) {
   if (!safeContent) return null;
   
   // Prose classes
-  const proseClasses = `prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-headings:mb-2 prose-headings:mt-6 prose-p:text-gray-700 prose-p:leading-loose prose-p:my-2
+  const proseClasses = `prose prose-lg prose-green max-w-none prose-headings:font-sans prose-headings:font-black prose-headings:text-gray-900 prose-headings:mb-2 prose-headings:mt-6 prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-3
     prose-a:no-underline hover:prose-a:underline
     prose-img:rounded-xl prose-img:shadow-md
     prose-blockquote:border-l-4 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-blockquote:italic

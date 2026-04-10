@@ -37,6 +37,37 @@ async function sendTenantPush(tenantId, payload) {
   );
 }
 
+function stripHtmlToText(input) {
+  const html = String(input || '');
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getNotificationImage(post) {
+  const candidate =
+    post?.featuredImage?.url ||
+    post?.featuredImage ||
+    post?.banner_image?.url ||
+    post?.banner_image ||
+    post?.coverImage?.url ||
+    post?.coverImage ||
+    '';
+  return typeof candidate === 'string' ? candidate : (candidate?.url || '');
+}
+
+function buildPostSnippet(post) {
+  const summary = String(post?.summary || post?.excerpt || '').trim();
+  if (summary) return summary.length > 160 ? `${summary.slice(0, 157)}...` : summary;
+
+  const text = stripHtmlToText(post?.content || '');
+  if (!text) return '';
+  return text.length > 160 ? `${text.slice(0, 157)}...` : text;
+}
+
 // Helper: Populate categories, primary_category, tags, and author
 async function populatePost(post, db) {
   if (!post) return null;
@@ -304,10 +335,14 @@ router.get('/', async (req, res) => {
 
     // Category filter
     if (category && category !== 'All') {
-      let categoryId = category;
-      if (!ObjectId.isValid(category)) {
-        const catObj = await db.collection('categories').findOne({ slug: category });
-        if (catObj) categoryId = catObj._id;
+      const categoryValueRaw = String(category).trim();
+      const categoryValue = categoryValueRaw.replace(/^#/, '').toLowerCase();
+      let categoryId = categoryValue;
+      if (!ObjectId.isValid(categoryId)) {
+        const catObj =
+          await db.collection('categories').findOne({ slug: categoryValue }) ||
+          await db.collection('categories').findOne({ slug: categoryValueRaw });
+        if (catObj?._id) categoryId = catObj._id;
       }
       if (ObjectId.isValid(categoryId)) {
         const oid = new ObjectId(categoryId);
@@ -316,13 +351,16 @@ router.get('/', async (req, res) => {
     }
 
     if (tag && tag !== 'All') {
-      const tagValue = String(tag).trim();
+      const tagValueRaw = String(tag).trim();
+      const tagValue = tagValueRaw.replace(/^#/, '').toLowerCase();
       if (tagValue) {
         const ors = [];
         if (ObjectId.isValid(tagValue)) {
           ors.push({ tags: new ObjectId(tagValue) });
         } else {
-          const tagObj = await db.collection('tags').findOne({ slug: tagValue }, { projection: { _id: 1 } });
+          const tagObj =
+            await db.collection('tags').findOne({ slug: tagValue }, { projection: { _id: 1 } }) ||
+            await db.collection('tags').findOne({ slug: tagValueRaw }, { projection: { _id: 1 } });
           if (tagObj?._id) ors.push({ tags: tagObj._id });
           ors.push({ tags: tagValue });
         }
@@ -677,7 +715,8 @@ router.post('/', authMiddleware, async (req, res) => {
       await sendTenantPush(req.tenantId, {
         type: notifyType === 'live_update' ? 'live_update' : 'post_published',
         title: post.title || 'New post published',
-        body: post.summary || post.excerpt || '',
+        body: buildPostSnippet(post),
+        image: getNotificationImage(post),
         url: idOrSlug ? `/posts/${encodeURIComponent(idOrSlug)}` : '/',
         postId: String(post._id || ''),
         slug: String(post.slug || ''),
@@ -738,7 +777,12 @@ router.put('/:id', authMiddleware, async (req, res) => {
       nextUpdatesCount > prevUpdatesCount;
 
     const shouldNotifyPublish = isStatusPublishTransition && notifySubscribers !== false;
-    if (isLiveUpdatePublish || shouldNotifyPublish) {
+    const shouldNotifyExplicitPublish =
+      notifySubscribers === true &&
+      notifyType === 'post_published' &&
+      desiredStatus === 'published';
+
+    if (isLiveUpdatePublish || shouldNotifyPublish || shouldNotifyExplicitPublish) {
       const idOrSlug = String(next.slug || next._id || '');
       const lastUpdate = Array.isArray(next.liveUpdates) && next.liveUpdates.length > 0 ? next.liveUpdates[next.liveUpdates.length - 1] : null;
       await sendTenantPush(req.tenantId, {
@@ -746,7 +790,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
         title: next.title || 'New post published',
         body: isLiveUpdatePublish
           ? (String(lastUpdate?.title || lastUpdate?.heading || 'New live update').trim())
-          : (next.summary || next.excerpt || ''),
+          : buildPostSnippet(next),
+        image: getNotificationImage(next),
         url: idOrSlug ? `/posts/${encodeURIComponent(idOrSlug)}` : '/',
         postId: String(next._id || ''),
         slug: String(next.slug || ''),
@@ -781,7 +826,8 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
       await sendTenantPush(req.tenantId, {
         type: 'post_published',
         title: updated.title || 'New post published',
-        body: updated.summary || updated.excerpt || '',
+        body: buildPostSnippet(updated),
+        image: getNotificationImage(updated),
         url: idOrSlug ? `/posts/${encodeURIComponent(idOrSlug)}` : '/',
         postId: String(updated._id || ''),
         slug: String(updated.slug || ''),

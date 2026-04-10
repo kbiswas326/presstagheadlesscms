@@ -18,6 +18,7 @@ import { getImageUrl } from '@/lib/imageHelper';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 import SidebarDeferredClient from '../../../components/SidebarDeferredClient';
+import { formatPublishDateTime } from '../../../util/timeFormat';
 
 export const revalidate = 60;
 
@@ -124,37 +125,11 @@ export default async function PostPage({ params }) {
   }
 
   // --- STANDARD ARTICLE LAYOUT ---
-  const formattedDate = (() => {
-    if (post.publishDate && post.publishTime) {
-      try {
-        // Handle YYYY-MM-DD
-        const dateObj = new Date(post.publishDate);
-        // Handle HH:MM
-        const [hours, minutes] = post.publishTime.split(':');
-        
-        if (!isNaN(dateObj.getTime()) && hours && minutes) {
-            dateObj.setHours(parseInt(hours), parseInt(minutes));
-            return dateObj.toLocaleString('en-US', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            });
-        }
-      } catch (e) {
-        console.error('Date parsing error', e);
-      }
-    }
-    
-    return new Date(post.publishedAt || post.createdAt).toLocaleString('en-US', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  })();
+  const formattedDate = formatPublishDateTime(
+    post.publishDate,
+    post.publishTime,
+    post.publishedAt || post.createdAt
+  );
 
   // Calculate read time
   const wordsPerMinute = 200;
@@ -256,13 +231,15 @@ export default async function PostPage({ params }) {
           ))}
         </div>
         
-        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-4">
+        <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 leading-tight tracking-tight mb-4">
           {post.title}
         </h1>
         
-        <h2 className="text-lg md:text-xl text-gray-600 leading-relaxed mb-6 font-light">
-          {post.summary || post.sub_title}
-        </h2>
+        {(post.summary || post.sub_title) ? (
+          <p className="text-lg md:text-xl text-gray-600 mb-6 leading-relaxed border-l-4 pl-4 italic" style={{ borderColor: 'var(--primary-color)' }}>
+            {post.summary || post.sub_title}
+          </p>
+        ) : null}
 
         <div className="flex items-center justify-between border-b border-gray-100 pb-6 mb-6">
           <div className="flex items-center gap-3">

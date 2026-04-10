@@ -13,7 +13,10 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'New update';
   const options = {
     body: data.body || '',
-    data: { url: data.url || '/' },
+    icon: data.icon || data.image || '/favicon.ico',
+    badge: data.badge || '/favicon.ico',
+    image: data.image || undefined,
+    data: { url: data.url || '/', postId: data.postId || '', type: data.type || '' },
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -35,4 +38,3 @@ self.addEventListener('notificationclick', (event) => {
     await clients.openWindow(url);
   })());
 });
-

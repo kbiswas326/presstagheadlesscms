@@ -276,11 +276,15 @@ const LiveBlogViewer = ({ post }) => {
                                             {byline}
                                         </span>
                                         <span className="text-xs text-gray-500" suppressHydrationWarning>
-                                            {publishedAt ? new Date(publishedAt).toLocaleDateString(undefined, {
+                                            {publishedAt ? new Intl.DateTimeFormat('en-US', {
+                                                timeZone: 'Asia/Kolkata',
                                                 year: 'numeric',
                                                 month: 'long',
-                                                day: 'numeric'
-                                            }) : 'Just Now'}{showEditor ? ` • Edited by ${editorDisplayName}` : ''}
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                                hour12: true,
+                                            }).format(new Date(publishedAt)) : 'Just Now'}{showEditor ? ` • Edited by ${editorDisplayName}` : ''}
                                         </span>
                                     </div>
                                 </div>

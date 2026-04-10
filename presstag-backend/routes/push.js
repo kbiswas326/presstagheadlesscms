@@ -24,6 +24,23 @@ router.get('/vapid-public-key', (req, res) => {
   res.json({ publicKey: cfg?.publicKey || '' });
 });
 
+router.get('/stats', async (req, res) => {
+  try {
+    const cfg = getWebPushConfig();
+    const db = getDB(req.tenantId);
+    if (!db) return res.status(500).json({ error: 'Database unavailable' });
+
+    const subscriptionCount = await db.collection('pushSubscriptions').countDocuments({});
+    res.json({
+      vapidConfigured: !!cfg,
+      tenantId: req.tenantId || null,
+      subscriptionCount,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.post('/subscribe', async (req, res) => {
   try {
     const cfg = configureWebPush();
@@ -74,4 +91,3 @@ router.post('/unsubscribe', async (req, res) => {
 });
 
 module.exports = { router, configureWebPush, getWebPushConfig };
-

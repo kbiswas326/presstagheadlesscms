@@ -27,10 +27,12 @@ export default function PushNotificationsPrompt() {
     setVisible(true);
   }, []);
 
-  const dismiss = (choice) => {
-    try {
-      localStorage.setItem(OPTIN_KEY, choice);
-    } catch {}
+  const dismiss = (choice, persist = true) => {
+    if (persist) {
+      try {
+        localStorage.setItem(OPTIN_KEY, choice);
+      } catch {}
+    }
     setVisible(false);
   };
 
@@ -40,6 +42,10 @@ export default function PushNotificationsPrompt() {
       if (typeof window === 'undefined') return;
       if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
         dismiss('unsupported');
+        return;
+      }
+      if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+        alert('Notifications require HTTPS.');
         return;
       }
 
@@ -60,7 +66,7 @@ export default function PushNotificationsPrompt() {
         }
       }
       if (!publicKey) {
-        dismiss('no_key');
+        alert('Notifications are not configured yet (missing VAPID key).');
         return;
       }
 
@@ -81,7 +87,7 @@ export default function PushNotificationsPrompt() {
       });
 
       if (!res.ok) {
-        dismiss('error');
+        alert('Could not enable notifications. Please try again.');
         return;
       }
 
@@ -94,8 +100,8 @@ export default function PushNotificationsPrompt() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 px-4 pb-20">
-      <div className="relative mx-auto max-w-5xl rounded-xl border border-gray-200 bg-white shadow-lg p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+    <div className="fixed inset-x-0 bottom-0 z-[9998] px-4 pb-20 pointer-events-none">
+      <div className="relative mx-auto max-w-5xl rounded-xl border border-gray-200 bg-white shadow-lg p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 pointer-events-auto">
         <button
           type="button"
           onClick={() => dismiss('dismissed')}

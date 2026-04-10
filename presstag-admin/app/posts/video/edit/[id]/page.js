@@ -444,6 +444,19 @@ export default function VideoEditorPage() {
     const plainContent = stripHtml(content);
     const wordCount = countWords(plainContent);
     const keywordSlug = slugifyForMatch(keyword);
+    const firstParagraphText = (() => {
+      try {
+        const el = document.createElement('div');
+        el.innerHTML = String(content || '');
+        const paragraphs = Array.from(el.querySelectorAll('p'));
+        const first = paragraphs
+          .map((p) => String(p.textContent || '').replace(/\s+/g, ' ').trim())
+          .find((t) => t.length > 0);
+        return first || plainContent.substring(0, 300);
+      } catch {
+        return plainContent.substring(0, 300);
+      }
+    })();
 
     // 1. Focus Keyword
     if (!keyword) {
@@ -512,8 +525,7 @@ export default function VideoEditorPage() {
     }
 
     // 7. Keyword in First Paragraph
-    const firstParagraph = plainContent.substring(0, 200);
-    if (keyword && includesNormalized(firstParagraph, keyword)) {
+    if (keyword && includesNormalized(firstParagraphText, keyword)) {
       checks.push({ status: 'success', text: 'Keyword appears in first paragraph' });
       score += 8;
     } else if (keyword && plainContent) {
@@ -607,7 +619,7 @@ export default function VideoEditorPage() {
 
     setSeoScore(Math.min(score, maxScore));
     setSeoChecks(checks);
-  }, [keyword, title, summary, content, metaDescription, slug, videoId]);
+  }, [keyword, title, summary, content, metaDescription, slug, videoId, siteUrl]);
 
   const getSEOColor = () => {
     if (seoScore < 40) return 'bg-red-400';
@@ -776,6 +788,8 @@ export default function VideoEditorPage() {
         type: 'video',
         featuredImage,
         status: 'published',
+        notifySubscribers: true,
+        notifyType: 'post_published',
         author: author || null,
         authors,
         editor: editor || null,
@@ -1172,10 +1186,11 @@ export default function VideoEditorPage() {
                         skin: isDark ? "oxide-dark" : "oxide",
                         content_css: isDark ? "dark" : "default",
                         plugins: 'link image media table lists code wordcount',
-                        toolbar: 'blocks fontsize | bold italic | image media table link | alignleft aligncenter alignright | bullist numlist',
+                        toolbar: 'blocks fontsize | bold italic | image media table link | alignleft aligncenter alignright | bullist numlist | writingcheck',
                         block_formats: 'Paragraph=p;Heading 1=h1;Heading 2=h2;Heading 3=h3;Heading 4=h4;Heading 5=h5',
                         image_caption: true,
                         image_title: true,
+                        browser_spellcheck: true,
                         file_picker_callback: function (callback, value, meta) {
                           if (meta.filetype === 'image') {
                             if (window.tinymce && window.tinymce.activeEditor) {
@@ -1186,6 +1201,42 @@ export default function VideoEditorPage() {
                             }
                             setShowMediaSelector(true);
                           }
+                        },
+                        setup: (editor) => {
+                          editor.ui.registry.addButton('writingcheck', {
+                            text: 'Check',
+                            onAction: async () => {
+                              try {
+                                const text = editor.getContent({ format: 'text' }) || '';
+                                const endpoint = process.env.NEXT_PUBLIC_LANGUAGETOOL_URL || 'https://api.languagetool.org/v2/check';
+                                const body = new URLSearchParams({ text, language: 'en-US' });
+                                const res = await fetch(endpoint, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                                  body: body.toString(),
+                                });
+                                if (!res.ok) {
+                                  editor.windowManager.alert('Writing check failed.');
+                                  return;
+                                }
+                                const data = await res.json();
+                                const matches = Array.isArray(data?.matches) ? data.matches : [];
+                                if (matches.length === 0) {
+                                  editor.windowManager.alert('No issues found.');
+                                  return;
+                                }
+                                const lines = matches.slice(0, 10).map((m) => {
+                                  const msg = String(m?.message || 'Issue');
+                                  const repl = Array.isArray(m?.replacements) && m.replacements.length > 0 ? ` → ${m.replacements[0].value}` : '';
+                                  return `- ${msg}${repl}`;
+                                });
+                                const more = matches.length > 10 ? `\n(+${matches.length - 10} more)` : '';
+                                editor.windowManager.alert(`${matches.length} issue(s) found:\n${lines.join('\n')}${more}`);
+                              } catch {
+                                editor.windowManager.alert('Writing check failed.');
+                              }
+                            },
+                          });
                         },
                         content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.6; } h1 { font-size: 2em; }',
                       }}

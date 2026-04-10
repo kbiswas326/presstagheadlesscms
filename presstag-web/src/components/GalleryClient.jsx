@@ -8,6 +8,7 @@ import Sidebar from './Sidebar';
 import AdSpot from './AdSpot';
 import { getImageUrl } from '@/lib/imageHelper';
 import SocialShareButtons from './SocialShareButtons';
+import { formatPublishDateTime } from '../util/timeFormat';
 
 const merriweather = Merriweather({ 
   weight: ['300', '400', '700', '900'],
@@ -55,23 +56,11 @@ const GalleryClient = ({ post }) => {
         return `${baseUrl}${path}`;
     };
 
-    const formattedDate = (() => {
-        if (post.publishDate && post.publishTime) {
-          try {
-            const dateObj = new Date(post.publishDate);
-            const [hours, minutes] = post.publishTime.split(':');
-            if (!isNaN(dateObj.getTime()) && hours && minutes) {
-                dateObj.setHours(parseInt(hours), parseInt(minutes));
-                return dateObj.toLocaleString('en-US', {
-                  day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                });
-            }
-          } catch (e) {}
-        }
-        return new Date(post.publishedAt || post.createdAt).toLocaleString('en-US', {
-          day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-        });
-    })();
+    const formattedDate = formatPublishDateTime(
+      post.publishDate,
+      post.publishTime,
+      post.publishedAt || post.createdAt
+    );
 
     const openLightbox = (index) => {
         setCurrentImageIndex(index);

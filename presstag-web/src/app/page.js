@@ -21,8 +21,10 @@ async function getLayoutConfig() {
 async function getPosts(params = {}) {
   const { type = 'latest', value, limit = 10, excludeKeys = [], sort } = params;
   let path = `/posts?status=published&limit=${limit}&lite=1`;
-  if (type === 'category' && value) path += '&category=' + encodeURIComponent(String(value));
-  else if (type === 'tag' && value) path += '&tag=' + encodeURIComponent(String(value));
+  const normalizedValue = value != null ? String(value).trim() : '';
+  const normalizedSlug = normalizedValue.replace(/^#/, '').toLowerCase();
+  if (type === 'category' && normalizedValue) path += '&category=' + encodeURIComponent(normalizedSlug);
+  else if (type === 'tag' && normalizedValue) path += '&tag=' + encodeURIComponent(normalizedSlug);
   else if (type === 'author' && value) path += '&author=' + encodeURIComponent(String(value));
   else if ((type === 'content_type' || type === 'type') && value) path += '&type=' + encodeURIComponent(String(value));
   if (sort) path += '&sort=' + encodeURIComponent(String(sort));
