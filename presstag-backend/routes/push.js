@@ -1,6 +1,7 @@
 const express = require('express');
 const webPush = require('web-push');
 const { getDB } = require('../config/db');
+const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -59,6 +60,7 @@ router.post('/subscribe', async (req, res) => {
     const doc = {
       endpoint,
       keys: { p256dh: keys.p256dh, auth: keys.auth },
+      allowed: true,
       createdAt: new Date(),
       updatedAt: new Date(),
       userAgent: String(req.headers['user-agent'] || '').slice(0, 500),
@@ -70,6 +72,39 @@ router.post('/subscribe', async (req, res) => {
       { upsert: true }
     );
 
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/subscriptions', authMiddleware, async (req, res) => {
+  try {
+    const db = getDB(req.tenantId);
+    if (!db) return res.status(500).json({ error: 'Database unavailable' });
+    const subs = await db.collection('pushSubscriptions')
+      .find({})
+      .project({ endpoint: 1, allowed: 1, userAgent: 1, createdAt: 1, updatedAt: 1 })
+      .sort({ updatedAt: -1 })
+      .toArray();
+    res.json({ subscriptions: subs });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.patch('/subscriptions', authMiddleware, async (req, res) => {
+  try {
+    const endpoint = String(req.body?.endpoint || '').trim();
+    const allowed = req.body?.allowed;
+    if (!endpoint) return res.status(400).json({ error: 'Missing endpoint' });
+    if (typeof allowed !== 'boolean') return res.status(400).json({ error: 'Missing allowed boolean' });
+    const db = getDB(req.tenantId);
+    if (!db) return res.status(500).json({ error: 'Database unavailable' });
+    await db.collection('pushSubscriptions').updateOne(
+      { endpoint },
+      { $set: { allowed, updatedAt: new Date() } }
+    );
     res.json({ ok: true });
   } catch (error) {
     res.status(500).json({ error: error.message });

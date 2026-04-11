@@ -33,6 +33,7 @@ async function sendTenantPush(tenantId, payload) {
     for (const sub of subs) {
       const endpoint = String(sub?.endpoint || '');
       if (!endpoint || seenEndpoints.has(endpoint)) continue;
+      if (sub?.allowed === false) continue;
       seenEndpoints.add(endpoint);
       allSubs.push({ tenantId: t, sub });
     }
@@ -824,13 +825,13 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const { notifySubscribers, notifyType, ...restBody } = (req.body && typeof req.body === 'object') ? req.body : {};
     const desiredStatus = typeof restBody.status === 'string' ? restBody.status.toLowerCase().trim() : prevStatus;
     const isStatusPublishTransition = prevStatus !== 'published' && desiredStatus === 'published';
+    const isExplicitPublishAction = desiredStatus === 'published' && restBody.publishedAt != null;
 
     const updateBody = { ...restBody };
     if (isStatusPublishTransition && !updateBody.publishedAt) updateBody.publishedAt = new Date();
     const shouldBumpPublishedAt =
       desiredStatus === 'published' &&
-      notifySubscribers === true &&
-      (notifyType === 'post_published' || notifyType === 'live_update');
+      ((notifySubscribers === true && (notifyType === 'post_published' || notifyType === 'live_update')) || isExplicitPublishAction);
     if (shouldBumpPublishedAt) {
       const now = new Date();
       const ist = getIstDateParts(now);
@@ -846,21 +847,21 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const nextStatus = String(next?.status || '').toLowerCase();
     const nextUpdatesCount = Array.isArray(next?.liveUpdates) ? next.liveUpdates.length : 0;
     const isLiveUpdatePublish =
-      notifySubscribers === true &&
+      (notifySubscribers === true || isExplicitPublishAction) &&
       notifyType === 'live_update' &&
       nextStatus === 'published' &&
       String(next?.type || '').toLowerCase().includes('live') &&
       nextUpdatesCount > prevUpdatesCount;
     const shouldNotifyLiveUpdateAny =
-      notifySubscribers === true &&
+      (notifySubscribers === true || isExplicitPublishAction) &&
       notifyType === 'live_update' &&
       nextStatus === 'published' &&
       String(next?.type || '').toLowerCase().includes('live');
 
     const shouldNotifyPublish = isStatusPublishTransition && notifySubscribers !== false;
     const shouldNotifyExplicitPublish =
-      notifySubscribers === true &&
-      notifyType === 'post_published' &&
+      (notifySubscribers === true || isExplicitPublishAction) &&
+      (notifyType === 'post_published' || !notifyType) &&
       desiredStatus === 'published';
 
     if (shouldNotifyLiveUpdateAny || shouldNotifyPublish || shouldNotifyExplicitPublish) {

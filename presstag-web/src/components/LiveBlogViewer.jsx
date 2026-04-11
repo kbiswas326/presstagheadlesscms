@@ -195,9 +195,18 @@ const LiveBlogViewer = ({ post }) => {
     const editorDisplayName = (editorUser?.name || (typeof post?.editorName === 'string' ? post.editorName : '')).trim();
     const editorId = editorUser?._id ? String(editorUser._id) : (typeof editor === 'string' ? editor : '');
     const showEditor = !!(editorDisplayName && primaryAuthor && String(editorId) !== String(primaryAuthor?._id || ''));
-    const byline = safeAuthors.length > 0
-      ? safeAuthors.map((a) => a?.name).filter(Boolean).join(', ')
-      : (authorName || 'SportzPoint Desk');
+    const bylineNodes = safeAuthors.length > 0
+      ? safeAuthors
+        .map((a) => {
+          if (!a) return null;
+          const name = String(a?.name || '').trim();
+          if (!name) return null;
+          const slug = String(a?.slug || '').trim();
+          if (slug) return <Link key={String(a?._id || a?.id || slug)} href={`/author/${slug}`} className="hover:text-[var(--primary-color)] transition-colors">{name}</Link>;
+          return <span key={String(a?._id || a?.id || name)}>{name}</span>;
+        })
+        .filter(Boolean)
+      : [<span key="desk">{authorName || 'SportzPoint Desk'}</span>];
 
     return (
         <div className={`min-h-screen bg-gray-50 ${merriweather.className}`}>
@@ -313,7 +322,10 @@ const LiveBlogViewer = ({ post }) => {
                                     </div>
                                     <div className="flex flex-col">
                                         <span className="font-bold text-gray-900 text-sm">
-                                            {byline}
+                                            {bylineNodes.reduce((acc, node, idx) => {
+                                                if (idx === 0) return [node];
+                                                return acc.concat([<span key={`sep-${idx}`}>, </span>, node]);
+                                            }, [])}
                                         </span>
                                         <span className="text-xs text-gray-500" suppressHydrationWarning>
                                             {publishedAt ? new Intl.DateTimeFormat('en-US', {

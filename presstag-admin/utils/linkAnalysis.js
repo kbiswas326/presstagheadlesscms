@@ -2,9 +2,14 @@ export function countInternalExternalLinks(html, siteUrl) {
   const rawHtml = String(html || '');
   const base = String(siteUrl || '').trim();
   let siteHost = '';
+  let siteRoot = '';
 
   try {
-    if (base) siteHost = new URL(base).host;
+    if (base) {
+      const u = new URL(base);
+      siteHost = u.host;
+      siteRoot = String(u.hostname || '').toLowerCase().replace(/^www\./, '');
+    }
   } catch {}
 
   let doc;
@@ -29,21 +34,43 @@ export function countInternalExternalLinks(html, siteUrl) {
     if (lower.startsWith('tel:')) continue;
     if (lower.startsWith('javascript:')) continue;
 
+    if (lower.startsWith('//')) {
+      try {
+        const u = new URL(`https:${href}`);
+        const host = String(u.hostname || '').toLowerCase().replace(/^www\./, '');
+        if (siteRoot && (host === siteRoot || host.endsWith(`.${siteRoot}`))) internal += 1;
+        else external += 1;
+      } catch {
+        external += 1;
+      }
+      continue;
+    }
+
     if (href.startsWith('/')) {
       internal += 1;
       continue;
     }
 
     if (lower.startsWith('http://') || lower.startsWith('https://')) {
-      if (siteHost) {
-        try {
-          const u = new URL(href);
-          if (u.host === siteHost) internal += 1;
-          else external += 1;
-        } catch {
-          external += 1;
-        }
-      } else {
+      try {
+        const u = new URL(href);
+        const host = String(u.hostname || '').toLowerCase().replace(/^www\./, '');
+        if (siteRoot && (host === siteRoot || host.endsWith(`.${siteRoot}`))) internal += 1;
+        else if (siteHost && u.host === siteHost) internal += 1;
+        else external += 1;
+      } catch {
+        external += 1;
+      }
+      continue;
+    }
+
+    if (lower.startsWith('www.')) {
+      try {
+        const u = new URL(`https://${href}`);
+        const host = String(u.hostname || '').toLowerCase().replace(/^www\./, '');
+        if (siteRoot && (host === siteRoot || host.endsWith(`.${siteRoot}`))) internal += 1;
+        else external += 1;
+      } catch {
         external += 1;
       }
       continue;
@@ -54,4 +81,3 @@ export function countInternalExternalLinks(html, siteUrl) {
 
   return { internal, external };
 }
-
