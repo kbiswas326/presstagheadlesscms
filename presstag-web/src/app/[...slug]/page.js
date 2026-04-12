@@ -341,7 +341,18 @@ if (!post) {
                   </span>
                   <span className="text-xs text-gray-500">
                     {formattedDate} • {readTime} min read
-                    {showEditor ? ` • Edited by ${editorDisplayName}` : ''}
+                    {showEditor && (
+                      <>
+                        {' '}• Edited by{' '}
+                        {editorUser?.slug ? (
+                          <Link href={`/author/${editorUser.slug}`} className="transition-colors hover:text-[var(--primary-color)]">
+                            {editorDisplayName}
+                          </Link>
+                        ) : (
+                          <span>{editorDisplayName}</span>
+                        )}
+                      </>
+                    )}
                   </span>
                 </div>
               </div>

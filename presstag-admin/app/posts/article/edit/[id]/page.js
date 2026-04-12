@@ -794,6 +794,8 @@ export default function ArticleEditorPage() {
         notifySubscribers: true,
         notifyType: 'post_published',
         author: author || null,
+        authors,
+        editor: editor || null,
         categories,
         tags,
         seoScore,

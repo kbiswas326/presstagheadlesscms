@@ -24,19 +24,24 @@ export const formatDate = (dateString) => {
 export const formatPublishDateTime = (publishDate, publishTime, fallbackDateString) => {
   try {
     if (publishDate && publishTime) {
-      const dateObj = new Date(publishDate);
-      const [hours, minutes] = String(publishTime).split(':');
-      if (!isNaN(dateObj.getTime()) && hours != null && minutes != null) {
-        dateObj.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-        return new Intl.DateTimeFormat("en-US", {
-          timeZone: IST_TIME_ZONE,
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        }).format(dateObj) + " IST";
+      const timeText = String(publishTime || '').trim();
+      const match = timeText.match(/^(\d{1,2}):(\d{2})/);
+      if (match) {
+        const hh = match[1].padStart(2, '0');
+        const mm = match[2];
+        const dateTimeString = `${publishDate}T${hh}:${mm}:00+05:30`;
+        const dateObj = new Date(dateTimeString);
+        if (!isNaN(dateObj.getTime())) {
+          return new Intl.DateTimeFormat("en-US", {
+            timeZone: IST_TIME_ZONE,
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }).format(dateObj) + " IST";
+        }
       }
     }
   } catch {}

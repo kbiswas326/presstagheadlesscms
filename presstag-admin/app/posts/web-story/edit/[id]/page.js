@@ -11,6 +11,7 @@ import { useTheme } from '../../../../context/ThemeContext';
 import MediaImagesSelector from '../../../../media/MediaImagesSelector';
 import Image from 'next/image';
 import { getTenantId, posts } from '../../../../../lib/api';
+import { getImageUrl } from '@/lib/imageHelper';
 import { includesNormalized, keywordDensity, slugifyForMatch } from '../../../../../utils/seoMatch';
 
 
@@ -952,7 +953,7 @@ const handlePublish = async () => {
       publishTime: now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }),
     };
     let response;
-    if (postId) {
+    if (postId && postId !== 'new') {
       response = await posts.update(postId, payload);
     } else {
       response = await posts.create(payload);
@@ -961,7 +962,7 @@ const handlePublish = async () => {
       alert(response.error);
       return;
     }
-    alert('Web Story published successfully');
+    alert('Web Story published successfully!');
     router.push('/posts/published');
   } catch (err) {
     console.error('Publish failed:', err);
@@ -971,7 +972,7 @@ const handlePublish = async () => {
 
 const handleUpdate = async () => {
   try {
-    if (!postId) {
+    if (!postId || postId === 'new') {
       alert('Open an existing Web Story to update');
       return;
     }
@@ -981,7 +982,7 @@ const handleUpdate = async () => {
       alert(response.error);
       return;
     }
-    alert('Web Story updated');
+    alert('Web Story updated successfully!');
   } catch (err) {
     console.error('Update failed:', err);
     alert('Failed to update web story');
@@ -1536,7 +1537,7 @@ const handleUpdate = async () => {
                       <div className="relative rounded-xl overflow-hidden border">
                         <div className="w-full bg-gray-50" style={{ aspectRatio: '3/4' }}>
                           <Image
-                            src={featuredImage.fullUrl || featuredImage.url}
+                            src={getImageUrl(featuredImage.fullUrl || featuredImage.preview || featuredImage.url)}
                             alt={featuredImage.altText || 'Featured'}
                             width={1200}
                             height={1600}

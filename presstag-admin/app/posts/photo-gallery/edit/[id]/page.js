@@ -607,7 +607,7 @@ const getSelectedTagsText = () =>
           <button
             onClick={async () => {
               try {
-                if (!postId) {
+                if (!postId || postId === 'new') {
                   alert('Open an existing gallery to update');
                   return;
                 }
@@ -619,7 +619,7 @@ const getSelectedTagsText = () =>
                   alert(response.error);
                   return;
                 }
-                alert('Gallery updated');
+                alert('Photo Gallery updated successfully!');
               } catch (err) {
                 alert('Failed to update gallery');
                 console.error(err);
@@ -650,7 +650,7 @@ const getSelectedTagsText = () =>
                 payload.notifyType = 'post_published';
 
                 let response;
-                if (postId) {
+                if (postId && postId !== 'new') {
                   response = await posts.update(postId, payload);
                 } else {
                   response = await posts.create(payload);
@@ -659,7 +659,7 @@ const getSelectedTagsText = () =>
                   alert(response.error);
                   return;
                 }
-                alert('Photo Gallery published');
+                alert('Photo Gallery published successfully!');
                 router.push('/posts/published');
               } catch (err) {
                 alert('Failed to publish gallery');
@@ -811,7 +811,7 @@ const getSelectedTagsText = () =>
                           onChange={e => updateImage(idx, { caption: e.target.value })}
                         />
                         <textarea
-                          className={`w-full p-3 rounded border text-sm mb-2 resize-y min-h-28 ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "border-gray-200"}`}
+                          className={`w-full p-3 rounded border text-base mb-2 resize-y h-32 ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "border-gray-200"}`}
                           placeholder="Describe this image..."
                           value={img.description}
                           onChange={e => updateImage(idx, { description: e.target.value })}
