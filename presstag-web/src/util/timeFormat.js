@@ -15,7 +15,7 @@ export const formatDate = (dateString) => {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-    }).format(date);
+    }).format(date) + " IST";
   } catch {
     return "Invalid Date";
   }
@@ -36,7 +36,7 @@ export const formatPublishDateTime = (publishDate, publishTime, fallbackDateStri
           hour: "2-digit",
           minute: "2-digit",
           hour12: true,
-        }).format(dateObj);
+        }).format(dateObj) + " IST";
       }
     }
   } catch {}

@@ -11,7 +11,7 @@ import EmbedScripts from '../../components/EmbedScripts';
 import AdSpot from '../../components/AdSpot';
 import ArticleContent from '../../components/ArticleContent';
 import SocialShareButtons from '../../components/SocialShareButtons';
-import { getImageUrl } from '@/lib/imageHelper';
+import { getImageUrl, resolvePostImage } from '@/lib/imageHelper';
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
 import SidebarDeferredClient from '../../components/SidebarDeferredClient';
@@ -218,7 +218,7 @@ if (!post) {
   const wordCount = textContent.split(/\s+/).length;
   const readTime = Math.ceil(wordCount / wordsPerMinute);
 
-  const mainImage = getImageUrl(post.featuredImage) || getImageUrl(post.banner_image) || getImageUrl(post.coverImage);
+  const mainImage = resolvePostImage(post) || getImageUrl(post.featuredImage) || getImageUrl(post.banner_image) || getImageUrl(post.coverImage);
 
   const authorsList = Array.isArray(post.authors) && post.authors.length > 0
     ? post.authors.filter(isUserObject)
@@ -368,9 +368,9 @@ if (!post) {
                 />
               </div>
             )}
-            {(post.featuredImageCaption || post.featuredImage?.caption || post.caption || post.summary || post.excerpt) && (
+            {(post.featuredImageCaption || post.featuredImage?.caption || post.caption) && (
               <figcaption className="p-3 text-center text-sm text-gray-800 border-t border-gray-100 bg-white">
-                {post.featuredImageCaption || post.featuredImage?.caption || post.caption || post.summary || post.excerpt}
+                {post.featuredImageCaption || post.featuredImage?.caption || post.caption}
               </figcaption>
             )}
           </figure>

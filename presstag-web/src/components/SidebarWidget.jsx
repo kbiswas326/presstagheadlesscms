@@ -26,12 +26,12 @@ const formatWidgetDate = (dateString, timeString) => {
       const [hours, minutes] = timeString.split(':');
       if (!isNaN(dateObj.getTime()) && hours && minutes) {
         dateObj.setHours(parseInt(hours), parseInt(minutes));
-        return new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' }).format(dateObj);
+        return `${new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' }).format(dateObj)} IST`;
       }
     } catch (e) { console.error(e); }
   }
   if (!dateString) return '';
-  return new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(dateString));
+  return `${new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(dateString))} IST`;
 };
 
 const TrendingWidget = ({ widget, currentPostId, excludePostKeys, urlStructure, fallbackImage }) => {

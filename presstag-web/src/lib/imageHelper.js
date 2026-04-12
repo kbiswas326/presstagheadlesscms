@@ -78,6 +78,19 @@ export function resolvePostImage(post, fallbackImage = null) {
 
   if (resolved) return resolved;
 
+  const rawType = String(post?.type || '').toLowerCase().trim();
+  const isVideo = rawType === 'video' || rawType.includes('video');
+  const videoId =
+    (typeof post?.video?.videoId === 'string' && post.video.videoId.trim()) ||
+    (typeof post?.videoId === 'string' && post.videoId.trim()) ||
+    null;
+  if (isVideo) {
+    const url = String(post?.videoUrl || post?.video?.url || '').trim();
+    const match = url.match(/^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]{11}).*/);
+    const id = videoId || (match ? match[2] : null);
+    if (id) return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
+  }
+
   if (fallbackImage) return fallbackImage;
 
   return null;

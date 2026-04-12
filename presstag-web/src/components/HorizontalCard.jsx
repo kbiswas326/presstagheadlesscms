@@ -4,7 +4,7 @@ import { calculateReadTime } from "../util/readTime";
 import Image from "next/image";
 import React from "react";
 import Link from "next/link";
-import { getImageUrl } from '@/lib/imageHelper';
+import { getImageUrl, resolvePostImage } from '@/lib/imageHelper';
 import { buildPostUrl } from '@/lib/urlBuilder';
 
 const HorizontalCard = ({ post, urlStructure }) => {
@@ -17,7 +17,7 @@ const HorizontalCard = ({ post, urlStructure }) => {
   
   const postUrl = buildPostUrl(post, urlStructure);
 
-const imageUrl = post.image || getImageUrl(post.featuredImage?.url || post.featuredImage || post.banner_image || post.coverImage?.url || post.coverImage);
+const imageUrl = post.image || resolvePostImage(post) || getImageUrl(post.featuredImage?.url || post.featuredImage || post.banner_image || post.coverImage?.url || post.coverImage);
 let finalImageSrc = null;
 if (imageUrl) {
   if (imageUrl.startsWith('http')) {

@@ -614,7 +614,11 @@ const getSelectedTagsText = () =>
 
                 const payload = buildGalleryPayload('published');
 
-                await posts.update(postId, payload);
+                const response = await posts.update(postId, payload);
+                if (response && response.error) {
+                  alert(response.error);
+                  return;
+                }
                 alert('Gallery updated');
               } catch (err) {
                 alert('Failed to update gallery');
@@ -642,11 +646,18 @@ const getSelectedTagsText = () =>
                 payload.publishDate = currentDate;
                 payload.publishTime = currentTime;
                 payload.publishedAt = now.toISOString();
+                payload.notifySubscribers = true;
+                payload.notifyType = 'post_published';
 
+                let response;
                 if (postId) {
-                  await posts.update(postId, payload);
+                  response = await posts.update(postId, payload);
                 } else {
-                  await posts.create(payload);
+                  response = await posts.create(payload);
+                }
+                if (response && response.error) {
+                  alert(response.error);
+                  return;
                 }
                 alert('Photo Gallery published');
                 router.push('/posts/published');
@@ -800,7 +811,7 @@ const getSelectedTagsText = () =>
                           onChange={e => updateImage(idx, { caption: e.target.value })}
                         />
                         <textarea
-                          className={`w-full p-2 rounded border text-sm mb-2 ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "border-gray-200"}`}
+                          className={`w-full p-3 rounded border text-sm mb-2 resize-y min-h-28 ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "border-gray-200"}`}
                           placeholder="Describe this image..."
                           value={img.description}
                           onChange={e => updateImage(idx, { description: e.target.value })}

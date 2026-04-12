@@ -356,9 +356,9 @@ const LiveBlogViewer = ({ post }) => {
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
-                                {(featuredImageCaption || featuredImage?.caption || summary) && (
+                                {(featuredImageCaption || featuredImage?.caption) && (
                                      <figcaption className="p-3 text-center text-sm text-gray-800 border-t border-gray-100 bg-white">
-                                         {featuredImageCaption || featuredImage?.caption || summary}
+                                         {featuredImageCaption || featuredImage?.caption}
                                      </figcaption>
                                 )}
                             </figure>

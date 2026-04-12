@@ -14,7 +14,7 @@ import AdSpot from '../../../components/AdSpot';
 import ArticleContent from '../../../components/ArticleContent';
 import SocialShareButtons from '../../../components/SocialShareButtons';
 import ResponsivePostGrid from '../../../components/ResponsivePostGrid';
-import { getImageUrl } from '@/lib/imageHelper';
+import { getImageUrl, resolvePostImage } from '@/lib/imageHelper';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 import SidebarDeferredClient from '../../../components/SidebarDeferredClient';
@@ -131,13 +131,20 @@ export default async function PostPage({ params }) {
     post.publishedAt || post.createdAt
   );
 
+  const editorUser = post.editor;
+  const editorDisplayName = editorUser?.name || post.editorName || '';
+  const authorId = post.author?._id || post.authorId || '';
+  const editorId = editorUser?._id || '';
+  const authorName = post.author?.name || post.authorName || '';
+  const showEditor = !!editorDisplayName && String(editorId) !== String(authorId) && String(editorDisplayName) !== String(authorName);
+
   // Calculate read time
   const wordsPerMinute = 200;
   const textContent = post.content?.replace(/<[^>]*>/g, '') || '';
   const wordCount = textContent.split(/\s+/).length;
   const readTime = Math.ceil(wordCount / wordsPerMinute);
 
-  const mainImage = getImageUrl(post.featuredImage) || getImageUrl(post.banner_image) || getImageUrl(post.coverImage);
+  const mainImage = resolvePostImage(post) || getImageUrl(post.featuredImage) || getImageUrl(post.banner_image) || getImageUrl(post.coverImage);
 
   // Helper to extract YouTube ID
   const getYouTubeId = (url) => {
@@ -275,6 +282,18 @@ export default async function PostPage({ params }) {
               </span>
               <span className="text-xs text-gray-500">
                  {formattedDate} • {readTime} min read
+                 {showEditor && (
+                  <>
+                    {' '}• Edited by{' '}
+                    {editorUser?.slug ? (
+                      <Link href={`/author/${editorUser.slug}`} className="transition-colors hover:text-[var(--primary-color)]">
+                        {editorDisplayName}
+                      </Link>
+                    ) : (
+                      <span>{editorDisplayName}</span>
+                    )}
+                  </>
+                 )}
               </span>
             </div>
           </div>
@@ -304,9 +323,9 @@ export default async function PostPage({ params }) {
               </div>
           )}
           
-          {(post.featuredImageCaption || post.featuredImage?.caption || post.caption || post.summary || post.excerpt) && (
+          {(post.featuredImageCaption || post.featuredImage?.caption || post.caption) && (
               <figcaption className="p-3 text-center text-sm text-gray-800 border-t border-gray-100 bg-white">
-                  {post.featuredImageCaption || post.featuredImage?.caption || post.caption || post.summary || post.excerpt}
+                  {post.featuredImageCaption || post.featuredImage?.caption || post.caption}
               </figcaption>
           )}
       </figure>

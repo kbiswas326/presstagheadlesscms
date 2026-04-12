@@ -945,14 +945,21 @@ const handlePublish = async () => {
     setPublishTime(now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }));
     const payload = {
       ...buildPayload('published'),
+      notifySubscribers: true,
+      notifyType: 'post_published',
       publishedAt: now.toISOString(),
       publishDate: now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }),
       publishTime: now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }),
     };
+    let response;
     if (postId) {
-      await posts.update(postId, payload);
+      response = await posts.update(postId, payload);
     } else {
-      await posts.create(payload);
+      response = await posts.create(payload);
+    }
+    if (response && response.error) {
+      alert(response.error);
+      return;
     }
     alert('Web Story published successfully');
     router.push('/posts/published');
@@ -969,7 +976,11 @@ const handleUpdate = async () => {
       return;
     }
     const payload = buildPayload('published');
-    await posts.update(postId, payload);
+    const response = await posts.update(postId, payload);
+    if (response && response.error) {
+      alert(response.error);
+      return;
+    }
     alert('Web Story updated');
   } catch (err) {
     console.error('Update failed:', err);
@@ -1525,7 +1536,7 @@ const handleUpdate = async () => {
                       <div className="relative rounded-xl overflow-hidden border">
                         <div className="w-full bg-gray-50" style={{ aspectRatio: '3/4' }}>
                           <Image
-                            src={featuredImage.url}
+                            src={featuredImage.fullUrl || featuredImage.url}
                             alt={featuredImage.altText || 'Featured'}
                             width={1200}
                             height={1600}
