@@ -9,6 +9,7 @@ import ScrollToTop from "../components/ScrollToTop";
 import { AdProvider } from '../context/AdContext';
 import { fetchWithTenant, fetchLayoutConfig } from '../lib/fetchWithTenant';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '../lib/seo';
+import { renderHtmlInjection } from '../lib/htmlInjections';
 
 const roboto = Roboto({
   weight: ['400', '500', '700'],
@@ -111,9 +112,21 @@ async function getAds() {
   return [];
 }
 
+async function getHtmlInjections() {
+  try {
+    const res = await fetchWithTenant('/html-injections', { next: { revalidate: 60 } });
+    if (res.ok) {
+      const data = await res.json();
+      return data?.htmlInjections || null;
+    }
+  } catch(e) { console.error(e); }
+  return null;
+}
+
 export default async function RootLayout({ children }) {
   const config = await getLayoutConfig();
   const ads = await getAds();
+  const htmlInjections = await getHtmlInjections();
   const faviconHref = resolveSiteAssetUrl(config?.branding?.favicon || config?.branding?.logo || '/favicon.ico');
   const faviconVersion = config?.updatedAt ? new Date(config.updatedAt).getTime() : '';
   const faviconUrl = faviconHref
@@ -133,15 +146,19 @@ export default async function RootLayout({ children }) {
             <link rel="apple-touch-icon" href={faviconUrl} />
           </>
         ) : null}
+        {renderHtmlInjection(htmlInjections?.head)}
         <GoogleAnalytics measurementId={config?.analytics?.gaMeasurementId} />
+        {renderHtmlInjection(htmlInjections?.headEnd)}
       </head>
       <body className="flex flex-col min-h-screen">
+        {renderHtmlInjection(htmlInjections?.bodyStart)}
         <ScrollToTop />
         <AdProvider ads={ads}>
             <LayoutClient config={config}>
               {children}
             </LayoutClient>
         </AdProvider>
+        {renderHtmlInjection(htmlInjections?.bodyEnd)}
       </body>
     </html>
   );

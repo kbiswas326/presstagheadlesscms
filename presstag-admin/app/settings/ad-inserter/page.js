@@ -15,6 +15,9 @@ export default function AdInserterPage() {
   const [adsTxt, setAdsTxt] = useState('');
   const [isAdsTxtLoading, setIsAdsTxtLoading] = useState(true);
   const [isAdsTxtSaving, setIsAdsTxtSaving] = useState(false);
+  const [htmlInjections, setHtmlInjections] = useState({ head: '', headEnd: '', bodyStart: '', bodyEnd: '' });
+  const [isHtmlInjectionsLoading, setIsHtmlInjectionsLoading] = useState(true);
+  const [isHtmlInjectionsSaving, setIsHtmlInjectionsSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAd, setEditingAd] = useState(null);
 
@@ -67,6 +70,7 @@ export default function AdInserterPage() {
   useEffect(() => {
     fetchAds();
     fetchAdsTxt();
+    fetchHtmlInjections();
   }, []);
 
   const fetchAds = async () => {
@@ -131,6 +135,56 @@ export default function AdInserterPage() {
       toast.error('Failed to save ads.txt');
     } finally {
       setIsAdsTxtSaving(false);
+    }
+  };
+
+  const fetchHtmlInjections = async () => {
+    try {
+      const res = await fetch(`${BASE}/api/html-injections`, {
+        headers: { 'x-tenant-id': getTenantId() },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const inj = data?.htmlInjections || {};
+        setHtmlInjections({
+          head: String(inj.head || ''),
+          headEnd: String(inj.headEnd || ''),
+          bodyStart: String(inj.bodyStart || ''),
+          bodyEnd: String(inj.bodyEnd || ''),
+        });
+      } else {
+        console.error('Failed to load html injections');
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsHtmlInjectionsLoading(false);
+    }
+  };
+
+  const saveHtmlInjections = async () => {
+    try {
+      setIsHtmlInjectionsSaving(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${BASE}/api/html-injections`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'x-tenant-id': getTenantId(),
+        },
+        body: JSON.stringify({ htmlInjections }),
+      });
+      if (res.ok) {
+        toast.success('HTML injections saved successfully');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Failed to save HTML injections');
+      }
+    } catch {
+      toast.error('Failed to save HTML injections');
+    } finally {
+      setIsHtmlInjectionsSaving(false);
     }
   };
 
@@ -302,6 +356,64 @@ export default function AdInserterPage() {
             onChange={(e) => setAdsTxt(e.target.value)}
             spellCheck={false}
           />
+        </div>
+
+        <div className={`${cardClass} mb-8`}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-bold">HTML Injections</h2>
+              <p className={`mt-1 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                Add scripts/meta tags in head or body (GTM, verification, preconnect, etc.)
+              </p>
+            </div>
+            <button
+              onClick={saveHtmlInjections}
+              disabled={isHtmlInjectionsSaving || isHtmlInjectionsLoading}
+              className={`${btnClass} ${isHtmlInjectionsSaving || isHtmlInjectionsLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
+            >
+              <Save size={16} />
+              {isHtmlInjectionsSaving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Head (top)</label>
+              <textarea
+                className={`w-full rounded-lg border font-mono text-sm p-3 h-40 ${isDark ? 'bg-gray-900 border-gray-700 text-gray-100' : 'bg-white border-gray-200 text-gray-900'}`}
+                value={htmlInjections.head}
+                onChange={(e) => setHtmlInjections(prev => ({ ...prev, head: e.target.value }))}
+                spellCheck={false}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Head (end)</label>
+              <textarea
+                className={`w-full rounded-lg border font-mono text-sm p-3 h-40 ${isDark ? 'bg-gray-900 border-gray-700 text-gray-100' : 'bg-white border-gray-200 text-gray-900'}`}
+                value={htmlInjections.headEnd}
+                onChange={(e) => setHtmlInjections(prev => ({ ...prev, headEnd: e.target.value }))}
+                spellCheck={false}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Body (start)</label>
+              <textarea
+                className={`w-full rounded-lg border font-mono text-sm p-3 h-40 ${isDark ? 'bg-gray-900 border-gray-700 text-gray-100' : 'bg-white border-gray-200 text-gray-900'}`}
+                value={htmlInjections.bodyStart}
+                onChange={(e) => setHtmlInjections(prev => ({ ...prev, bodyStart: e.target.value }))}
+                spellCheck={false}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Body (end)</label>
+              <textarea
+                className={`w-full rounded-lg border font-mono text-sm p-3 h-40 ${isDark ? 'bg-gray-900 border-gray-700 text-gray-100' : 'bg-white border-gray-200 text-gray-900'}`}
+                value={htmlInjections.bodyEnd}
+                onChange={(e) => setHtmlInjections(prev => ({ ...prev, bodyEnd: e.target.value }))}
+                spellCheck={false}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-between items-center mb-8">

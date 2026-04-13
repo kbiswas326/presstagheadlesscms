@@ -14,6 +14,7 @@ const mediaRoutes = require('./routes/media');
 const layoutConfigRoutes = require('./routes/layoutConfig');
 const adBlockRoutes = require('./routes/adBlocks');
 const adsTxtRoutes = require('./routes/adsTxt');
+const htmlInjectionsRoutes = require('./routes/htmlInjections');
 const analyticsRoutes = require('./routes/analytics');
 const pushRoutes = require('./routes/push');
 
@@ -63,6 +64,7 @@ app.use('/api/media', mediaRoutes);
 app.use('/api/layout-config', layoutConfigRoutes);
 app.use('/api/ad-blocks', adBlockRoutes);
 app.use('/api/ads-txt', adsTxtRoutes);
+app.use('/api/html-injections', htmlInjectionsRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/push', pushRoutes.router);
 
