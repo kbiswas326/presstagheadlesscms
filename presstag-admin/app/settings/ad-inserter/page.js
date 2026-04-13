@@ -12,6 +12,9 @@ export default function AdInserterPage() {
   const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
   const [ads, setAds] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [adsTxt, setAdsTxt] = useState('');
+  const [isAdsTxtLoading, setIsAdsTxtLoading] = useState(true);
+  const [isAdsTxtSaving, setIsAdsTxtSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAd, setEditingAd] = useState(null);
 
@@ -63,6 +66,7 @@ export default function AdInserterPage() {
 
   useEffect(() => {
     fetchAds();
+    fetchAdsTxt();
   }, []);
 
   const fetchAds = async () => {
@@ -83,6 +87,50 @@ export default function AdInserterPage() {
       // toast.error('Error connecting to server');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchAdsTxt = async () => {
+    try {
+      const res = await fetch(`${BASE}/api/ads-txt`, {
+        headers: { 'x-tenant-id': getTenantId() },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAdsTxt(String(data?.adsTxt || ''));
+      } else {
+        console.error('Failed to load ads.txt');
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAdsTxtLoading(false);
+    }
+  };
+
+  const saveAdsTxt = async () => {
+    try {
+      setIsAdsTxtSaving(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${BASE}/api/ads-txt`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'x-tenant-id': getTenantId(),
+        },
+        body: JSON.stringify({ adsTxt }),
+      });
+      if (res.ok) {
+        toast.success('ads.txt saved successfully');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Failed to save ads.txt');
+      }
+    } catch {
+      toast.error('Failed to save ads.txt');
+    } finally {
+      setIsAdsTxtSaving(false);
     }
   };
 
@@ -230,6 +278,32 @@ export default function AdInserterPage() {
   return (
     <div className={`min-h-screen p-8 ${isDark ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-6xl mx-auto">
+        <div className={`${cardClass} mb-8`}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-bold">ads.txt</h2>
+              <p className={`mt-1 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                Served at /ads.txt on the frontend
+              </p>
+            </div>
+            <button
+              onClick={saveAdsTxt}
+              disabled={isAdsTxtSaving || isAdsTxtLoading}
+              className={`${btnClass} ${isAdsTxtSaving || isAdsTxtLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
+            >
+              <Save size={16} />
+              {isAdsTxtSaving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+          <textarea
+            className={`w-full rounded-lg border font-mono text-sm p-4 h-64 ${isDark ? 'bg-gray-900 border-gray-700 text-gray-100' : 'bg-white border-gray-200 text-gray-900'}`}
+            placeholder="google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0"
+            value={adsTxt}
+            onChange={(e) => setAdsTxt(e.target.value)}
+            spellCheck={false}
+          />
+        </div>
+
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Ad Inserter</h1>
