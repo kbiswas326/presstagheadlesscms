@@ -33,29 +33,6 @@ const GalleryClient = ({ post }) => {
 
     const images = post.images || [];
 
-    const getImageUrl = (img) => {
-        if (!img) return '/placeholder.jpg';
-        const url = typeof img === 'string' ? img : (img.url || img);
-        
-        if (!url || typeof url !== 'string') return '/placeholder.jpg';
-
-        if (url.startsWith('http')) {
-            // Fix port compatibility: replace localhost:5000 with localhost:5001
-            return url.replace('localhost:5000', 'localhost:5001');
-        }
-        
-        // Base URL handling
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-        const baseUrl = apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl;
-        
-        let path = url.startsWith('/') ? url : `/${url}`;
-        if (!path.startsWith('/uploads/')) {
-            path = `/uploads${path}`;
-        }
-        
-        return `${baseUrl}${path}`;
-    };
-
     const formattedDate = formatPublishDateTime(
       post.publishDate,
       post.publishTime,
@@ -104,6 +81,8 @@ const GalleryClient = ({ post }) => {
     if (!post) return null;
 
     const mainImage = getImageUrl(post.featuredImage || post.banner_image || images[0]);
+    const currentImage = images[currentImageIndex] || null;
+    const currentHeading = currentImage?.heading || currentImage?.title || currentImage?.caption || `Image ${currentImageIndex + 1}`;
 
     return (
         <div className={`min-h-screen bg-gray-50 text-gray-900 ${merriweather.className}`}>
@@ -157,26 +136,59 @@ const GalleryClient = ({ post }) => {
                               const editorDisplayName = (editorUser?.name || (typeof post.editorName === 'string' ? post.editorName : '')).trim();
                               const editorId = editorUser?._id ? String(editorUser._id) : (typeof post.editor === 'string' ? post.editor : '');
                               const showEditor = !!(editorDisplayName && primaryAuthor && String(editorId) !== String(primaryAuthor?._id || ''));
-                              const byline = safeAuthors.length > 0
-                                ? safeAuthors.map((a) => a?.name).filter(Boolean).join(', ')
-                                : (post.authorName || 'SportzPoint Editor');
+                              const authorAvatar = getImageUrl(primaryAuthor?.image || post.authorImage);
+                              const bylineNodes = safeAuthors.length > 0
+                                ? safeAuthors
+                                    .map((a) => {
+                                      if (!a) return null;
+                                      const name = String(a?.name || '').trim();
+                                      if (!name) return null;
+                                      const slug = String(a?.slug || '').trim();
+                                      if (slug) return <Link key={String(a?._id || a?.id || slug)} href={`/author/${slug}`} className="hover:text-[var(--primary-color)] transition-colors">{name}</Link>;
+                                      return <span key={String(a?._id || a?.id || name)}>{name}</span>;
+                                    })
+                                    .filter(Boolean)
+                                : [<span key="desk">{post.authorName || 'SportzPoint Editor'}</span>];
                               return (
                                 <div className="flex items-center justify-between border-b border-gray-100 pb-6 mb-6">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden relative">
-                                        <Image
-                                            src={getImageUrl(primaryAuthor?.image || post.authorImage)}
-                                            alt={primaryAuthor?.name || post.authorName || 'Author'}
-                                            fill
-                                            className="object-cover"
-                                        />
+                                        {authorAvatar ? (
+                                            <Image
+                                                src={authorAvatar}
+                                                alt={primaryAuthor?.name || post.authorName || 'Author'}
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                                <svg className="w-full h-full text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                                                </svg>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex flex-col">
                                         <span className="font-bold text-gray-900 text-sm">
-                                            {byline}
+                                            {bylineNodes.reduce((acc, node, idx) => {
+                                                if (idx === 0) return [node];
+                                                return acc.concat([<span key={`sep-${idx}`}>, </span>, node]);
+                                            }, [])}
                                         </span>
                                         <span className="text-xs text-gray-500">
-                                            {formattedDate}{showEditor ? ` • Edited by ${editorDisplayName}` : ''}
+                                            {formattedDate}
+                                            {showEditor && (
+                                                <>
+                                                    {' '}• Edited by{' '}
+                                                    {editorUser?.slug ? (
+                                                        <Link href={`/author/${editorUser.slug}`} className="transition-colors hover:text-[var(--primary-color)]">
+                                                            {editorDisplayName}
+                                                        </Link>
+                                                    ) : (
+                                                        <span>{editorDisplayName}</span>
+                                                    )}
+                                                </>
+                                            )}
                                         </span>
                                     </div>
                                 </div>
@@ -206,60 +218,96 @@ const GalleryClient = ({ post }) => {
                         )}
 
                         <div className="py-8">
-                            <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center justify-between mb-6 gap-4">
                                 <h2 className="text-2xl font-bold flex items-center gap-2">
                                     <FaTh className="text-green-500" />
                                     Gallery Photos <span className="text-gray-500 text-lg font-normal">({images.length})</span>
                                 </h2>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={prevImage}
+                                        disabled={images.length <= 1}
+                                        className="px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        aria-label="Previous image"
+                                    >
+                                        <FaChevronLeft />
+                                    </button>
+                                    <div className="text-sm text-gray-500 tabular-nums">
+                                        {images.length ? `${currentImageIndex + 1} / ${images.length}` : '0 / 0'}
+                                    </div>
+                                    <button
+                                        onClick={nextImage}
+                                        disabled={images.length <= 1}
+                                        className="px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        aria-label="Next image"
+                                    >
+                                        <FaChevronRight />
+                                    </button>
+                                </div>
                             </div>
 
                             <AdSpot position="article_top" />
 
-                            {/* Gallery List - Vertical Stack */}
-                            <div className="space-y-12 my-8">
-                                {images.map((img, idx) => (
-                                    <div key={idx} className="border-b border-gray-100 pb-12 last:border-0 last:pb-0">
-                                        {/* 1. Image Heading */}
-                                        <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                                            {img.heading || img.title || img.caption || `Image ${idx + 1}`}
-                                        </h2>
+                            {currentImage ? (
+                                <div className="my-8">
+                                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                                        {currentHeading}
+                                    </h2>
 
-                                        {/* 2. Image with Caption (Standard Design) */}
-                                        <figure className="w-full mb-6 rounded-xl overflow-hidden shadow-md bg-white border border-gray-100 cursor-pointer" onClick={() => openLightbox(idx)}>
-                                            <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-                                                <img
-                                                    src={getImageUrl(img)}
-                                                    alt={img.caption || `Gallery image ${idx + 1}`}
-                                                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                                                />
-                                                <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
-                                                    <FaSearchPlus className="text-white drop-shadow-lg" size={32} />
-                                                </div>
+                                    <figure className="w-full mb-4 rounded-xl overflow-hidden shadow-md bg-white border border-gray-100 cursor-pointer" onClick={() => openLightbox(currentImageIndex)}>
+                                        <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+                                            <Image
+                                                src={getImageUrl(currentImage)}
+                                                alt={currentImage?.caption || `Gallery image ${currentImageIndex + 1}`}
+                                                fill
+                                                sizes="(max-width: 1024px) 100vw, 72vw"
+                                                className="object-cover"
+                                                priority
+                                            />
+                                            <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
+                                                <FaSearchPlus className="text-white drop-shadow-lg" size={32} />
                                             </div>
-                                            {img.caption && (
-                                                <figcaption className="p-3 text-center text-sm text-gray-800 border-t border-gray-100 bg-white">
-                                                    {img.caption}
-                                                </figcaption>
-                                            )}
-                                        </figure>
-
-                                        {/* 3. Image Description */}
-                                        {img.description && (
-                                            <div className="prose prose-lg text-gray-700 leading-loose max-w-none">
-                                                <p>{img.description}</p>
-                                            </div>
+                                        </div>
+                                        {currentImage?.caption && (
+                                            <figcaption className="p-3 text-center text-sm text-gray-800 border-t border-gray-100 bg-white">
+                                                {currentImage.caption}
+                                            </figcaption>
                                         )}
-                                        
-                                        {/* Ad Spot after every 3rd image */}
-                                        {(idx + 1) % 3 === 0 && <AdSpot position="article_middle" />}
-                                    </div>
-                                ))}
-                            </div>
-                            
+                                    </figure>
+
+                                    {currentImage?.description && (
+                                        <div className="prose prose-lg text-gray-700 leading-loose max-w-none">
+                                            <p>{currentImage.description}</p>
+                                        </div>
+                                    )}
+
+                                    {images.length > 1 && (
+                                        <div className="mt-6 flex gap-2 overflow-x-auto pb-2">
+                                            {images.map((img, idx) => {
+                                                const thumb = getImageUrl(img);
+                                                const active = idx === currentImageIndex;
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => setCurrentImageIndex(idx)}
+                                                        className={`relative w-20 h-14 rounded-lg overflow-hidden border flex-shrink-0 ${active ? 'ring-2 ring-emerald-500 border-emerald-300' : 'border-gray-200 hover:border-gray-300'}`}
+                                                        aria-label={`Go to image ${idx + 1}`}
+                                                    >
+                                                        <Image src={thumb} alt={img?.caption || `thumb-${idx + 1}`} fill sizes="80px" className="object-cover" />
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-center py-20 text-gray-500">No gallery images found.</div>
+                            )}
+
                             <AdSpot position="article_bottom" />
 
                             {post.content && (
-                                <div className={`mt-16 prose prose-lg max-w-none`} dangerouslySetInnerHTML={{ __html: post.content.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001') }} />
+                                <div className={`mt-16 prose prose-lg max-w-none`} dangerouslySetInnerHTML={{ __html: post.content }} />
                             )}
                         </div>
                     </main>

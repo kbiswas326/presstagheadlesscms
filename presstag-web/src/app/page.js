@@ -22,11 +22,12 @@ async function getPosts(params = {}) {
   const { type = 'latest', value, limit = 10, excludeKeys = [], sort } = params;
   let path = `/posts?status=published&limit=${limit}&lite=1`;
   const normalizedValue = value != null ? String(value).trim() : '';
-  const normalizedSlug = normalizedValue.replace(/^#/, '').toLowerCase();
-  if (type === 'category' && normalizedValue) path += '&category=' + encodeURIComponent(normalizedSlug);
-  else if (type === 'tag' && normalizedValue) path += '&tag=' + encodeURIComponent(normalizedSlug);
-  else if (type === 'author' && normalizedValue) path += '&author=' + encodeURIComponent(normalizedSlug);
-  else if ((type === 'content_type' || type === 'type') && normalizedValue) path += '&type=' + encodeURIComponent(normalizedSlug);
+  const cleanedValue = normalizedValue.replace(/^#/, '').trim();
+  const normalizedSlug = cleanedValue.toLowerCase();
+  if (type === 'category' && cleanedValue) path += '&category=' + encodeURIComponent(normalizedSlug);
+  else if (type === 'tag' && cleanedValue) path += '&tag=' + encodeURIComponent(cleanedValue);
+  else if (type === 'author' && cleanedValue) path += '&author=' + encodeURIComponent(cleanedValue);
+  else if ((type === 'content_type' || type === 'type') && cleanedValue) path += '&type=' + encodeURIComponent(normalizedSlug.replace(/\s+/g, '-'));
   if (sort) path += '&sort=' + encodeURIComponent(String(sort));
   try {
     const res = await fetchWithTenant(path, { next: { revalidate: 60 } });
@@ -100,10 +101,11 @@ export default async function Page() {
           posts = posts.slice(0, limit);
 
           const rawValue = section.sourceValue != null ? String(section.sourceValue).trim() : '';
-          const normalized = rawValue.replace(/^#/, '').toLowerCase();
-          if (section.sourceType === 'category') viewAllUrl = `/category/${normalized}`;
-          else if (section.sourceType === 'tag') viewAllUrl = `/${tagPrefix}/${normalized}`;
-          else if (section.sourceType === 'author') viewAllUrl = `/author/${normalized}`;
+          const cleanedValue = rawValue.replace(/^#/, '').trim();
+          const normalized = cleanedValue.toLowerCase();
+          if (section.sourceType === 'category') viewAllUrl = `/category/${encodeURIComponent(normalized)}`;
+          else if (section.sourceType === 'tag') viewAllUrl = `/${tagPrefix}/${encodeURIComponent(cleanedValue)}`;
+          else if (section.sourceType === 'author') viewAllUrl = `/author/${encodeURIComponent(cleanedValue)}`;
         }
 
         return {

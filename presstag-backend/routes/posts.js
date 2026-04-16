@@ -402,36 +402,36 @@ router.get('/', async (req, res) => {
     // Category filter
     if (category && category !== 'All') {
       const categoryValueRaw = String(category).trim();
-      const categoryValue = categoryValueRaw.replace(/^#/, '').toLowerCase();
-      let categoryId = categoryValue;
-      if (!ObjectId.isValid(categoryId)) {
+      const categoryValue = categoryValueRaw.replace(/^#/, '').trim();
+      let categoryId = null;
+      if (ObjectId.isValid(categoryValue)) {
+        categoryId = new ObjectId(categoryValue);
+      } else if (categoryValue) {
+        const escaped = categoryValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const catObj =
-          await db.collection('categories').findOne({ slug: categoryValue }) ||
-          await db.collection('categories').findOne({ slug: categoryValueRaw });
+          await db.collection('categories').findOne({ slug: { $regex: `^${escaped}$`, $options: 'i' } }, { projection: { _id: 1 } }) ||
+          await db.collection('categories').findOne({ name: { $regex: `^${escaped}$`, $options: 'i' } }, { projection: { _id: 1 } });
         if (catObj?._id) categoryId = catObj._id;
       }
-      if (ObjectId.isValid(categoryId)) {
-        const oid = new ObjectId(categoryId);
-        and.push({ $or: [{ categories: oid }, { primary_category: oid }] });
+      if (categoryId) {
+        and.push({ $or: [{ categories: categoryId }, { primary_category: categoryId }] });
       }
     }
 
     if (tag && tag !== 'All') {
       const tagValueRaw = String(tag).trim();
-      const tagValue = tagValueRaw.replace(/^#/, '').toLowerCase();
-      if (tagValue) {
-        const ors = [];
-        if (ObjectId.isValid(tagValue)) {
-          ors.push({ tags: new ObjectId(tagValue) });
-        } else {
-          const tagObj =
-            await db.collection('tags').findOne({ slug: tagValue }, { projection: { _id: 1 } }) ||
-            await db.collection('tags').findOne({ slug: tagValueRaw }, { projection: { _id: 1 } });
-          if (tagObj?._id) ors.push({ tags: tagObj._id });
-          ors.push({ tags: tagValue });
-        }
-        if (ors.length > 0) and.push({ $or: ors });
+      const tagValue = tagValueRaw.replace(/^#/, '').trim();
+      let tagId = null;
+      if (ObjectId.isValid(tagValue)) {
+        tagId = new ObjectId(tagValue);
+      } else if (tagValue) {
+        const escaped = tagValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const tagObj =
+          await db.collection('tags').findOne({ slug: { $regex: `^${escaped}$`, $options: 'i' } }, { projection: { _id: 1 } }) ||
+          await db.collection('tags').findOne({ name: { $regex: `^${escaped}$`, $options: 'i' } }, { projection: { _id: 1 } });
+        if (tagObj?._id) tagId = tagObj._id;
       }
+      if (tagId) and.push({ tags: tagId });
     }
 
     if (and.length > 0) query.$and = and;

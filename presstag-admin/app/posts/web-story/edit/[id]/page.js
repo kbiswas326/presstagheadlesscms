@@ -3,7 +3,7 @@
 
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, CheckCircle2, AlertCircle, XCircle, ChevronDown, Upload, GripVertical } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, AlertCircle, XCircle, ChevronDown, Upload, GripVertical, X } from 'lucide-react';
 import { ArrowLeft } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useUser } from '../../../../context/UserContext';
@@ -72,6 +72,9 @@ const [mediaSelectorMode, setMediaSelectorMode] = useState('slide'); // 'slide' 
   const [featuredImage, setFeaturedImage] = useState(null);
   const [publishDate, setPublishDate] = useState('');
   const [publishTime, setPublishTime] = useState('');
+  const [isLoadingAction, setIsLoadingAction] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
 
   const [showAuthorDropdown, setShowAuthorDropdown] = useState(false);
   const [showCategoriesDropdown, setShowCategoriesDropdown] = useState(false);
@@ -907,31 +910,52 @@ const buildPayload = (status) => ({
 
 const handleSaveDraft = async () => {
   try {
+    setIsLoadingAction(true);
+    setError(null);
+    setSuccess(null);
     const payload = buildPayload('draft');
-    if (postId) {
-      await posts.update(postId, payload);
+    let response;
+    if (postId && postId !== 'new') {
+      response = await posts.update(postId, payload);
     } else {
-      await posts.create(payload);
+      response = await posts.create(payload);
     }
-    alert('Draft saved successfully');
+    if (response && response.error) {
+      setError(response.error);
+      return;
+    }
+    setSuccess(postId && postId !== 'new' ? 'Draft updated successfully!' : 'Draft saved successfully!');
   } catch (err) {
     console.error('Save draft failed:', err);
-    alert('Failed to save draft');
+    setError('Failed to save draft: ' + err.message);
+  } finally {
+    setIsLoadingAction(false);
   }
 };
 
 const handleSendForApproval = async () => {
   try {
+    setIsLoadingAction(true);
+    setError(null);
+    setSuccess(null);
     const payload = buildPayload('pending');
-    if (postId) {
-      await posts.update(postId, payload);
+    let response;
+    if (postId && postId !== 'new') {
+      response = await posts.update(postId, payload);
     } else {
-      await posts.create(payload);
+      response = await posts.create(payload);
     }
-    alert('Sent for approval successfully');
+    if (response && response.error) {
+      setError(response.error);
+      return;
+    }
+    setSuccess(postId && postId !== 'new' ? 'Sent for approval' : 'Web Story sent for approval!');
+    setTimeout(() => router.push('/posts'), 2000);
   } catch (err) {
     console.error('Send for approval failed:', err);
-    alert('Failed to send for approval');
+    setError('Failed to send for approval: ' + err.message);
+  } finally {
+    setIsLoadingAction(false);
   }
 };
 
@@ -941,6 +965,9 @@ const handlePublish = async () => {
   tags,
 });
   try {
+    setIsLoadingAction(true);
+    setError(null);
+    setSuccess(null);
     const now = new Date();
     setPublishDate(now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }));
     setPublishTime(now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }));
@@ -959,33 +986,41 @@ const handlePublish = async () => {
       response = await posts.create(payload);
     }
     if (response && response.error) {
-      alert(response.error);
+      setError(response.error);
       return;
     }
-    alert('Web Story published successfully!');
-    router.push('/posts/published');
+    setSuccess('Web Story published successfully!');
+    setTimeout(() => router.push('/posts/published'), 2000);
   } catch (err) {
     console.error('Publish failed:', err);
-    alert('Failed to publish web story');
+    setError('Failed to publish web story: ' + err.message);
+  } finally {
+    setIsLoadingAction(false);
   }
 };
 
 const handleUpdate = async () => {
   try {
     if (!postId || postId === 'new') {
-      alert('Open an existing Web Story to update');
+      setError('Open an existing Web Story to update');
       return;
     }
+    setIsLoadingAction(true);
+    setError(null);
+    setSuccess(null);
     const payload = buildPayload('published');
     const response = await posts.update(postId, payload);
     if (response && response.error) {
-      alert(response.error);
+      setError(response.error);
       return;
     }
-    alert('Web Story updated successfully!');
+    setSuccess('Web Story updated successfully!');
+    setTimeout(() => router.push('/posts/published'), 2000);
   } catch (err) {
     console.error('Update failed:', err);
-    alert('Failed to update web story');
+    setError('Failed to update web story: ' + err.message);
+  } finally {
+    setIsLoadingAction(false);
   }
 };
 
@@ -1225,6 +1260,24 @@ const handleUpdate = async () => {
             </button>
           </div>
         </div>
+
+        {(error || success) && (
+          <div className={`mb-4 p-4 rounded-xl border flex items-start justify-between gap-4 ${success ? (isDark ? 'bg-emerald-900/20 border-emerald-700/40' : 'bg-emerald-50 border-emerald-200') : (isDark ? 'bg-red-900/20 border-red-700/40' : 'bg-red-50 border-red-200')}`}>
+            <div className="flex items-start gap-3">
+              {success ? (
+                <CheckCircle2 className={isDark ? 'text-emerald-300' : 'text-emerald-600'} size={20} />
+              ) : (
+                <XCircle className={isDark ? 'text-red-300' : 'text-red-600'} size={20} />
+              )}
+              <div className={`${isDark ? 'text-gray-200' : 'text-gray-800'} text-sm`}>
+                {success || error}
+              </div>
+            </div>
+            <button onClick={() => { setError(null); setSuccess(null); }} className={`${isDark ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
+              <X size={18} />
+            </button>
+          </div>
+        )}
 
         {/* Title and Slug only visible in Edit tab */}
         {activeTab === 'edit' && (

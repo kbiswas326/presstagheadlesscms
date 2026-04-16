@@ -166,6 +166,9 @@ const getSelectedTagsText = () =>
   const [featuredImage, setFeaturedImage] = useState(null);
   const [showMediaSelector, setShowMediaSelector] = useState(false);
   const [showGalleryMediaSelector, setShowGalleryMediaSelector] = useState(false);
+  const [isLoadingAction, setIsLoadingAction] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
 
   // SEO fields
   const [keyword, setKeyword] = useState('');
@@ -196,7 +199,7 @@ const getSelectedTagsText = () =>
   useEffect(() => {
     const checks = [];
     let score = 0;
-    const maxScore = 100;
+    const maxPossibleScore = 83;
     const allDescriptions = images.map(img => img.description || '').join(' ');
     const allAltTexts = images.map(img => img.altText || '').join(' ');
     const plainContent = stripHtml(allDescriptions);
@@ -322,7 +325,8 @@ const getSelectedTagsText = () =>
       score += 3;
     }
 
-    setSeoScore(Math.min(score, maxScore));
+    const normalizedScore = maxPossibleScore > 0 ? Math.round((score / maxPossibleScore) * 100) : 0;
+    setSeoScore(Math.max(0, Math.min(100, normalizedScore)));
     setSeoChecks(checks);
   }, [keyword, title, metaDescription, slug, images]);
 
@@ -564,17 +568,27 @@ const getSelectedTagsText = () =>
           <button
   onClick={async () => {
     try {
+      setIsLoadingAction(true);
+      setError(null);
+      setSuccess(null);
       const payload = buildGalleryPayload('draft');
-      if (postId) {
-        await posts.update(postId, payload);
+      let response;
+      if (postId && postId !== 'new') {
+        response = await posts.update(postId, payload);
       } else {
-        await posts.create(payload);
+        response = await posts.create(payload);
       }
-      alert('Draft saved');
-      router.push('/posts');
+      if (response && response.error) {
+        setError(response.error);
+        return;
+      }
+      setSuccess(postId && postId !== 'new' ? 'Draft updated successfully!' : 'Draft saved successfully!');
+      setTimeout(() => router.push('/posts'), 2000);
     } catch (err) {
-      alert('Failed to save draft');
+      setError('Failed to save draft: ' + err.message);
       console.error(err);
+    } finally {
+      setIsLoadingAction(false);
     }
   }}
   className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full hover:bg-gray-200"
@@ -585,17 +599,27 @@ const getSelectedTagsText = () =>
           <button
   onClick={async () => {
     try {
+      setIsLoadingAction(true);
+      setError(null);
+      setSuccess(null);
       const payload = buildGalleryPayload('pending');
-      if (postId) {
-        await posts.update(postId, payload);
+      let response;
+      if (postId && postId !== 'new') {
+        response = await posts.update(postId, payload);
       } else {
-        await posts.create(payload);
+        response = await posts.create(payload);
       }
-      alert('Sent for approval');
-      router.push('/posts');
+      if (response && response.error) {
+        setError(response.error);
+        return;
+      }
+      setSuccess(postId && postId !== 'new' ? 'Sent for approval' : 'Photo Gallery sent for approval!');
+      setTimeout(() => router.push('/posts'), 2000);
     } catch (err) {
-      alert('Failed to send for approval');
+      setError('Failed to send for approval: ' + err.message);
       console.error(err);
+    } finally {
+      setIsLoadingAction(false);
     }
   }}
   className="px-5 py-2 rounded-full shadow border transition-colors"
@@ -608,21 +632,27 @@ const getSelectedTagsText = () =>
             onClick={async () => {
               try {
                 if (!postId || postId === 'new') {
-                  alert('Open an existing gallery to update');
+                  setError('Open an existing gallery to update');
                   return;
                 }
 
+                setIsLoadingAction(true);
+                setError(null);
+                setSuccess(null);
                 const payload = buildGalleryPayload('published');
 
                 const response = await posts.update(postId, payload);
                 if (response && response.error) {
-                  alert(response.error);
+                  setError(response.error);
                   return;
                 }
-                alert('Photo Gallery updated successfully!');
+                setSuccess('Photo Gallery updated successfully!');
+                setTimeout(() => router.push('/posts/published'), 2000);
               } catch (err) {
-                alert('Failed to update gallery');
+                setError('Failed to update gallery: ' + err.message);
                 console.error(err);
+              } finally {
+                setIsLoadingAction(false);
               }
             }}
             className="px-5 py-2 rounded-full shadow border"
@@ -633,6 +663,9 @@ const getSelectedTagsText = () =>
           <button
             onClick={async () => {
               try {
+                setIsLoadingAction(true);
+                setError(null);
+                setSuccess(null);
                 // Update publish date to now
                 const now = new Date();
                 const currentDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
@@ -656,14 +689,16 @@ const getSelectedTagsText = () =>
                   response = await posts.create(payload);
                 }
                 if (response && response.error) {
-                  alert(response.error);
+                  setError(response.error);
                   return;
                 }
-                alert('Photo Gallery published successfully!');
-                router.push('/posts/published');
+                setSuccess('Photo Gallery published successfully!');
+                setTimeout(() => router.push('/posts/published'), 2000);
               } catch (err) {
-                alert('Failed to publish gallery');
+                setError('Failed to publish gallery: ' + err.message);
                 console.error(err);
+              } finally {
+                setIsLoadingAction(false);
               }
             }}
             className="px-5 py-2 rounded-full shadow"
@@ -674,6 +709,24 @@ const getSelectedTagsText = () =>
 
         </div>
       </div>
+
+      {(error || success) && (
+        <div className={`mb-6 p-4 rounded-xl border flex items-start justify-between gap-4 ${success ? (isDark ? 'bg-emerald-900/20 border-emerald-700/40' : 'bg-emerald-50 border-emerald-200') : (isDark ? 'bg-red-900/20 border-red-700/40' : 'bg-red-50 border-red-200')}`}>
+          <div className="flex items-start gap-3">
+            {success ? (
+              <CheckCircle2 className={isDark ? 'text-emerald-300' : 'text-emerald-600'} size={20} />
+            ) : (
+              <XCircle className={isDark ? 'text-red-300' : 'text-red-600'} size={20} />
+            )}
+            <div className={`${isDark ? 'text-gray-200' : 'text-gray-800'} text-sm`}>
+              {success || error}
+            </div>
+          </div>
+          <button onClick={() => { setError(null); setSuccess(null); }} className={`${isDark ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
+            <X size={18} />
+          </button>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-6 border-b pb-4 mb-6">
@@ -784,7 +837,7 @@ const getSelectedTagsText = () =>
                   >
                     <Upload size={16} /> Upload Images
                   </button>
-                  <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="mt-4 flex flex-col gap-4">
                     {images.map((img, idx) => (
                       <div
                         key={idx}
@@ -793,35 +846,39 @@ const getSelectedTagsText = () =>
                         onDragOver={handleDragOver}
                         onDragEnter={(e) => handleDragEnter(e, idx)}
                         onDragEnd={handleDragEnd}
-                        className={`relative rounded-xl overflow-hidden border shadow-sm p-2 flex flex-col transition-all ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} ${
+                        className={`relative rounded-xl overflow-hidden border shadow-sm p-4 transition-all ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} ${
                           draggedOverIndex === idx && draggedIndex !== idx ? 'ring-2 ring-emerald-500 bg-emerald-50' : 'ring-1 ring-gray-100'
                         } ${draggedIndex === idx ? 'opacity-60' : ''}`}
                       >
-                        <img src={img.url} alt={img.altText || 'gallery'} className="w-full h-48 object-cover rounded-lg mb-2" />
-                        <input
-                          className={`w-full p-2 rounded border text-sm mb-2 font-bold ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "border-gray-200"}`}
-                          placeholder="Heading (optional)"
-                          value={img.heading || ''}
-                          onChange={e => updateImage(idx, { heading: e.target.value })}
-                        />
-                        <input
-                          className={`w-full p-2 rounded border text-sm mb-2 ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "border-gray-200"}`}
-                          placeholder="Caption"
-                          value={img.caption || ''}
-                          onChange={e => updateImage(idx, { caption: e.target.value })}
-                        />
-                        <textarea
-                          className={`w-full p-3 rounded border text-base mb-2 resize-y h-32 ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "border-gray-200"}`}
-                          placeholder="Describe this image..."
-                          value={img.description}
-                          onChange={e => updateImage(idx, { description: e.target.value })}
-                        />
-                        <input
-                          className={`w-full p-2 rounded border text-sm mb-2 ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "border-gray-200"}`}
-                          placeholder="Alt text (for SEO)"
-                          value={img.altText}
-                          onChange={e => updateImage(idx, { altText: e.target.value })}
-                        />
+                        <div className="flex flex-col md:flex-row gap-4">
+                          <img src={img.url} alt={img.altText || 'gallery'} className="w-full md:w-72 h-56 md:h-48 object-cover rounded-lg flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <input
+                              className={`w-full p-3 rounded border text-base mb-3 font-bold ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "border-gray-200"}`}
+                              placeholder="Heading (optional)"
+                              value={img.heading || ''}
+                              onChange={e => updateImage(idx, { heading: e.target.value })}
+                            />
+                            <input
+                              className={`w-full p-3 rounded border text-base mb-3 ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "border-gray-200"}`}
+                              placeholder="Caption"
+                              value={img.caption || ''}
+                              onChange={e => updateImage(idx, { caption: e.target.value })}
+                            />
+                            <textarea
+                              className={`w-full p-3 rounded border text-base mb-3 resize-y min-h-48 ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "border-gray-200"}`}
+                              placeholder="Description (this will show under the photo on the website)..."
+                              value={img.description}
+                              onChange={e => updateImage(idx, { description: e.target.value })}
+                            />
+                            <input
+                              className={`w-full p-3 rounded border text-base ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "border-gray-200"}`}
+                              placeholder="Alt text (for SEO)"
+                              value={img.altText}
+                              onChange={e => updateImage(idx, { altText: e.target.value })}
+                            />
+                          </div>
+                        </div>
                         <button onClick={() => removeImage(idx)} className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 shadow hover:bg-red-700"><X size={16} /></button>
                       </div>
                     ))}
