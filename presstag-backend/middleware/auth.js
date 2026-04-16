@@ -52,9 +52,12 @@ const authMiddleware = async (req, res, next) => {
         return res.status(503).json({ error: 'Database not available' });
     }
 
-    const user = await db.collection('users').findOne({
-      _id: new ObjectId(decoded.userId),
-    });
+    const userId = String(decoded.userId || '').trim();
+    const userQuery = ObjectId.isValid(userId)
+      ? { $or: [{ _id: new ObjectId(userId) }, { _id: userId }] }
+      : { _id: userId };
+
+    const user = await db.collection('users').findOne(userQuery);
 
     if (!user) {
       logAuthError(`User not found for ID: ${decoded.userId}`);
