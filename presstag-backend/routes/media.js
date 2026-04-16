@@ -6,6 +6,7 @@ const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { Upload } = require('@aws-sdk/lib-storage');
 const Media = require('../models/Media');
 const authMiddleware = require('../middleware/auth');
+const { requireRole } = require('../middleware/requireRole');
 
 const s3 = new S3Client({
   region: 'auto',
@@ -119,7 +120,7 @@ router.get('/search', async (req, res) => {
   }
 });
 
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authMiddleware, requireRole(['admin', 'editor']), async (req, res) => {
   try {
     const media = await Media.findById(req.params.id, req.tenantId);
     if (!media) return res.status(404).json({ message: 'Media not found' });

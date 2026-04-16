@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { useTheme } from "../app/context/ThemeContext";
 import { useUser } from "../app/context/UserContext";
+import { normalizeRole, canAccessSettings } from "../utils/permissions";
 
 const {
   Menu,
@@ -36,6 +37,7 @@ export default function Sidebar() {
   const [openMenus, setOpenMenus] = useState({});
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useUser();
+  const role = normalizeRole(user?.role);
 
   const toggleSubmenu = (key) => {
     setOpenMenus((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -69,7 +71,7 @@ export default function Sidebar() {
         { label: "Tags", href: "/tags", icon: Tag },
       ],
     },
-    {
+    canAccessSettings(role) ? {
       label: "Settings",
       icon: Settings,
       submenu: [
@@ -78,8 +80,8 @@ export default function Sidebar() {
         { label: "Customization", href: "/settings/customization", icon: Edit },
         { label: "Ad Inserter", href: "/settings/ad-inserter", icon: Megaphone },
       ],
-    },
-  ];
+    } : null,
+  ].filter((x) => x != null && (role !== 'writer' || x.label !== 'Sections'));
 
   const isActive = (href) => {
     if (!href) return false;

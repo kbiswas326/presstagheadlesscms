@@ -8,10 +8,14 @@ import { useRouter } from 'next/navigation';
 import { getEditPath } from '@/utils/getEditPath';
 import { buildPostUrl } from '@/utils/buildPostUrl';
 import { useTheme } from "../../context/ThemeContext";
+import { useUser } from "../../context/UserContext";
+import { canDeletePost, canEditPost, canPublishPost, normalizeRole } from "../../../utils/permissions";
 
 export default function PendingPosts() {
   const router = useRouter();
   const { isDark } = useTheme();
+  const { user } = useUser();
+  const role = normalizeRole(user?.role);
   const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
   
   const [publicOrigin, setPublicOrigin] = useState('');
@@ -30,6 +34,11 @@ export default function PendingPosts() {
   };
 
   function handleEdit(post) {
+    if (!canEditPost(role, post, user?._id)) {
+      setError('You can only edit your own posts');
+      setOpenMenuIndex(null);
+      return;
+    }
     const path = getEditPath(post);
     if (path) {
       router.push(path);
@@ -520,52 +529,58 @@ export default function PendingPosts() {
                         }}
                       >
                         <ul className="py-1">
-                          <li>
-                            <button
-                              onClick={() => handleApprove(post)}
-                              className="px-4 py-3 w-full hover:bg-green-50 dark:hover:bg-green-900/20 text-left text-green-700 dark:text-green-400 font-medium text-sm flex items-center gap-2 transition"
-                            >
-                              <CheckCircle size={16} /> Approve
-                            </button>
-                          </li>
-                          
-                          <li>
-                            <button
-                              onClick={() => handleEdit(post)}
-                              className="px-4 py-3 w-full hover:bg-blue-50 dark:hover:bg-blue-900/20 text-left text-slate-700 dark:text-gray-300 font-medium text-sm transition"
-                            >
-                              Edit
-                            </button>
-                          </li>
-
-                          <li>
-                            {confirmDeleteIndex === `post-${post._id}` ? (
-                              <div className="px-4 py-3">
-                                <p className="text-xs text-red-600 dark:text-red-400 mb-2.5 font-medium">Confirm delete?</p>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleDelete(post._id)}
-                                    className="flex-1 bg-red-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-medium hover:bg-red-700 transition"
-                                  >
-                                    Delete
-                                  </button>
-                                  <button
-                                    onClick={() => setConfirmDeleteIndex(null)}
-                                    className="flex-1 bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-200 dark:hover:bg-gray-600 transition"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
+                          {canPublishPost(role) ? (
+                            <li>
                               <button
-                                onClick={() => setConfirmDeleteIndex(`post-${post._id}`)}
-                                className="px-4 py-3 w-full hover:bg-red-50 dark:hover:bg-red-900/20 text-left text-red-600 dark:text-red-400 font-medium text-sm transition"
+                                onClick={() => handleApprove(post)}
+                                className="px-4 py-3 w-full hover:bg-green-50 dark:hover:bg-green-900/20 text-left text-green-700 dark:text-green-400 font-medium text-sm flex items-center gap-2 transition"
                               >
-                                Delete
+                                <CheckCircle size={16} /> Approve
                               </button>
-                            )}
-                          </li>
+                            </li>
+                          ) : null}
+                          
+                          {canEditPost(role, post, user?._id) ? (
+                            <li>
+                              <button
+                                onClick={() => handleEdit(post)}
+                                className="px-4 py-3 w-full hover:bg-blue-50 dark:hover:bg-blue-900/20 text-left text-slate-700 dark:text-gray-300 font-medium text-sm transition"
+                              >
+                                Edit
+                              </button>
+                            </li>
+                          ) : null}
+
+                          {canDeletePost(role) ? (
+                            <li>
+                              {confirmDeleteIndex === `post-${post._id}` ? (
+                                <div className="px-4 py-3">
+                                  <p className="text-xs text-red-600 dark:text-red-400 mb-2.5 font-medium">Confirm delete?</p>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => handleDelete(post._id)}
+                                      className="flex-1 bg-red-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-medium hover:bg-red-700 transition"
+                                    >
+                                      Delete
+                                    </button>
+                                    <button
+                                      onClick={() => setConfirmDeleteIndex(null)}
+                                      className="flex-1 bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-200 dark:hover:bg-gray-600 transition"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setConfirmDeleteIndex(`post-${post._id}`)}
+                                  className="px-4 py-3 w-full hover:bg-red-50 dark:hover:bg-red-900/20 text-left text-red-600 dark:text-red-400 font-medium text-sm transition"
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </li>
+                          ) : null}
 
                           <li>
                             <button 

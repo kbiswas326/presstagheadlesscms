@@ -5,6 +5,7 @@ const Post = require('../models/Post');
 const authMiddleware = require('../middleware/auth');
 const { getDB } = require('../config/db');
 const { ObjectId } = require('mongodb');
+const { normalizeRole } = require('../middleware/requireRole');
 const { generateKeyTakeaways, generateImageCaption } = require('../utils/ai');
 const webPush = require('web-push');
 const { configureWebPush } = require('./push');
@@ -63,6 +64,21 @@ function stripHtmlToText(input) {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function isPostOwnedByUser(post, userId) {
+  const uid = String(userId || '');
+  if (!uid) return false;
+  const author = post?.author && typeof post.author === 'object' ? (post.author._id || post.author.id) : post?.author;
+  const primaryAuthor = post?.primaryAuthor && typeof post.primaryAuthor === 'object' ? (post.primaryAuthor._id || post.primaryAuthor.id) : post?.primaryAuthor;
+  const authors = Array.isArray(post?.authors) ? post.authors : [];
+  const matches = (value) => value != null && String(value) === uid;
+  if (matches(author) || matches(primaryAuthor)) return true;
+  for (const a of authors) {
+    const id = a && typeof a === 'object' ? (a._id || a.id) : a;
+    if (matches(id)) return true;
+  }
+  return false;
 }
 
 function getNotificationImage(post) {
@@ -760,9 +776,13 @@ router.get('/insights', authMiddleware, async (req, res) => {
 // CREATE POST
 router.post('/', authMiddleware, async (req, res) => {
   try {
+    const role = normalizeRole(req.user?.role);
     const now = new Date();
     const status = typeof req.body.status === 'string' ? req.body.status.toLowerCase().trim() : 'draft';
     const { notifySubscribers, notifyType, ...restBody } = (req.body && typeof req.body === 'object') ? req.body : {};
+    if (role === 'writer') {
+      if (status === 'published') return res.status(403).json({ error: 'Writers cannot publish posts' });
+    }
     const hasExplicitAuthor =
       !!req.body.author ||
       !!req.body.primaryAuthor ||
@@ -770,9 +790,15 @@ router.post('/', authMiddleware, async (req, res) => {
     const payload = {
       ...restBody,
       ...(hasExplicitAuthor ? {} : { author: req.user._id }),
-      status,
-      publishedAt: status === 'published' ? now : null,
+      status: role === 'writer' ? (status === 'pending' ? 'pending' : 'draft') : status,
+      publishedAt: (role !== 'writer' && status === 'published') ? now : null,
     };
+    if (role === 'writer') {
+      payload.author = req.user._id;
+      payload.primaryAuthor = req.user._id;
+      delete payload.editor;
+      delete payload.editorName;
+    }
     const post = await Post.create(payload, req.tenantId);
     const db = getDB(req.tenantId);
     const enrichedPost = await populatePost(post, db);
@@ -811,6 +837,7 @@ router.get('/:id', async (req, res) => {
 // UPDATE POST
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
+    const role = normalizeRole(req.user?.role);
     const db = getDB(req.tenantId);
     let targetId = req.params.id;
     if (!ObjectId.isValid(targetId)) {
@@ -819,15 +846,29 @@ router.put('/:id', authMiddleware, async (req, res) => {
       targetId = found._id.toString();
     }
     const previous = await db.collection('posts').findOne({ _id: new ObjectId(targetId) });
+    if (role === 'writer' && !isPostOwnedByUser(previous, req.user?._id)) {
+      return res.status(403).json({ error: 'Writers can only edit their own posts' });
+    }
     const prevStatus = String(previous?.status || '').toLowerCase();
     const prevUpdatesCount = Array.isArray(previous?.liveUpdates) ? previous.liveUpdates.length : 0;
 
     const { notifySubscribers, notifyType, ...restBody } = (req.body && typeof req.body === 'object') ? req.body : {};
     const desiredStatus = typeof restBody.status === 'string' ? restBody.status.toLowerCase().trim() : prevStatus;
+    if (role === 'writer' && desiredStatus === 'published') {
+      return res.status(403).json({ error: 'Writers cannot publish posts' });
+    }
     const isStatusPublishTransition = prevStatus !== 'published' && desiredStatus === 'published';
     const isExplicitPublishAction = desiredStatus === 'published' && restBody.publishedAt != null;
 
     const updateBody = { ...restBody };
+    if (role === 'writer') {
+      updateBody.status = desiredStatus === 'pending' ? 'pending' : 'draft';
+      updateBody.author = req.user._id;
+      updateBody.primaryAuthor = req.user._id;
+      delete updateBody.editor;
+      delete updateBody.editorName;
+      delete updateBody.publishedAt;
+    }
     if (isStatusPublishTransition && !updateBody.publishedAt) updateBody.publishedAt = new Date();
     const shouldBumpPublishedAt =
       desiredStatus === 'published' &&
@@ -888,6 +929,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
 // PATCH STATUS
 router.patch('/:id/status', authMiddleware, async (req, res) => {
   try {
+    const role = normalizeRole(req.user?.role);
+    if (role === 'writer') return res.status(403).json({ error: 'Writers cannot change post status directly' });
     const { status } = req.body;
     const db = getDB(req.tenantId);
     let targetId = req.params.id;
@@ -924,6 +967,8 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
 // DELETE POST
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
+    const role = normalizeRole(req.user?.role);
+    if (role === 'writer') return res.status(403).json({ error: 'Writers cannot delete posts' });
     const db = getDB(req.tenantId);
     let targetId = req.params.id;
     if (!ObjectId.isValid(targetId)) {

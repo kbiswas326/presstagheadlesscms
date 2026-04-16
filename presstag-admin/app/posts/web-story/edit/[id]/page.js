@@ -12,6 +12,7 @@ import MediaImagesSelector from '../../../../media/MediaImagesSelector';
 import Image from 'next/image';
 import { getTenantId, posts } from '../../../../../lib/api';
 import { getImageUrl } from '@/lib/imageHelper';
+import { canPublishPost, normalizeRole } from '../../../../../utils/permissions';
 import { includesNormalized, keywordDensity, slugifyForMatch } from '../../../../../utils/seoMatch';
 
 
@@ -28,6 +29,8 @@ const params = useParams();
 const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 const postId = params?.id; // enables edit mode later
 const { user } = useUser();
+const role = normalizeRole(user?.role);
+const canPublish = canPublishPost(role);
   const { isDark } = useTheme();
 const [showMediaSelector, setShowMediaSelector] = useState(false);
 const [mediaTargetIndex, setMediaTargetIndex] = useState(null);
@@ -1237,27 +1240,31 @@ const handleUpdate = async () => {
             >
               Send for Approval
             </button>
-            <button
-              onClick={handleUpdate}
-              className="px-5 py-2 rounded-full shadow border"
-              style={{
-                backgroundColor: "white",
-                color: "rgb(24 94 253)",
-                borderColor: "rgb(24 94 253)"
-              }}
-            >
-              Update
-            </button>
-            <button
-              onClick={handlePublish}
-              className="px-5 py-2 rounded-full shadow"
-              style={{
-                backgroundColor: "rgb(24 94 253)",
-                color: "white"
-              }}
-            >
-              Publish
-            </button>
+            {canPublish ? (
+              <>
+                <button
+                  onClick={handleUpdate}
+                  className="px-5 py-2 rounded-full shadow border"
+                  style={{
+                    backgroundColor: "white",
+                    color: "rgb(24 94 253)",
+                    borderColor: "rgb(24 94 253)"
+                  }}
+                >
+                  Update
+                </button>
+                <button
+                  onClick={handlePublish}
+                  className="px-5 py-2 rounded-full shadow"
+                  style={{
+                    backgroundColor: "rgb(24 94 253)",
+                    color: "white"
+                  }}
+                >
+                  Publish
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
 

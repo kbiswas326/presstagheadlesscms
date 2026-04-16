@@ -4,13 +4,14 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const authMiddleware = require('../middleware/auth');
+const { requireRole } = require('../middleware/requireRole');
 const { Resend } = require('resend');
 const crypto = require('crypto');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-router.post('/register', async (req, res) => {
+router.post('/register', authMiddleware, requireRole(['admin']), async (req, res) => {
   try {
-    const user = await User.register(req.body);
+    const user = await User.register(req.body, req.tenantId);
     res.status(201).json(user);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -20,7 +21,7 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.login(email, password);
+    const user = await User.login(email, password, req.tenantId);
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
     res.json({ token, user });
   } catch (error) {
@@ -31,7 +32,7 @@ router.post('/login', async (req, res) => {
 // Token refresh endpoint
 router.post('/refresh', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id, req.tenantId);
     if (!user) return res.status(404).json({ error: 'User not found' });
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
     res.json({ token, user });
@@ -42,7 +43,7 @@ router.post('/refresh', authMiddleware, async (req, res) => {
 
 router.get('/me', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id, req.tenantId);
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (error) {

@@ -9,6 +9,7 @@ import { ArrowLeft, ChevronDown, CheckCircle2, XCircle, AlertCircle, X } from 'l
 import { getTenantId, posts } from '../../../../../lib/api';
 import { useUser } from '../../../../context/UserContext';
 import { useTheme } from '../../../../context/ThemeContext';
+import { canPublishPost, normalizeRole } from '../../../../../utils/permissions';
 import { countInternalExternalLinks } from '../../../../../utils/linkAnalysis';
 import { includesNormalized, keywordDensity, slugifyForMatch } from '../../../../../utils/seoMatch';
 
@@ -96,6 +97,8 @@ export default function VideoEditorPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const { user } = useUser();
+  const role = normalizeRole(user?.role);
+  const canPublish = canPublishPost(role);
   const { isDark } = useTheme();
 
   // Available options
@@ -1054,32 +1057,36 @@ export default function VideoEditorPage() {
             {isLoading ? 'Sending...' : 'Send for Approval'}
           </button>
 
-          {postId && postId !== 'new' && (
-            <button
-              onClick={handleUpdate}
-              disabled={isLoading}
-              className="px-5 py-2 rounded-full shadow border disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{
-                backgroundColor: isDark ? "#1f2937" : "white",
-                color: isDark ? "#60a5fa" : "rgb(24 94 253)",
-                borderColor: isDark ? "#60a5fa" : "rgb(24 94 253)"
-              }}
-            >
-              {isLoading ? 'Updating...' : 'Update'}
-            </button>
-          )}
+          {canPublish ? (
+            <>
+              {postId && postId !== 'new' && (
+                <button
+                  onClick={handleUpdate}
+                  disabled={isLoading}
+                  className="px-5 py-2 rounded-full shadow border disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: isDark ? "#1f2937" : "white",
+                    color: isDark ? "#60a5fa" : "rgb(24 94 253)",
+                    borderColor: isDark ? "#60a5fa" : "rgb(24 94 253)"
+                  }}
+                >
+                  {isLoading ? 'Updating...' : 'Update'}
+                </button>
+              )}
 
-          <button
-            onClick={handlePublish}
-            disabled={isLoading}
-            className="px-5 py-2 rounded-full shadow disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              backgroundColor: "rgb(24 94 253)",
-              color: "white"
-            }}
-          >
-            {isLoading ? 'Publishing...' : 'Publish'}
-          </button>
+              <button
+                onClick={handlePublish}
+                disabled={isLoading}
+                className="px-5 py-2 rounded-full shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: "rgb(24 94 253)",
+                  color: "white"
+                }}
+              >
+                {isLoading ? 'Publishing...' : 'Publish'}
+              </button>
+            </>
+          ) : null}
         </div>
       </div>
 

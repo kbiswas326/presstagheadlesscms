@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const LayoutConfig = require('../models/LayoutConfig');
 const auth = require('../middleware/auth');
+const { requireRole } = require('../middleware/requireRole');
 
 const ensureLayoutConfig = async (tenantId) => {
   const existing = await LayoutConfig.get(tenantId);
@@ -82,7 +83,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.put('/', auth, async (req, res) => {
+router.put('/', auth, requireRole(['admin']), async (req, res) => {
   try {
     await ensureLayoutConfig(req.tenantId);
     const incoming = req.body?.htmlInjections || req.body || {};

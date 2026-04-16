@@ -5,9 +5,13 @@ import { useState, useEffect } from "react";
 import { MoreVertical, Play, Square } from "lucide-react";
 import { posts, getUsers } from "@/lib/api";
 import { useTheme } from "../../context/ThemeContext";
+import { useUser } from "../../context/UserContext";
+import { canDeletePost, canEditPost, normalizeRole } from "../../../utils/permissions";
 
 export default function LiveBlogs() {
   const { isDark } = useTheme();
+  const { user } = useUser();
+  const role = normalizeRole(user?.role);
 
   const handleNavigation = (url) => {
     window.location.href = url;
@@ -342,53 +346,57 @@ export default function LiveBlogs() {
                             }}
                           >
                             <ul className="py-1">
-                              <li>
-                                <button
-                                  onClick={() => {
-                                    handleNavigation(`/posts/live-blog/edit/${blog.id}`);
-                                  }}
-                                  className={`px-4 py-2 w-full text-left ${isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}`}
-                                >
-                                  Edit
-                                </button>
-                              </li>
-
-                              <li>
-                                {confirmActionIndex === `ongoing-${blog.id}` && actionType === "stop" ? (
-                                  <div className="px-4 py-2">
-                                    <p className="text-sm text-yellow-600 mb-2">
-                                      Stop this live blog?
-                                    </p>
-                                    <div className="flex justify-between gap-2">
-                                      <button
-                                        onClick={() => handleStopLiveBlog(blog.id)}
-                                        className="bg-yellow-600 text-white px-2 py-1 rounded text-xs font-medium"
-                                      >
-                                        Yes, stop
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          setConfirmActionIndex(null);
-                                          setActionType(null);
-                                        }}
-                                        className={`px-2 py-1 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
-                                      >
-                                        Cancel
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
+                              {canEditPost(role, blog, user?._id) ? (
+                                <li>
                                   <button
                                     onClick={() => {
-                                      setConfirmActionIndex(`ongoing-${blog.id}`);
-                                      setActionType("stop");
+                                      handleNavigation(`/posts/live-blog/edit/${blog.id}`);
                                     }}
-                                    className={`px-4 py-2 w-full text-left text-yellow-600 ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                                    className={`px-4 py-2 w-full text-left ${isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}`}
                                   >
-                                    Stop Live Blog
+                                    Edit
                                   </button>
-                                )}
-                              </li>
+                                </li>
+                              ) : null}
+
+                              {canDeletePost(role) ? (
+                                <li>
+                                  {confirmActionIndex === `ongoing-${blog.id}` && actionType === "stop" ? (
+                                    <div className="px-4 py-2">
+                                      <p className="text-sm text-yellow-600 mb-2">
+                                        Stop this live blog?
+                                      </p>
+                                      <div className="flex justify-between gap-2">
+                                        <button
+                                          onClick={() => handleStopLiveBlog(blog.id)}
+                                          className="bg-yellow-600 text-white px-2 py-1 rounded text-xs font-medium"
+                                        >
+                                          Yes, stop
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            setConfirmActionIndex(null);
+                                            setActionType(null);
+                                          }}
+                                          className={`px-2 py-1 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        setConfirmActionIndex(`ongoing-${blog.id}`);
+                                        setActionType("stop");
+                                      }}
+                                      className={`px-4 py-2 w-full text-left text-yellow-600 ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                                    >
+                                      Stop Live Blog
+                                    </button>
+                                  )}
+                                </li>
+                              ) : null}
 
                               <li>
                                 <button className={`px-4 py-2 w-full text-left ${isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}`}>
@@ -511,76 +519,38 @@ export default function LiveBlogs() {
                             }}
                           >
                             <ul className="py-1">
-                              <li>
-                                <button
-                                  onClick={() => {
-                                    handleNavigation(`/posts/live-blog/edit/${blog.id}`);
-                                  }}
-                                  className={`px-4 py-2 w-full text-left ${isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}`}
-                                >
-                                  Edit
-                                </button>
-                              </li>
-
-                              <li>
-                                {confirmActionIndex === `completed-${blog.id}` && actionType === "resume" ? (
-                                  <div className="px-4 py-2">
-                                    <p className="text-sm text-blue-600 mb-2">
-                                      Resume this live blog?
-                                    </p>
-                                    <div className="flex justify-between gap-2">
-                                      <button
-                                        onClick={() => handleResumeLiveBlog(blog.id)}
-                                        className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium"
-                                      >
-                                        Yes, resume
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          setConfirmActionIndex(null);
-                                          setActionType(null);
-                                        }}
-                                        className={`px-2 py-1 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
-                                      >
-                                        Cancel
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
+                              {canEditPost(role, blog, user?._id) ? (
+                                <li>
                                   <button
                                     onClick={() => {
-                                      setConfirmActionIndex(`completed-${blog.id}`);
-                                      setActionType("resume");
+                                      handleNavigation(`/posts/live-blog/edit/${blog.id}`);
                                     }}
-                                    className={`px-4 py-2 w-full text-left text-blue-600 ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                                    className={`px-4 py-2 w-full text-left ${isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}`}
                                   >
-                                    Resume Live Blog
+                                    Edit
                                   </button>
-                                )}
-                              </li>
+                                </li>
+                              ) : null}
 
-                              <li>
-                                <button className={`px-4 py-2 w-full text-left ${isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}`}>
-                                  View Post
-                                </button>
-                              </li>
-
-                              <li>
-                                {deleteStepIndex === `completed-${blog.id}` ? (
-                                  deleteStepIndex === `completed-${blog.id}-confirmed` ? (
+                              {canDeletePost(role) ? (
+                                <li>
+                                  {confirmActionIndex === `completed-${blog.id}` && actionType === "resume" ? (
                                     <div className="px-4 py-2">
-                                      <p className="text-sm text-red-600 mb-2 font-medium">
-                                        Permanently delete?
+                                      <p className="text-sm text-blue-600 mb-2">
+                                        Resume this live blog?
                                       </p>
                                       <div className="flex justify-between gap-2">
                                         <button
-                                          onClick={() => handleDeleteLiveBlog(blog.id)}
-                                          className="bg-red-600 text-white px-2 py-1 rounded text-xs font-medium"
+                                          onClick={() => handleResumeLiveBlog(blog.id)}
+                                          className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium"
                                         >
-                                          Yes, delete
+                                          Yes, resume
                                         </button>
                                         <button
-                                          onClick={() => setDeleteStepIndex(null)}
+                                          onClick={() => {
+                                            setConfirmActionIndex(null);
+                                            setActionType(null);
+                                          }}
                                           className={`px-2 py-1 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
                                         >
                                           Cancel
@@ -588,35 +558,79 @@ export default function LiveBlogs() {
                                       </div>
                                     </div>
                                   ) : (
-                                    <div className="px-4 py-2">
-                                      <p className="text-sm text-red-600 mb-2">
-                                        Delete this live blog?
-                                      </p>
-                                      <div className="flex justify-between gap-2">
-                                        <button
-                                          onClick={() => setDeleteStepIndex(`completed-${blog.id}-confirmed`)}
-                                          className="bg-red-600 text-white px-2 py-1 rounded text-xs font-medium"
-                                        >
-                                          Yes, delete
-                                        </button>
-                                        <button
-                                          onClick={() => setDeleteStepIndex(null)}
-                                          className={`px-2 py-1 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
-                                        >
-                                          Cancel
-                                        </button>
-                                      </div>
-                                    </div>
-                                  )
-                                ) : (
-                                  <button
-                                    onClick={() => setDeleteStepIndex(`completed-${blog.id}`)}
-                                    className={`px-4 py-2 w-full text-left text-red-600 ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                                  >
-                                    Delete
-                                  </button>
-                                )}
+                                    <button
+                                      onClick={() => {
+                                        setConfirmActionIndex(`completed-${blog.id}`);
+                                        setActionType("resume");
+                                      }}
+                                      className={`px-4 py-2 w-full text-left text-blue-600 ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                                    >
+                                      Resume Live Blog
+                                    </button>
+                                  )}
+                                </li>
+                              ) : null}
+
+                              <li>
+                                <button className={`px-4 py-2 w-full text-left ${isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}`}>
+                                  View Post
+                                </button>
                               </li>
+
+                              {canDeletePost(role) ? (
+                                <li>
+                                  {deleteStepIndex === `completed-${blog.id}` ? (
+                                    deleteStepIndex === `completed-${blog.id}-confirmed` ? (
+                                      <div className="px-4 py-2">
+                                        <p className="text-sm text-red-600 mb-2 font-medium">
+                                          Permanently delete?
+                                        </p>
+                                        <div className="flex justify-between gap-2">
+                                          <button
+                                            onClick={() => handleDeleteLiveBlog(blog.id)}
+                                            className="bg-red-600 text-white px-2 py-1 rounded text-xs font-medium"
+                                          >
+                                            Yes, delete
+                                          </button>
+                                          <button
+                                            onClick={() => setDeleteStepIndex(null)}
+                                            className={`px-2 py-1 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="px-4 py-2">
+                                        <p className="text-sm text-red-600 mb-2">
+                                          Delete this live blog?
+                                        </p>
+                                        <div className="flex justify-between gap-2">
+                                          <button
+                                            onClick={() => setDeleteStepIndex(`completed-${blog.id}-confirmed`)}
+                                            className="bg-red-600 text-white px-2 py-1 rounded text-xs font-medium"
+                                          >
+                                            Yes, delete
+                                          </button>
+                                          <button
+                                            onClick={() => setDeleteStepIndex(null)}
+                                            className={`px-2 py-1 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )
+                                  ) : (
+                                    <button
+                                      onClick={() => setDeleteStepIndex(`completed-${blog.id}`)}
+                                      className={`px-4 py-2 w-full text-left text-red-600 ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                                    >
+                                      Delete
+                                    </button>
+                                  )}
+                                </li>
+                              ) : null}
                             </ul>
                           </div>
                         )}

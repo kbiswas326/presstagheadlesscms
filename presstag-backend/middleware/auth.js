@@ -45,7 +45,7 @@ const authMiddleware = async (req, res, next) => {
     }
 
     // 🔍 Fetch user from DB
-    const db = getDB();
+    const db = getDB(req.tenantId);
     if (!db) {
         logAuthError('Database not initialized');
         console.error('❌ Database not initialized');

@@ -3,8 +3,9 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const authMiddleware = require('../middleware/auth');
+const { requireRole } = require('../middleware/requireRole');
 
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const users = await User.findAll(req.tenantId);
     res.json({ users });
@@ -59,14 +60,20 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const user = await User.update(req.params.id, req.body, req.tenantId);
+    const isSelf = String(req.user?._id || '') === String(req.params.id || '');
+    const isAdmin = String(req.user?.role || '').toLowerCase().trim() === 'admin';
+    if (!isAdmin && !isSelf) return res.status(403).json({ error: 'Forbidden' });
+
+    const updateData = { ...(req.body || {}) };
+    if (!isAdmin) delete updateData.role;
+    const user = await User.update(req.params.id, updateData, req.tenantId);
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authMiddleware, requireRole(['admin']), async (req, res) => {
   try {
     await User.delete(req.params.id, req.tenantId);
     res.json({ message: 'User deleted successfully' });

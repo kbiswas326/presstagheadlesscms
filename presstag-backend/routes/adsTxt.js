@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const LayoutConfig = require('../models/LayoutConfig');
 const auth = require('../middleware/auth');
+const { requireRole } = require('../middleware/requireRole');
 
 router.get('/', async (req, res) => {
   try {
@@ -12,7 +13,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.put('/', auth, async (req, res) => {
+router.put('/', auth, requireRole(['admin']), async (req, res) => {
   try {
     const adsTxt = String(req.body?.adsTxt || '');
     const existing = await LayoutConfig.get(req.tenantId);

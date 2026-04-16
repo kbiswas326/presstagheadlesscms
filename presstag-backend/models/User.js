@@ -3,9 +3,9 @@ const { ObjectId } = require('mongodb');
 const bcryptjs = require('bcryptjs');
 
 class User {
-  static async register(userData) {
+  static async register(userData, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     
     const existingUser = await db.collection('users').findOne({ email: userData.email });
     if (existingUser) throw new Error('Email already registered');
@@ -30,9 +30,9 @@ class User {
     return { _id: result.insertedId, ...userWithoutPassword };
   }
 
-  static async login(email, password) {
+  static async login(email, password, tenantId = null) {
     const { getDB } = require('../config/db');
-    const db = getDB();
+    const db = getDB(tenantId);
     
     const user = await db.collection('users').findOne({ email });
     if (!user) throw new Error('User not found');

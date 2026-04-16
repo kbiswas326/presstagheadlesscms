@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const { requireRole } = require('../middleware/requireRole');
 const LayoutConfig = require('../models/LayoutConfig');
 const { JWT } = require('google-auth-library');
 const axios = require('axios');
@@ -179,7 +180,7 @@ router.get('/ga4/oauth/status', auth, async (req, res) => {
   }
 });
 
-router.get('/ga4/oauth/url', auth, async (req, res) => {
+router.get('/ga4/oauth/url', auth, requireRole(['admin']), async (req, res) => {
   try {
     const oauth = getOAuthConfig();
     if (!oauth.configured) {
@@ -208,7 +209,7 @@ router.get('/ga4/oauth/url', auth, async (req, res) => {
   }
 });
 
-router.post('/ga4/oauth/disconnect', auth, async (req, res) => {
+router.post('/ga4/oauth/disconnect', auth, requireRole(['admin']), async (req, res) => {
   try {
     const config = await LayoutConfig.get(req.tenantId);
     const analytics = { ...(config?.analytics || {}) };

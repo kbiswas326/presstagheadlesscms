@@ -6,11 +6,12 @@ import { useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import TopNavbar from "../components/TopNavbar";
 import { useUser } from "./context/UserContext";
+import { normalizeRole, canAccessSettings } from "../utils/permissions";
 
 export default function LayoutContent({ children }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isLoggedIn, isLoading } = useUser();
+  const { isLoggedIn, isLoading, user } = useUser();
 
   const isLoginPage = pathname === "/login";
 
@@ -22,6 +23,12 @@ export default function LayoutContent({ children }) {
     }
     if (isLoggedIn && isLoginPage) {
       router.push("/");
+    }
+    if (isLoggedIn && !isLoginPage) {
+      const role = normalizeRole(user?.role);
+      if (!canAccessSettings(role) && (pathname.startsWith('/settings') || pathname.startsWith('/team'))) {
+        router.push("/");
+      }
     }
   }, [isLoggedIn, isLoading, isLoginPage, router]);
 

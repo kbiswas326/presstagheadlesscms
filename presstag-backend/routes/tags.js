@@ -3,8 +3,9 @@ const express = require('express');
 const router = express.Router();
 const Tag = require('../models/Tag');
 const authMiddleware = require('../middleware/auth');
+const { requireRole } = require('../middleware/requireRole');
 
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, requireRole(['admin', 'editor']), async (req, res) => {
   try {
     const tag = await Tag.create(req.body, req.tenantId);
     res.status(201).json(tag);
@@ -34,7 +35,7 @@ router.get('/by-slug/:slug', async (req, res) => {
   }
 });
 
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', authMiddleware, requireRole(['admin', 'editor']), async (req, res) => {
   try {
     const tag = await Tag.update(req.params.id, req.body, req.tenantId);
     res.json(tag);
@@ -43,7 +44,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authMiddleware, requireRole(['admin', 'editor']), async (req, res) => {
   try {
     await Tag.delete(req.params.id, req.tenantId);
     res.json({ message: 'Tag deleted successfully' });

@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const AdBlock = require('../models/AdBlock');
 const authMiddleware = require('../middleware/auth');
+const { requireRole } = require('../middleware/requireRole');
 
 router.get('/', async (req, res) => {
   try {
@@ -23,7 +24,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, requireRole(['admin']), async (req, res) => {
   try {
     const ad = await AdBlock.create(req.body);
     res.status(201).json(ad);
@@ -32,7 +33,7 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', authMiddleware, requireRole(['admin']), async (req, res) => {
   try {
     const ad = await AdBlock.update(req.params.id, req.body);
     res.json(ad);
@@ -41,7 +42,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authMiddleware, requireRole(['admin']), async (req, res) => {
   try {
     const success = await AdBlock.delete(req.params.id);
     if (!success) return res.status(404).json({ error: 'Ad Block not found' });

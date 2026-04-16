@@ -8,11 +8,16 @@ import { ArrowLeft, ChevronDown, Upload, CheckCircle2, XCircle, AlertCircle, X, 
 import MediaImagesSelector from '../../../../media/MediaImagesSelector';
 import { getTenantId, posts } from '../../../../../lib/api';
 import { getUsers, getCategories, getTags } from '../../../../../lib/api';
+import { useUser } from '../../../../context/UserContext';
+import { canPublishPost, normalizeRole } from '../../../../../utils/permissions';
 import { includesNormalized, keywordDensity, slugifyForMatch } from '../../../../../utils/seoMatch';
 
 
 export default function PhotoGalleryEditorPage() {
   const { isDark } = useTheme();
+  const { user } = useUser();
+  const role = normalizeRole(user?.role);
+  const canPublish = canPublishPost(role);
   const params = useParams();
   const postId = params?.id;
   const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
@@ -628,84 +633,88 @@ const getSelectedTagsText = () =>
   Send for Approval
 </button>
 
-          <button
-            onClick={async () => {
-              try {
-                if (!postId || postId === 'new') {
-                  setError('Open an existing gallery to update');
-                  return;
-                }
+          {canPublish ? (
+            <>
+              <button
+                onClick={async () => {
+                  try {
+                    if (!postId || postId === 'new') {
+                      setError('Open an existing gallery to update');
+                      return;
+                    }
 
-                setIsLoadingAction(true);
-                setError(null);
-                setSuccess(null);
-                const payload = buildGalleryPayload('published');
+                    setIsLoadingAction(true);
+                    setError(null);
+                    setSuccess(null);
+                    const payload = buildGalleryPayload('published');
 
-                const response = await posts.update(postId, payload);
-                if (response && response.error) {
-                  setError(response.error);
-                  return;
-                }
-                setSuccess('Photo Gallery updated successfully!');
-                setTimeout(() => router.push('/posts/published'), 2000);
-              } catch (err) {
-                setError('Failed to update gallery: ' + err.message);
-                console.error(err);
-              } finally {
-                setIsLoadingAction(false);
-              }
-            }}
-            className="px-5 py-2 rounded-full shadow border"
-            style={{ backgroundColor: 'white', color: 'rgb(24 94 253)', borderColor: 'rgb(24 94 253)' }}
-          >
-            Update
-          </button>
-          <button
-            onClick={async () => {
-              try {
-                setIsLoadingAction(true);
-                setError(null);
-                setSuccess(null);
-                // Update publish date to now
-                const now = new Date();
-                const currentDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-                const currentTime = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
-                
-                setPublishDate(currentDate);
-                setPublishTime(currentTime);
+                    const response = await posts.update(postId, payload);
+                    if (response && response.error) {
+                      setError(response.error);
+                      return;
+                    }
+                    setSuccess('Photo Gallery updated successfully!');
+                    setTimeout(() => router.push('/posts/published'), 2000);
+                  } catch (err) {
+                    setError('Failed to update gallery: ' + err.message);
+                    console.error(err);
+                  } finally {
+                    setIsLoadingAction(false);
+                  }
+                }}
+                className="px-5 py-2 rounded-full shadow border"
+                style={{ backgroundColor: 'white', color: 'rgb(24 94 253)', borderColor: 'rgb(24 94 253)' }}
+              >
+                Update
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    setIsLoadingAction(true);
+                    setError(null);
+                    setSuccess(null);
+                    // Update publish date to now
+                    const now = new Date();
+                    const currentDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+                    const currentTime = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+                    
+                    setPublishDate(currentDate);
+                    setPublishTime(currentTime);
 
-                const payload = buildGalleryPayload('published');
-                // Explicitly override date/time in payload
-                payload.publishDate = currentDate;
-                payload.publishTime = currentTime;
-                payload.publishedAt = now.toISOString();
-                payload.notifySubscribers = true;
-                payload.notifyType = 'post_published';
+                    const payload = buildGalleryPayload('published');
+                    // Explicitly override date/time in payload
+                    payload.publishDate = currentDate;
+                    payload.publishTime = currentTime;
+                    payload.publishedAt = now.toISOString();
+                    payload.notifySubscribers = true;
+                    payload.notifyType = 'post_published';
 
-                let response;
-                if (postId && postId !== 'new') {
-                  response = await posts.update(postId, payload);
-                } else {
-                  response = await posts.create(payload);
-                }
-                if (response && response.error) {
-                  setError(response.error);
-                  return;
-                }
-                setSuccess('Photo Gallery published successfully!');
-                setTimeout(() => router.push('/posts/published'), 2000);
-              } catch (err) {
-                setError('Failed to publish gallery: ' + err.message);
-                console.error(err);
-              } finally {
-                setIsLoadingAction(false);
-              }
-            }}
-            className="px-5 py-2 rounded-full shadow"
-            style={{ backgroundColor: 'rgb(24 94 253)', color: 'white' }}
-          >
-            Publish
-          </button>
+                    let response;
+                    if (postId && postId !== 'new') {
+                      response = await posts.update(postId, payload);
+                    } else {
+                      response = await posts.create(payload);
+                    }
+                    if (response && response.error) {
+                      setError(response.error);
+                      return;
+                    }
+                    setSuccess('Photo Gallery published successfully!');
+                    setTimeout(() => router.push('/posts/published'), 2000);
+                  } catch (err) {
+                    setError('Failed to publish gallery: ' + err.message);
+                    console.error(err);
+                  } finally {
+                    setIsLoadingAction(false);
+                  }
+                }}
+                className="px-5 py-2 rounded-full shadow"
+                style={{ backgroundColor: 'rgb(24 94 253)', color: 'white' }}
+              >
+                Publish
+              </button>
+            </>
+          ) : null}
 
         </div>
       </div>
