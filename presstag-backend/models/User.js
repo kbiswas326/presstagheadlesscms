@@ -47,11 +47,7 @@ class User {
   static async findById(id, tenantId = null) {
     const { getDB } = require('../config/db');
     const db = getDB(tenantId);
-    const idStr = String(id || '').trim();
-    const query = ObjectId.isValid(idStr)
-      ? { $or: [{ _id: new ObjectId(idStr) }, { _id: idStr }] }
-      : { _id: idStr };
-    const user = await db.collection('users').findOne(query);
+    const user = await db.collection('users').findOne({ _id: new ObjectId(id) });
     if (user) {
       const { password, ...userWithoutPassword } = user;
       return userWithoutPassword;
@@ -68,7 +64,6 @@ class User {
   static async update(id, updateData, tenantId = null) {
     const { getDB } = require('../config/db');
     const db = getDB(tenantId);
-    const idStr = String(id || '').trim();
 
     if (updateData.password) {
       updateData.password = await bcryptjs.hash(updateData.password, 10);
@@ -76,7 +71,7 @@ class User {
 
     updateData.updatedAt = new Date();
     const result = await db.collection('users').findOneAndUpdate(
-      ObjectId.isValid(idStr) ? { $or: [{ _id: new ObjectId(idStr) }, { _id: idStr }] } : { _id: idStr },
+      { _id: new ObjectId(id) },
       { $set: updateData },
       { returnDocument: 'after' }
     );
@@ -90,11 +85,7 @@ class User {
   static async delete(id, tenantId = null) {
     const { getDB } = require('../config/db');
     const db = getDB(tenantId);
-    const idStr = String(id || '').trim();
-    const query = ObjectId.isValid(idStr)
-      ? { $or: [{ _id: new ObjectId(idStr) }, { _id: idStr }] }
-      : { _id: idStr };
-    return await db.collection('users').deleteOne(query);
+    return await db.collection('users').deleteOne({ _id: new ObjectId(id) });
   }
 }
 

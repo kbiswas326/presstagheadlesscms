@@ -47,10 +47,7 @@ const Page = () => {
       // ✅ FIXED: added /api/ prefix
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/forgot-password`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-tenant-id": String(process.env.NEXT_PUBLIC_TENANT_ID || "").trim(),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: forgotEmail }),
       });
       const data = await res.json();

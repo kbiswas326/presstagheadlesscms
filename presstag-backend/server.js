@@ -26,19 +26,10 @@ app.use((req, res, next) => {
   const tenantHeader = req.headers['x-tenant-id'];
   const tenantQuery = req.query.tenantId;
 
-  const hasExplicitTenant = Boolean(tenantHeader || tenantQuery);
-  const path = String(req.path || '');
-  const isAuthRoute = path.startsWith('/api/auth');
-  const hasBearerAuth = typeof req.headers.authorization === 'string' && req.headers.authorization.startsWith('Bearer ');
-
-  if (!hasExplicitTenant && (isAuthRoute || hasBearerAuth)) {
-    return res.status(400).json({ error: 'x-tenant-id header (or ?tenantId=) is required for admin requests' });
-  }
-
   if (tenantHeader) {
-    req.tenantId = String(tenantHeader).trim();
+    req.tenantId = tenantHeader;
   } else if (tenantQuery) {
-    req.tenantId = String(tenantQuery).trim();
+    req.tenantId = tenantQuery;
   } else if (host.includes('sportzpoint')) {
     req.tenantId = 'sportzpoint';
   } else {
@@ -61,7 +52,7 @@ connectDB();
 app.use('/uploads', express.static('uploads'));
 
 app.get('/api/test', (req, res) => {
-  res.json({ message: 'Backend is working! 🎉', tenantId: req.tenantId });
+  res.json({ message: 'Backend is working! 🎉' });
 });
 
 app.use('/api/auth', authRoutes);
