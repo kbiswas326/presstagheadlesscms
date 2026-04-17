@@ -2,9 +2,13 @@ import NavigationBar from "./header/Navbar";
 import Footer from "./FooterServer";
 import AdSpot from "./AdSpot";
 import PushNotificationsPrompt from "./PushNotificationsPrompt";
-import TemplateHydrator from "./TemplateHydrator";
+import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { applyTemplateToDocument, resolveTemplateFromConfig } from '../templates/applyTemplate';
 
 export default function LayoutClient({ children, config }) {
+  const searchParams = useSearchParams();
+
   // Config.navbar can be an array (new) or object (old)
   let navbar = [];
   let branding = config?.branding || {};
@@ -26,9 +30,14 @@ export default function LayoutClient({ children, config }) {
       ];
   }
 
+  useEffect(() => {
+    const qp = searchParams?.get('template');
+    const fromConfig = resolveTemplateFromConfig(config);
+    applyTemplateToDocument(qp || fromConfig);
+  }, [config, searchParams]);
+
   return (
     <>
-      <TemplateHydrator config={config} />
       <AdSpot position="header_top" />
       <NavigationBar
         navigationItems={navbar}
