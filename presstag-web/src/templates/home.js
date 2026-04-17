@@ -28,6 +28,7 @@ export const renderHomeClassic = ({
   primaryColor,
   urlStructure,
 }) => {
+  const variant = 'classic';
   return (
     <div className="bg-white min-h-screen pb-16">
       <div className="container mx-auto px-4 pt-6">
@@ -59,6 +60,7 @@ export const renderHomeClassic = ({
                 primaryColor={primaryColor}
                 viewAllUrl={section.viewAllUrl}
                 urlStructure={urlStructure}
+                variant={variant}
               />
             ))}
           </div>
@@ -79,6 +81,7 @@ export const renderHomeBold = ({
   primaryColor,
   urlStructure,
 }) => {
+  const variant = 'bold';
   return (
     <div className="bg-slate-950 min-h-screen pb-16">
       <div className="container mx-auto px-4 pt-6">
@@ -95,7 +98,7 @@ export const renderHomeBold = ({
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                 {sidePosts.map((post, i) => (
-                  <ArticleGridCard key={i} post={post} urlStructure={urlStructure} />
+                  <ArticleGridCard key={i} post={post} urlStructure={urlStructure} variant={variant} />
                 ))}
               </div>
             </div>
@@ -119,7 +122,7 @@ export const renderHomeBold = ({
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {section.posts.slice(0, 6).map((post, i) => (
-                        <HorizontalCard key={i} post={post} urlStructure={urlStructure} />
+                        <HorizontalCard key={i} post={post} urlStructure={urlStructure} variant={variant} />
                       ))}
                     </div>
                   </section>
@@ -133,6 +136,7 @@ export const renderHomeBold = ({
                   primaryColor={primaryColor}
                   viewAllUrl={section.viewAllUrl}
                   urlStructure={urlStructure}
+                  variant={variant}
                 />
               );
             })}
@@ -156,6 +160,7 @@ export const renderHomeModern = ({
   primaryColor,
   urlStructure,
 }) => {
+  const variant = 'modern';
   const topGrid = [featuredPost, ...sidePosts].filter(Boolean).slice(0, 4);
   return (
     <div className="bg-white min-h-screen pb-16">
@@ -170,7 +175,7 @@ export const renderHomeModern = ({
             <div className="lg:col-span-4">
               <div className="grid grid-cols-1 gap-4">
                 {topGrid.slice(1, 4).map((post, i) => (
-                  <HorizontalCard key={i} post={post} urlStructure={urlStructure} />
+                  <HorizontalCard key={i} post={post} urlStructure={urlStructure} variant={variant} />
                 ))}
               </div>
             </div>
@@ -191,7 +196,7 @@ export const renderHomeModern = ({
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {section.posts.slice(0, 9).map((post, i) => (
-                    <ArticleGridCard key={i} post={post} urlStructure={urlStructure} />
+                    <ArticleGridCard key={i} post={post} urlStructure={urlStructure} variant={variant} />
                   ))}
                 </div>
               </section>
@@ -214,6 +219,7 @@ export const renderHomeNews = ({
   primaryColor,
   urlStructure,
 }) => {
+  const variant = 'news';
   const headlinePosts = sidePosts.slice(0, 4);
   const leadSection = sectionsData[0];
   return (
@@ -230,7 +236,7 @@ export const renderHomeNews = ({
               </div>
               <div className="flex flex-col gap-4">
                 {headlinePosts.map((post, i) => (
-                  <HorizontalCard key={i} post={post} urlStructure={urlStructure} />
+                  <HorizontalCard key={i} post={post} urlStructure={urlStructure} variant={variant} />
                 ))}
               </div>
             </div>
@@ -252,7 +258,7 @@ export const renderHomeNews = ({
                 <div className="flex flex-col gap-5">
                   {leadSection.posts.slice(0, 10).map((post, i) => (
                     <div key={i} className="border-b border-gray-100 pb-5 last:border-b-0 last:pb-0">
-                      <HorizontalCard post={post} urlStructure={urlStructure} />
+                      <HorizontalCard post={post} urlStructure={urlStructure} variant={variant} />
                     </div>
                   ))}
                 </div>
@@ -266,6 +272,7 @@ export const renderHomeNews = ({
                 primaryColor={primaryColor}
                 viewAllUrl={section.viewAllUrl}
                 urlStructure={urlStructure}
+                variant={variant}
               />
             ))}
           </div>
@@ -286,6 +293,7 @@ export const renderHomeMagazine = ({
   primaryColor,
   urlStructure,
 }) => {
+  const variant = 'magazine';
   const topMosaic = sidePosts.slice(0, 4);
   return (
     <div className="bg-white min-h-screen pb-16">
@@ -298,7 +306,7 @@ export const renderHomeMagazine = ({
             <div className="lg:col-span-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {topMosaic.map((post, i) => (
-                  <ArticleGridCard key={i} post={post} urlStructure={urlStructure} />
+                  <ArticleGridCard key={i} post={post} urlStructure={urlStructure} variant={variant} />
                 ))}
               </div>
             </div>
@@ -327,7 +335,7 @@ export const renderHomeMagazine = ({
                     <div className="lg:col-span-5">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {rest.map((post, i) => (
-                          <ArticleGridCard key={i} post={post} urlStructure={urlStructure} />
+                          <ArticleGridCard key={i} post={post} urlStructure={urlStructure} variant={variant} />
                         ))}
                       </div>
                     </div>
@@ -352,4 +360,3 @@ export const renderHomeByTemplate = (templateId, props) => {
   if (templateId === 'magazine') return renderHomeMagazine(props);
   return renderHomeClassic(props);
 };
-

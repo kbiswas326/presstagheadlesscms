@@ -42,7 +42,7 @@ export default function TemplateListing({
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {posts.map((post, i) => (
-                      <ArticleGridCard key={post?._id || i} post={post} urlStructure={urlStructure} />
+                      <ArticleGridCard key={post?._id || i} post={post} urlStructure={urlStructure} variant={tpl} />
                     ))}
                   </div>
                   {totalPages > 1 ? (
@@ -80,7 +80,7 @@ export default function TemplateListing({
                   <div className="flex flex-col gap-5">
                     {posts.map((post, i) => (
                       <div key={post?._id || i} className="border-b border-gray-100 pb-5 last:border-b-0 last:pb-0">
-                        <HorizontalCard post={post} urlStructure={urlStructure} />
+                        <HorizontalCard post={post} urlStructure={urlStructure} variant={tpl} />
                       </div>
                     ))}
                   </div>
@@ -119,7 +119,7 @@ export default function TemplateListing({
                 <div className={sidebar ? 'lg:col-span-5' : 'lg:col-span-5'}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {rest.slice(0, 4).map((p, i) => (
-                      <ArticleGridCard key={p?._id || i} post={p} urlStructure={urlStructure} />
+                      <ArticleGridCard key={p?._id || i} post={p} urlStructure={urlStructure} variant={tpl} />
                     ))}
                   </div>
                 </div>
@@ -132,7 +132,7 @@ export default function TemplateListing({
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {rest.slice(4).map((post, i) => (
-                      <ArticleGridCard key={post?._id || i} post={post} urlStructure={urlStructure} />
+                      <ArticleGridCard key={post?._id || i} post={post} urlStructure={urlStructure} variant={tpl} />
                     ))}
                   </div>
                   {totalPages > 1 ? (
@@ -165,7 +165,7 @@ export default function TemplateListing({
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {posts.map((post, i) => (
-                      <ArticleGridCard key={post?._id || i} post={post} urlStructure={urlStructure} />
+                      <ArticleGridCard key={post?._id || i} post={post} urlStructure={urlStructure} variant={tpl} />
                     ))}
                   </div>
                   {totalPages > 1 ? (
@@ -194,7 +194,7 @@ export default function TemplateListing({
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {posts.map((post, i) => (
-              <ArticleGridCard key={post?._id || i} post={post} urlStructure={urlStructure} />
+              <ArticleGridCard key={post?._id || i} post={post} urlStructure={urlStructure} variant={tpl} />
             ))}
           </div>
           {totalPages > 1 ? (
@@ -209,4 +209,3 @@ export default function TemplateListing({
     </div>
   );
 }
-

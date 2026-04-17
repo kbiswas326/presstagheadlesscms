@@ -9,7 +9,7 @@ export const revalidate = 120;
 
 async function getLayoutConfig() {
   try {
-    const res = await fetchWithTenant('/layout-config', { next: { revalidate: 300 } });
+    const res = await fetchWithTenant('/layout-config', { next: { revalidate: 60 } });
     if (res.ok) return res.json();
   } catch {}
   return null;

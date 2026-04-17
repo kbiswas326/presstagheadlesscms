@@ -46,7 +46,7 @@ const CloseIcon = (props) => (
   </Icon>
 );
 
-const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
+const NavigationBar = ({navigationItems, top_nav, after_nav, branding, templateId}) => {
   const [search, setSearch] = useState("remove");
   const [searchQuery, setSearchQuery] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -58,6 +58,9 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
   const siteTitle = branding?.siteTitle || 'PressTag';
   const logoUrl = branding?.logo || null;
   const displayMode = branding?.logoDisplayMode || 'both'; // 'both', 'logo', 'text'
+  const tpl = String(templateId || '').trim().toLowerCase();
+  const navBg = tpl === 'bold' ? '#0b1220' : primaryColor;
+  const logoChipBg = tpl === 'bold' ? 'bg-white/10' : 'bg-white';
 
   const showLogo = (displayMode === 'logo' || displayMode === 'both') && logoUrl;
   const showTitle = (displayMode === 'text' || displayMode === 'both') && siteTitle;
@@ -94,7 +97,7 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
     
     <nav className={`${liveScoreToggle===true?'hidden':'block'} sticky top-0 z-[998]`}>
       {/* Main navigation bar with dynamic background */}
-      <div style={{ backgroundColor: primaryColor }} className="text-white relative">
+      <div style={{ backgroundColor: navBg }} className="text-white relative">
         <div className="container mx-auto px-4 lg:px-8">
           <div className="flex items-center justify-between h-12">
             {/* Logo section */}
@@ -115,7 +118,7 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
 
                 {/* Site Title */}
                 {showTitle && (
-                    <div className={`${showLogo ? 'hidden md:flex' : 'flex'} flex-col justify-center bg-white py-0.5 px-1.5 rounded-sm hover:opacity-90 transition-opacity`}>
+                    <div className={`${showLogo ? 'hidden md:flex' : 'flex'} flex-col justify-center ${logoChipBg} py-0.5 px-1.5 rounded-sm hover:opacity-90 transition-opacity`}>
                       <span style={{ color: primaryColor }} className="font-bold text-xl tracking-tighter leading-none">
                         {siteTitle}
                       </span>

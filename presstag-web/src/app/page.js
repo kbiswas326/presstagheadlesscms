@@ -9,7 +9,7 @@ export const revalidate = 60;
 
 async function getLayoutConfig() {
   try {
-    const res = await fetchLayoutConfig({ next: { revalidate: 300 } });
+    const res = await fetchLayoutConfig({ next: { revalidate: 60 } });
     if (res.ok) return res.json();
   } catch (e) { console.error(e); }
   return null;

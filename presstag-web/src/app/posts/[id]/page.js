@@ -35,7 +35,7 @@ export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const [post, config] = await Promise.all([
     getPostById(resolvedParams.id),
-    (await import('@/lib/fetchWithTenant')).fetchWithTenant('/layout-config', { next: { revalidate: 300 } })
+    (await import('@/lib/fetchWithTenant')).fetchWithTenant('/layout-config', { next: { revalidate: 60 } })
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null),
   ]);
@@ -88,7 +88,7 @@ export default async function PostPage({ params }) {
   if (post) post.gallery = post.gallery || post.images;
 
 
-  const layoutConfig = await fetchWithTenant('/layout-config', { next: { revalidate: 300 } })
+  const layoutConfig = await fetchWithTenant('/layout-config', { next: { revalidate: 60 } })
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
   const templateId = resolveTemplateId(layoutConfig?.branding?.templateId);

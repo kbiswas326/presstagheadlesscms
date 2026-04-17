@@ -128,7 +128,7 @@ export async function generateMetadata({ params }) {
   const lastSegment = slugParts[slugParts.length - 1];
   const [post, config] = await Promise.all([
     getPostBySlug(lastSegment),
-    fetchWithTenant('/layout-config', { next: { revalidate: 300 } }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    fetchWithTenant('/layout-config', { next: { revalidate: 60 } }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
   ]);
 
   if (!post) return { title: 'Post Not Found' };
@@ -182,7 +182,7 @@ if (!post) {
   // Check if this was an old slug that changed — 301 redirect to new URL
   const oldPost = await getPostByPreviousSlug(lastSegment);
   if (oldPost) {
-    const config = await fetchWithTenant('/layout-config', { next: { revalidate: 300 } }).then(r => r.json()).catch(() => null);
+    const config = await fetchWithTenant('/layout-config', { next: { revalidate: 60 } }).then(r => r.json()).catch(() => null);
     const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
     const { buildPostUrl } = await import('@/lib/urlBuilder');
     redirect(buildPostUrl(oldPost, urlStructure));
@@ -193,7 +193,7 @@ if (!post) {
   if (post) post.gallery = post.gallery || post.images;
   post = await ensureCategories(post);
   post = await ensurePeople(post);
-  const layoutConfig = await fetchWithTenant('/layout-config', { next: { revalidate: 300 } })
+  const layoutConfig = await fetchWithTenant('/layout-config', { next: { revalidate: 60 } })
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
   const templateId = resolveTemplateId(layoutConfig?.branding?.templateId);

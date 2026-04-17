@@ -7,6 +7,7 @@ export default function LayoutClient({ children, config }) {
   // Config.navbar can be an array (new) or object (old)
   let navbar = [];
   let branding = config?.branding || {};
+  const templateId = branding?.templateId;
 
   if (Array.isArray(config?.navbar)) {
       navbar = config.navbar;
@@ -33,6 +34,7 @@ export default function LayoutClient({ children, config }) {
         top_nav={null}
         after_nav={null}
         branding={branding}
+        templateId={templateId}
       />
       <AdSpot position="header_bottom" />
       <main className="container mx-auto px-4 lg:px-8 mb-7">
