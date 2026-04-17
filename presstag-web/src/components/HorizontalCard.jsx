@@ -40,7 +40,7 @@ if (imageUrl) {
   return (
     <Link
       href={postUrl}
-      className="site-card flex flex-row gap-4 group cursor-pointer p-3 hover:shadow-md transition-shadow"
+      className="flex flex-row gap-4 group cursor-pointer"
     >
       {/* Image */}
       <div className="relative w-1/3 md:w-1/3 lg:w-1/3 flex-shrink-0">
@@ -81,10 +81,10 @@ if (imageUrl) {
                  </span>
              ))}
         </div>
-        <h3 className="text-sm md:text-base font-bold site-text leading-snug mb-1 transition-colors line-clamp-2 group-hover:text-[var(--primary-color)]">
+        <h3 className="text-sm md:text-base font-bold text-gray-900 leading-snug mb-1 transition-colors line-clamp-2 group-hover:text-[var(--primary-color)]">
           {post.title}
         </h3>
-        <div className="flex items-center text-[11px] site-muted gap-2 mt-auto">
+        <div className="flex items-center text-[11px] text-gray-500 gap-2 mt-auto">
             <span>{formatDate(displayDate)}</span>
             {post.content && (
                 <>
