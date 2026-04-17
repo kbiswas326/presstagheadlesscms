@@ -6,7 +6,7 @@ import Link from 'next/link';
 const ResponsivePostGrid = ({ posts, title, sectionName, primaryColor = '#006356', viewAllUrl, urlStructure, variant = 'classic' }) => {
   if (!posts || posts.length === 0) return null;
   const tpl = String(variant || '').trim().toLowerCase();
-  const isBold = tpl === 'bold';
+  const isBold = false;
 
   return (
     <div className="mb-12">

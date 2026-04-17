@@ -134,7 +134,7 @@ export default async function AuthorPage({ params, searchParams }) {
     // Image logic
     const authorImageSrc = getImageUrl(author.image);
 
-    const isBold = templateId === 'bold';
+    const isBold = false;
     const isNews = templateId === 'news';
     const isModern = templateId === 'modern';
     const isMagazine = templateId === 'magazine';

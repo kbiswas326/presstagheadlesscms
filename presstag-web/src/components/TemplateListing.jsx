@@ -30,12 +30,14 @@ export default function TemplateListing({
 
   if (tpl === 'bold') {
     return (
-      <div className="bg-slate-950 min-h-screen pb-16">
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-8 border-b border-white/10 pb-4">
+      <div className="bg-white min-h-screen pb-16">
+        <div className="w-full" style={{ backgroundColor: primaryColor }}>
+          <div className="container mx-auto px-4 py-8">
             <h1 className="text-3xl font-bold text-white">{heading}</h1>
-            {meta ? <p className="text-white/70 mt-1">{meta}</p> : null}
+            {meta ? <p className="text-white/90 mt-1">{meta}</p> : null}
           </div>
+        </div>
+        <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
             <div className={sidebar ? 'lg:col-span-8' : 'lg:col-span-12'}>
               {hasPosts ? (
@@ -50,16 +52,12 @@ export default function TemplateListing({
                   ) : null}
                 </>
               ) : (
-                <div className="text-center py-20 text-white/70">
-                  No posts found.
-                </div>
+                <div className="text-center py-20 text-gray-500">No posts found.</div>
               )}
             </div>
             {sidebar ? (
               <div className="lg:col-span-4 lg:sticky lg:top-0">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <Sidebar variant="post" />
-                </div>
+                <Sidebar variant="post" />
               </div>
             ) : null}
           </div>

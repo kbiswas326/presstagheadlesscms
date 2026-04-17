@@ -43,12 +43,12 @@ if (imageUrl) {
     <Link
       href={postUrl}
       className={`flex flex-row gap-4 group cursor-pointer ${
-        isBold ? 'rounded-xl p-3 bg-white/5 hover:bg-white/10 border border-white/10' : ''
+        isBold ? 'rounded-xl p-3 bg-white hover:bg-gray-50 border border-gray-200 shadow-sm' : ''
       }`}
     >
       {/* Image */}
       <div className="relative w-1/3 md:w-1/3 lg:w-1/3 flex-shrink-0">
-        <div className={`relative pb-[56.25%] rounded-lg overflow-hidden ${isBold ? 'bg-white/10' : 'bg-gray-100'}`}>
+        <div className={`relative pb-[56.25%] rounded-lg overflow-hidden ${isBold ? 'bg-gray-100' : 'bg-gray-100'}`}>
              {finalImageSrc ? (
                 <Image
                     src={finalImageSrc}
@@ -58,7 +58,7 @@ if (imageUrl) {
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                 />
              ) : (
-                <div className={`absolute inset-0 ${isBold ? 'bg-white/10' : 'bg-gray-200'}`} />
+                <div className={`absolute inset-0 ${isBold ? 'bg-gray-200' : 'bg-gray-200'}`} />
              )}
         </div>
       </div>
@@ -85,10 +85,10 @@ if (imageUrl) {
                  </span>
              ))}
         </div>
-        <h3 className={`text-sm md:text-base font-bold leading-snug mb-1 transition-colors line-clamp-2 group-hover:text-[var(--primary-color)] ${isBold ? 'text-white' : 'text-gray-900'}`}>
+        <h3 className={`text-sm md:text-base font-bold leading-snug mb-1 transition-colors line-clamp-2 group-hover:text-[var(--primary-color)] ${isBold ? 'text-gray-900' : 'text-gray-900'}`}>
           {post.title}
         </h3>
-        <div className={`flex items-center text-[11px] gap-2 mt-auto ${isBold ? 'text-white/70' : 'text-gray-500'}`}>
+        <div className={`flex items-center text-[11px] gap-2 mt-auto ${isBold ? 'text-gray-500' : 'text-gray-500'}`}>
             <span>{formatDate(displayDate)}</span>
             {post.content && (
                 <>

@@ -59,7 +59,7 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding, templateI
   const logoUrl = branding?.logo || null;
   const displayMode = branding?.logoDisplayMode || 'both'; // 'both', 'logo', 'text'
   const tpl = String(templateId || '').trim().toLowerCase();
-  const navBg = tpl === 'bold' ? '#0b1220' : primaryColor;
+  const navBg = primaryColor;
   const logoChipBg = tpl === 'bold' ? 'bg-white/10' : 'bg-white';
 
   const showLogo = (displayMode === 'logo' || displayMode === 'both') && logoUrl;

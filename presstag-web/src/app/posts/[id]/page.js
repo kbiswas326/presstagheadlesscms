@@ -182,11 +182,8 @@ export default async function PostPage({ params }) {
     }
   })();
 
-  const isBoldTemplate = templateId === 'bold';
-  const wrapperBg = isBoldTemplate ? 'bg-slate-950' : 'bg-gray-50';
-  const mainShell = isBoldTemplate
-    ? 'bg-white rounded-xl shadow-sm border border-white/10'
-    : 'bg-white rounded-xl shadow-sm border border-gray-100';
+  const wrapperBg = 'bg-gray-50';
+  const mainShell = 'bg-white rounded-xl shadow-sm border border-gray-100';
 
   return (
     <div className={`min-h-screen ${wrapperBg} ${merriweather.className}`}>

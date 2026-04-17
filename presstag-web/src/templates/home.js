@@ -82,69 +82,62 @@ export const renderHomeBold = ({
   urlStructure,
 }) => {
   const variant = 'bold';
+  const topStories = sidePosts.slice(0, 4);
+  const headlinePosts = sectionsData?.[0]?.posts?.slice(0, 6) || [];
   return (
-    <div className="bg-slate-950 min-h-screen pb-16">
+    <div className="bg-white min-h-screen pb-16">
       <div className="container mx-auto px-4 pt-6">
         {featuredPost ? (
           <section className="mb-10">
-            <div className="rounded-2xl overflow-hidden border border-white/10">
-              <FeaturedHero post={featuredPost} urlStructure={urlStructure} />
-            </div>
-            <div className="mt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-white tracking-wide">
-                  Top Stories
-                </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <div className="lg:col-span-8">
+                <FeaturedHero post={featuredPost} urlStructure={urlStructure} />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                {sidePosts.map((post, i) => (
-                  <ArticleGridCard key={i} post={post} urlStructure={urlStructure} variant={variant} />
-                ))}
+              <div className="lg:col-span-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-gray-900 border-l-4 pl-3" style={{ borderColor: primaryColor }}>
+                    Headlines
+                  </h2>
+                </div>
+                <div className="flex flex-col gap-4">
+                  {headlinePosts.map((post, i) => (
+                    <HorizontalCard key={i} post={post} urlStructure={urlStructure} variant={variant} />
+                  ))}
+                </div>
               </div>
             </div>
           </section>
         ) : null}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-9">
-            {sectionsData.map((section, index) => {
-              const isLead = index === 0;
-              if (isLead) {
-                return (
-                  <section key={index} className="mb-12">
-                    <div className="flex items-center justify-between mb-5">
-                      <h2 className="text-xl font-bold text-white">{section.name}</h2>
-                      {section.viewAllUrl ? (
-                        <a href={section.viewAllUrl} className="text-sm font-medium hover:underline" style={{ color: primaryColor }}>
-                          View all
-                        </a>
-                      ) : null}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {section.posts.slice(0, 6).map((post, i) => (
-                        <HorizontalCard key={i} post={post} urlStructure={urlStructure} variant={variant} />
-                      ))}
-                    </div>
-                  </section>
-                );
-              }
-              return (
-                <ResponsivePostGrid
-                  key={index}
-                  posts={section.posts}
-                  sectionName={section.name}
-                  primaryColor={primaryColor}
-                  viewAllUrl={section.viewAllUrl}
-                  urlStructure={urlStructure}
-                  variant={variant}
-                />
-              );
-            })}
-          </div>
-          <div className="lg:col-span-3 lg:sticky lg:top-0">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <Sidebar variant="homepage" excludePostKeys={excludePostKeys} />
+        <section className="mb-12 rounded-2xl overflow-hidden" style={{ backgroundColor: primaryColor }}>
+          <div className="p-6 md:p-8">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-white tracking-wide">Top Stories</h2>
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+              {topStories.map((post, i) => (
+                <ArticleGridCard key={i} post={post} urlStructure={urlStructure} variant={variant} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-8">
+            {sectionsData.map((section, index) => (
+              <ResponsivePostGrid
+                key={index}
+                posts={section.posts}
+                sectionName={section.name}
+                primaryColor={primaryColor}
+                viewAllUrl={section.viewAllUrl}
+                urlStructure={urlStructure}
+                variant={'classic'}
+              />
+            ))}
+          </div>
+          <div className="lg:col-span-4 lg:sticky lg:top-0">
+            <Sidebar variant="homepage" excludePostKeys={excludePostKeys} />
           </div>
         </div>
       </div>
