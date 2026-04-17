@@ -10,6 +10,8 @@ import { AdProvider } from '../context/AdContext';
 import { fetchWithTenant, fetchLayoutConfig } from '../lib/fetchWithTenant';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '../lib/seo';
 import { renderHtmlInjection } from '../lib/htmlInjections';
+import { getResolvedTokens, tokensToCssVars } from '../templates/templates';
+import { resolveTemplateFromConfig } from '../templates/applyTemplate';
 
 const roboto = Roboto({
   weight: ['400', '500', '700'],
@@ -133,9 +135,12 @@ export default async function RootLayout({ children }) {
     ? `${faviconHref}${faviconVersion ? `${faviconHref.includes('?') ? '&' : '?'}v=${faviconVersion}` : ''}`
     : '';
   const primaryColor = config?.branding?.primaryColor || '#006356';
+  const templateId = resolveTemplateFromConfig(config);
+  const resolved = getResolvedTokens(templateId);
+  const templateVars = tokensToCssVars(resolved.tokens);
 
   return (
-    <html lang="en" className={`${roboto.variable} ${ptSerif.variable}`} style={{ '--primary-color': primaryColor }}>
+    <html lang="en" data-template={resolved.id} className={`${roboto.variable} ${ptSerif.variable}`} style={{ '--primary-color': primaryColor, ...templateVars }}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

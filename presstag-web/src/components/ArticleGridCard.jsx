@@ -40,7 +40,7 @@ if (imageUrl) {
   return (
     <Link
       href={postUrl}
-      className="bg-white hover:bg-gray-50 transition-colors border border-gray-200 rounded-lg overflow-hidden cursor-pointer flex flex-col block"
+      className="site-card hover:shadow-md transition-shadow overflow-hidden cursor-pointer flex flex-col block"
     >
       {/* Image container with fixed aspect ratio */}
       <div className="relative w-full">
@@ -64,11 +64,11 @@ if (imageUrl) {
       </div>
 
       <div className="p-4 flex flex-col flex-grow">
-        <h3 className="text-sm font-semibold text-gray-800 line-clamp-2 mb-2">{post.isLive && (<span className="inline-flex items-center gap-1 mr-2 align-middle"><span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span></span><span className="text-red-600 text-[9px] font-bold uppercase">LIVE</span></span>)}
+        <h3 className="text-sm font-semibold site-text line-clamp-2 mb-2">{post.isLive && (<span className="inline-flex items-center gap-1 mr-2 align-middle"><span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span></span><span className="text-red-600 text-[9px] font-bold uppercase">LIVE</span></span>)}
           {post.title}
         </h3>
         <div className="mt-auto flex items-center justify-between">
-          <span className="text-[10px] text-gray-500">
+          <span className="text-[10px] site-muted">
             {formatDate(post.publishedAt || post.publishDate || post.createdAt || post.updatedAt)}
           </span>
         </div>

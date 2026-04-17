@@ -209,9 +209,9 @@ const LiveBlogViewer = ({ post }) => {
       : [<span key="desk">{authorName || 'SportzPoint Desk'}</span>];
 
     return (
-        <div className={`min-h-screen bg-gray-50 ${merriweather.className}`}>
+        <div className={`min-h-screen ${merriweather.className}`}>
             <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
-                    <main className="w-full lg:w-[72%] bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-8" ref={embedsRootRef}>
+                    <main className="w-full lg:w-[72%] site-card p-4 lg:p-8" ref={embedsRootRef}>
                         {hasTwitterEmbeds && (
                             <Script
                                 src="https://platform.twitter.com/widgets.js"
@@ -300,19 +300,19 @@ const LiveBlogViewer = ({ post }) => {
                             </div>
 
                             {/* Title */}
-                            <h1 className="text-3xl md:text-5xl font-black text-gray-900 leading-tight mb-4">
+                            <h1 className="text-3xl md:text-5xl font-black site-text leading-tight mb-4">
                                 {title}
                             </h1>
 
                             {/* Summary */}
                             {summary && (
-                                <p className="text-lg md:text-xl text-gray-600 mb-6 leading-relaxed border-l-4 border-green-600 pl-4 italic">
+                                <p className="text-lg md:text-xl site-muted mb-6 leading-relaxed border-l-4 border-green-600 pl-4 italic">
                                     {summary}
                                 </p>
                             )}
 
                             {/* Author & Meta */}
-                            <div className="flex items-center justify-between border-b border-gray-100 pb-6 mb-6">
+                            <div className="flex items-center justify-between border-b pb-6 mb-6" style={{ borderColor: 'var(--site-border)' }}>
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-gray-200 rounded-full overflow-hidden">
                                          {/* Placeholder Avatar */}
@@ -321,13 +321,13 @@ const LiveBlogViewer = ({ post }) => {
                                          </svg>
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="font-bold text-gray-900 text-sm">
+                                        <span className="font-bold site-text text-sm">
                                             {bylineNodes.reduce((acc, node, idx) => {
                                                 if (idx === 0) return [node];
                                                 return acc.concat([<span key={`sep-${idx}`}>, </span>, node]);
                                             }, [])}
                                         </span>
-                                        <span className="text-xs text-gray-500" suppressHydrationWarning>
+                                        <span className="text-xs site-muted" suppressHydrationWarning>
                                             {publishedAt ? new Intl.DateTimeFormat('en-US', {
                                                 timeZone: 'Asia/Kolkata',
                                                 year: 'numeric',

@@ -92,7 +92,7 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding}) => {
 
   return (
     
-    <nav className={`${liveScoreToggle===true?'hidden':'block'} sticky top-0 z-[998]`}>
+    <nav className={`${liveScoreToggle===true?'hidden':'block'} site-navbar sticky top-0 z-[998]`}>
       {/* Main navigation bar with dynamic background */}
       <div style={{ backgroundColor: primaryColor }} className="text-white relative">
         <div className="container mx-auto px-4 lg:px-8">

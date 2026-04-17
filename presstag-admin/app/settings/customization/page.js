@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { ChevronDown, Plus, Trash2, X, Upload, Eye, EyeOff, Save, RotateCcw, Check, Layout, Menu, Globe, columns, Columns, Link as LinkIcon, Info, Mail, Edit2, GripVertical, ArrowUp, ArrowDown, BarChart2 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-hot-toast';
@@ -87,6 +88,7 @@ export default function CustomizationPage() {
   siteTitle: 'SportzPoint',
   siteTagline: '',
   siteUrl: '',
+  templateId: 'classic',
   logoDisplayMode: 'both',
   showTaglineInHeader: false,
   logoFile: null,
@@ -480,6 +482,37 @@ export default function CustomizationPage() {
   }`;
   const checkboxClass = `w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer`;
 
+  const templateOptions = [
+    { id: 'classic', name: 'Classic', thumb: '/templates/classic.svg' },
+    { id: 'modern', name: 'Modern', thumb: '/templates/modern.svg' },
+    { id: 'magazine', name: 'Magazine', thumb: '/templates/magazine.svg' },
+    { id: 'minimal', name: 'Minimal', thumb: '/templates/minimal.svg' },
+    { id: 'bold', name: 'Bold', thumb: '/templates/bold.svg' },
+  ];
+
+  const getPreviewOrigin = () => {
+    const normalize = (raw) => String(raw || '').trim().replace(/\/+$/, '');
+    const fromConfig = normalize(settings?.branding?.siteUrl || settings?.seo?.siteUrl);
+    const fromEnv = normalize(process.env.NEXT_PUBLIC_PUBLIC_ORIGIN);
+    const inferFromHost = () => {
+      if (typeof window === 'undefined') return '';
+      const host = window.location.hostname.toLowerCase();
+      if (host.includes('localhost') || host.includes('127.0.0.1')) return 'http://localhost:3001';
+      if (host.includes('-admin-')) return `https://${host.replace('-admin-', '-frontend-')}`;
+      if (host.includes('sportzpoint-admin')) return `https://${host.replace('sportzpoint-admin', 'sportzpoint-frontend')}`;
+      if (host.startsWith('admin.')) return `https://${host.slice(6)}`;
+      if (host.startsWith('cms.')) return `https://${host.slice(4)}`;
+      return '';
+    };
+    return fromConfig || fromEnv || inferFromHost() || 'http://localhost:3001';
+  };
+
+  const openTemplatePreview = (templateId) => {
+    const origin = getPreviewOrigin();
+    const url = `${origin}/?template=${encodeURIComponent(String(templateId || 'classic'))}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const tabs = [
   { id: 'branding', label: 'Branding', icon: <Layout size={18} /> },
   { id: 'navbar', label: 'Navigation', icon: <Menu size={18} /> },
@@ -585,6 +618,54 @@ export default function CustomizationPage() {
                       className={inputClass} 
                       placeholder="e.g. Latest Sports News"
                     />
+                  </div>
+                  <div className="md:col-span-2">
+                    <div className="flex items-center justify-between gap-4 mb-3">
+                      <label className={label}>Site Template</label>
+                      <button
+                        type="button"
+                        onClick={() => openTemplatePreview(settings?.branding?.templateId || 'classic')}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+                      >
+                        <Eye size={16} />
+                        Preview
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {templateOptions.map((tpl) => {
+                        const active = String(settings?.branding?.templateId || 'classic') === tpl.id;
+                        return (
+                          <button
+                            key={tpl.id}
+                            type="button"
+                            onClick={() => setSettings(prev => ({ ...prev, branding: { ...prev.branding, templateId: tpl.id } }))}
+                            className={`text-left rounded-xl border overflow-hidden transition-all ${active ? 'border-blue-500 ring-2 ring-blue-200' : (isDark ? 'border-gray-700 hover:border-gray-600' : 'border-gray-200 hover:border-gray-300')}`}
+                          >
+                            <div className={`${isDark ? 'bg-gray-900' : 'bg-white'} p-3`}>
+                              <div className="relative w-full aspect-[16/10] rounded-lg overflow-hidden">
+                                <Image src={tpl.thumb} alt={tpl.name} fill sizes="(max-width: 1024px) 50vw, 33vw" className="object-cover" />
+                              </div>
+                              <div className="mt-3 flex items-center justify-between gap-3">
+                                <div className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{tpl.name}</div>
+                                {active ? (
+                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                                    <Check size={14} />
+                                    Selected
+                                  </span>
+                                ) : (
+                                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${isDark ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
+                                    Select
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-xs mt-3`}>
+                      Template preview uses a URL override and does not save until you click Save Changes.
+                    </div>
                   </div>
                   <div className="md:col-span-2">
                     <label className={label}>Favicon</label>
