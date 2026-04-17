@@ -1,12 +1,9 @@
 /// web> src> app> page.js | Main homepage component for the Presstag web app. This component fetches the layout configuration and posts from the backend API to dynamically render the homepage sections based on the admin-defined settings. It includes a hero section with featured posts, followed by multiple sections that can be customized to display posts from specific categories, tags, authors, or content types. The component also handles fallback images for posts that do not have a specific image set, ensuring a consistent visual experience. The sidebar is included for additional widgets and content as defined in the layout configuration. //
 import React from "react";
-import FeaturedHero from "../components/FeaturedHero";
-import HorizontalCard from "../components/HorizontalCard";
-import ArticleGridCard from "../components/ArticleGridCard";
-import Sidebar from "../components/Sidebar";
-import ResponsivePostGrid from "../components/ResponsivePostGrid";
 import { getFallbackImage, resolvePostImage } from '../lib/imageHelper';
 import { fetchWithTenant, fetchLayoutConfig } from '../lib/fetchWithTenant';
+import { resolveTemplateId } from '../lib/templates';
+import { renderHomeByTemplate } from '../templates/home';
 
 export const revalidate = 60;
 
@@ -47,11 +44,16 @@ export default async function Page() {
   const primaryColor = config?.branding?.primaryColor || '#006356';
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
   const tagPrefix = String(config?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
+  const templateId = resolveTemplateId(config?.branding?.templateId);
 
   // HERO POSTS
   const heroPosts = await getPosts({ limit: 5 });
-  const featuredPost = heroPosts[0];
-  const sidePosts = heroPosts.slice(1, 5);
+  const featuredPost = heroPosts[0]
+    ? { ...heroPosts[0], image: resolvePostImage(heroPosts[0], fallbackImage) }
+    : null;
+  const sidePosts = heroPosts
+    .slice(1, 5)
+    .map((p) => ({ ...p, image: resolvePostImage(p, fallbackImage) }));
 
   const excludePostKeys = Array.from(
     new Set(
@@ -123,78 +125,21 @@ export default async function Page() {
     ];
   }
 
-  return (
-    <div className="bg-white min-h-screen pb-16">
-      <div className="container mx-auto px-4 pt-6">
+  const hydratedSections = sectionsData.map((section) => ({
+    ...section,
+    posts: (section.posts || []).map((post) => ({
+      ...post,
+      image: resolvePostImage(post, fallbackImage),
+    })),
+  }));
 
-        {/* HERO SECTION */}
-        {featuredPost && (
-          <section className="mb-12">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-
-              <div className="lg:col-span-2">
-                <FeaturedHero
-                  post={{
-                    ...featuredPost,
-                    image: resolvePostImage(featuredPost, fallbackImage)
-                  }}
-                  urlStructure={urlStructure}
-                />
-              </div>
-
-              <div className="lg:col-span-1 flex flex-col h-full">
-                <div className="flex items-center justify-between mb-4">
-                  <h2
-                    className="text-lg font-bold text-gray-900 border-l-4 pl-3"
-                    style={{ borderColor: primaryColor }}
-                  >
-                    Top Stories
-                  </h2>
-                </div>
-
-                <div className="flex flex-col gap-4 flex-grow">
-                  {sidePosts.map((post, i) => (
-                    <HorizontalCard
-                      key={i}
-                      post={{
-                        ...post,
-                        image: resolvePostImage(post, fallbackImage)
-                      }}
-                      urlStructure={urlStructure}
-                    />
-                  ))}
-                </div>
-              </div>
-
-            </div>
-          </section>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-
-          <div className="lg:col-span-8">
-            {sectionsData.map((section, index) => (
-              <ResponsivePostGrid
-                key={index}
-                posts={section.posts.map(post => ({
-                  ...post,
-                  image: resolvePostImage(post, fallbackImage)
-                }))}
-                sectionName={section.name}
-                primaryColor={primaryColor}
-                viewAllUrl={section.viewAllUrl}
-                urlStructure={urlStructure}
-              />
-            ))}
-          </div>
-
-          {/* SIDEBAR */}
-          <div className="lg:col-span-4 lg:sticky lg:top-0">
-            <Sidebar variant="homepage" excludePostKeys={excludePostKeys} />
-          </div>
-
-        </div>
-      </div>
-    </div>
-  );
+  return renderHomeByTemplate(templateId, {
+    featuredPost,
+    sidePosts,
+    sectionsData: hydratedSections,
+    excludePostKeys,
+    fallbackImage,
+    primaryColor,
+    urlStructure,
+  });
 }

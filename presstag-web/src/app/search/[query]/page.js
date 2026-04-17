@@ -1,7 +1,7 @@
 import React from 'react';
-import ArticleGridCard from '../../../components/ArticleGridCard';
-import Pagination from '../../../components/Pagination';
+import TemplateListing from '../../../components/TemplateListing';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
+import { resolveTemplateId } from '../../../lib/templates';
 
 export const revalidate = 60;
 
@@ -46,35 +46,28 @@ export default async function SearchResultsPage({ params, searchParams }) {
   ]);
 
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
+  const templateId = resolveTemplateId(config?.branding?.templateId);
+  const primaryColor = config?.branding?.primaryColor || '#006356';
   const baseUrl = `/search/${encodeURIComponent(query)}`;
 
   return (
-    <div className="container mx-auto px-4 py-8 min-h-screen">
-      <div className="mb-8 border-b border-gray-200 pb-4">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Search: <span className="text-emerald-600">{query}</span>
-        </h1>
-        <p className="text-gray-500 mt-1">
-          {result.total} results • Page {page}
-        </p>
-      </div>
-
-      {result.posts.length > 0 ? (
+    <TemplateListing
+      templateId={templateId}
+      heading={
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {result.posts.map((post, i) => (
-              <ArticleGridCard key={post._id || i} post={post} urlStructure={urlStructure} />
-            ))}
-          </div>
-
-          <Pagination currentPage={page} totalPages={result.totalPages} baseUrl={baseUrl} />
+          Search:{' '}
+          <span style={{ color: primaryColor }}>{query}</span>
         </>
-      ) : (
-        <div className="text-center py-20">
-          <h2 className="text-xl text-gray-500">No results found.</h2>
-        </div>
-      )}
-    </div>
+      }
+      meta={`${result.total} results • Page ${page}`}
+      posts={result.posts}
+      page={page}
+      totalPages={result.totalPages}
+      baseUrl={baseUrl}
+      primaryColor={primaryColor}
+      urlStructure={urlStructure}
+      sidebar={templateId !== 'classic'}
+    />
   );
 }
 

@@ -87,6 +87,7 @@ export default function CustomizationPage() {
   siteTitle: 'SportzPoint',
   siteTagline: '',
   siteUrl: '',
+  templateId: 'classic',
   logoDisplayMode: 'both',
   showTaglineInHeader: false,
   logoFile: null,
@@ -585,6 +586,20 @@ export default function CustomizationPage() {
                       className={inputClass} 
                       placeholder="e.g. Latest Sports News"
                     />
+                  </div>
+                  <div>
+                    <label className={label}>Site Template</label>
+                    <select
+                      value={settings.branding.templateId || 'classic'}
+                      onChange={(e) => setSettings(prev => ({ ...prev, branding: { ...prev.branding, templateId: e.target.value } }))}
+                      className={selectClass}
+                    >
+                      <option value="classic">Classic (Default)</option>
+                      <option value="bold">Bold</option>
+                      <option value="modern">Modern</option>
+                      <option value="news">News</option>
+                      <option value="magazine">Magazine</option>
+                    </select>
                   </div>
                   <div className="md:col-span-2">
                     <label className={label}>Favicon</label>

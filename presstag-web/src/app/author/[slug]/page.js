@@ -3,10 +3,12 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import ArticleGridCard from '@/components/ArticleGridCard';
+import HorizontalCard from '@/components/HorizontalCard';
 import Pagination from '@/components/Pagination';
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
 import { getImageUrl } from '@/lib/imageHelper';
 import { buildOpenGraphImage, fillTemplate, resolveSiteAssetUrl } from '@/lib/seo';
+import { resolveTemplateId } from '@/lib/templates';
 
 async function getAuthor(slug) {
     try {
@@ -113,6 +115,10 @@ export default async function AuthorPage({ params, searchParams }) {
     const authorSlug = resolvedParams.slug; // Renamed from id to slug
 
     const author = await getAuthor(authorSlug);
+    const config = await getLayoutConfig();
+    const templateId = resolveTemplateId(config?.branding?.templateId);
+    const primaryColor = config?.branding?.primaryColor || '#006356';
+    const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
 
     if (!author) {
         return (
@@ -128,10 +134,14 @@ export default async function AuthorPage({ params, searchParams }) {
     // Image logic
     const authorImageSrc = getImageUrl(author.image);
 
+    const isBold = templateId === 'bold';
+    const isNews = templateId === 'news';
+    const isModern = templateId === 'modern';
+    const isMagazine = templateId === 'magazine';
+
     return (
-        <div className="bg-white min-h-screen pb-16">
-            {/* Author Header */}
-            <div className="bg-gray-50 border-b border-gray-200">
+        <div className={`${isBold ? 'bg-slate-950 text-white' : 'bg-white'} min-h-screen pb-16`}>
+            <div className={`${isBold ? 'bg-slate-950' : 'bg-gray-50'} border-b ${isBold ? 'border-white/10' : 'border-gray-200'}`}>
                 <div className="container mx-auto px-4 py-12 flex flex-col items-center text-center">
                     <div className="w-32 h-32 rounded-full overflow-hidden relative mb-6 border-4 border-white shadow-md bg-gray-200">
                          {authorImageSrc ? (
@@ -149,19 +159,19 @@ export default async function AuthorPage({ params, searchParams }) {
                              </div>
                         )}
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{author.name}</h1>
+                    <h1 className={`text-3xl font-bold mb-2 ${isBold ? 'text-white' : 'text-gray-900'}`}>{author.name}</h1>
                     {author.role && (
-                        <span className="inline-block bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded-full uppercase font-semibold tracking-wide mb-4">
+                        <span className={`inline-block text-xs px-2 py-1 rounded-full uppercase font-semibold tracking-wide mb-4 ${isBold ? 'bg-white/10 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
                             {author.role}
                         </span>
                     )}
                     {author.bio && (
-                        <p className="text-gray-600 max-w-2xl mx-auto mb-6 text-lg leading-relaxed">
+                        <p className={`${isBold ? 'text-white/70' : 'text-gray-600'} max-w-2xl mx-auto mb-6 text-lg leading-relaxed`}>
                             {author.bio}
                         </p>
                     )}
                      {author.email && (
-                        <a href={`mailto:${author.email}`} className="text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-2">
+                        <a href={`mailto:${author.email}`} className="font-medium flex items-center gap-2 hover:opacity-90" style={{ color: primaryColor }}>
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
@@ -171,26 +181,35 @@ export default async function AuthorPage({ params, searchParams }) {
                 </div>
             </div>
 
-            {/* Posts Grid */}
             <div className="container mx-auto px-4 py-12">
-                 <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
-                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                        <span className="w-2 h-8 bg-emerald-600 rounded-full"></span>
+                 <div className={`flex items-center justify-between mb-8 pb-4 border-b ${isBold ? 'border-white/10' : 'border-gray-100'}`}>
+                    <h2 className={`text-2xl font-bold flex items-center gap-3 ${isBold ? 'text-white' : 'text-gray-900'}`}>
+                        <span className="w-2 h-8 rounded-full" style={{ backgroundColor: primaryColor }}></span>
                         Stories by {author.name}
                     </h2>
-                    <span className="text-gray-500 text-sm font-medium">
+                    <span className={`${isBold ? 'text-white/70' : 'text-gray-500'} text-sm font-medium`}>
                         Page {page} of {totalPages}
                     </span>
                 </div>
 
                 {articles.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {articles.map((post, i) => (
-                            <ArticleGridCard key={i} post={post} />
-                        ))}
-                    </div>
+                    isNews ? (
+                        <div className="flex flex-col gap-5">
+                            {articles.map((post, i) => (
+                                <div key={post?._id || i} className={`${isBold ? 'border-white/10' : 'border-gray-100'} border-b pb-5 last:border-b-0 last:pb-0`}>
+                                    <HorizontalCard post={post} urlStructure={urlStructure} />
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className={`grid grid-cols-1 md:grid-cols-2 ${isModern ? 'lg:grid-cols-3' : (isMagazine ? 'lg:grid-cols-3' : 'lg:grid-cols-3')} gap-6`}>
+                            {articles.map((post, i) => (
+                                <ArticleGridCard key={post?._id || i} post={post} urlStructure={urlStructure} />
+                            ))}
+                        </div>
+                    )
                 ) : (
-                    <div className="text-center py-20 text-gray-500">
+                    <div className={`text-center py-20 ${isBold ? 'text-white/70' : 'text-gray-500'}`}>
                         No stories found for this author.
                     </div>
                 )}

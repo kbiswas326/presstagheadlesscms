@@ -19,6 +19,7 @@ import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 import SidebarDeferredClient from '../../../components/SidebarDeferredClient';
 import { formatPublishDateTime } from '../../../util/timeFormat';
+import { resolveTemplateId } from '@/lib/templates';
 
 export const revalidate = 60;
 
@@ -90,6 +91,7 @@ export default async function PostPage({ params }) {
   const layoutConfig = await fetchWithTenant('/layout-config', { next: { revalidate: 300 } })
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
+  const templateId = resolveTemplateId(layoutConfig?.branding?.templateId);
   const tagPrefix = String(layoutConfig?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
   const primaryColor = layoutConfig?.branding?.primaryColor || '#006356';
   const urlStructure = layoutConfig?.seo?.postUrlStructure || '/{category}/{slug}';
@@ -180,8 +182,14 @@ export default async function PostPage({ params }) {
     }
   })();
 
+  const isBoldTemplate = templateId === 'bold';
+  const wrapperBg = isBoldTemplate ? 'bg-slate-950' : 'bg-gray-50';
+  const mainShell = isBoldTemplate
+    ? 'bg-white rounded-xl shadow-sm border border-white/10'
+    : 'bg-white rounded-xl shadow-sm border border-gray-100';
+
   return (
-    <div className={`min-h-screen bg-gray-50 ${merriweather.className}`}>
+    <div className={`min-h-screen ${wrapperBg} ${merriweather.className}`}>
       {/* Article Header */}
       
 
@@ -190,7 +198,7 @@ export default async function PostPage({ params }) {
       
       {/* Main Content Layout */}
       <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
-        <main className="w-full lg:w-[72%] bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-8">
+        <main className={`w-full lg:w-[72%] ${mainShell} p-4 lg:p-8`}>
 <header className="w-full pt-4 pb-6">
         
       {/* Breadcrumb */}

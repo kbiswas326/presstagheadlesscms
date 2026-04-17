@@ -58,7 +58,19 @@ router.get('/', async (req, res) => {
           showNewsletter: true,
           showSocial: true,
         },
-        branding: req.body?.branding,
+        branding: {
+          logo: '/images/logo.png',
+          favicon: '',
+          primaryColor: '#185EFD',
+          siteTitle: 'SportzPoint',
+          siteTagline: '',
+          siteUrl: '',
+          templateId: 'classic',
+          logoDisplayMode: 'both',
+          showTaglineInHeader: false,
+          logoFile: null,
+          fallbackImage: ''
+        },
         analytics: {}
       };
       

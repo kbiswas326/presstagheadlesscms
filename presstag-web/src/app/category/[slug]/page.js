@@ -1,9 +1,9 @@
 ///web/src/app/category/[slug]/page.js | This page component renders a list of posts for a given category slug. It fetches the posts from the backend API based on the category slug and supports pagination. The page displays the category title, a grid of article cards, and pagination controls. If no posts are found for the category, it shows a message indicating that there are no posts in that category. The component uses React's async/await syntax to handle data fetching and includes error handling to ensure a smooth user experience even if the API call fails.
 import React from 'react';
-import ArticleGridCard from '../../../components/ArticleGridCard';
-import Pagination from '../../../components/Pagination';
+import TemplateListing from '../../../components/TemplateListing';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 import { buildOpenGraphImage, fillTemplate, resolveSiteAssetUrl } from '../../../lib/seo';
+import { resolveTemplateId } from '../../../lib/templates';
 
 export const revalidate = 120;
 
@@ -103,42 +103,36 @@ export default async function CategoryPage({ params, searchParams }) {
     return <div className="container mx-auto px-4 py-8">Invalid category</div>;
   }
 
-  const { articles: posts, totalPages } = await getCategoryPosts(slug, page);
+  const [config, postsResult] = await Promise.all([
+    getLayoutConfig(),
+    getCategoryPosts(slug, page),
+  ]);
+  const { articles: posts, totalPages } = postsResult;
+  const templateId = resolveTemplateId(config?.branding?.templateId);
+  const primaryColor = config?.branding?.primaryColor || '#006356';
+  const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
 
   const title = slug.split('-').map(word => 
     word.charAt(0).toUpperCase() + word.slice(1)
   ).join(' ');
 
   return (
-    <div className="container mx-auto px-4 py-8 min-h-screen">
-      <div className="mb-8 border-b border-gray-200 pb-4">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Category: <span className="text-emerald-600">{title}</span>
-        </h1>
-        <p className="text-gray-500 mt-1">
-          {posts.length} articles • Page {page}
-        </p>
-      </div>
-      
-      {posts.length > 0 ? (
+    <TemplateListing
+      templateId={templateId}
+      heading={
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {posts.map((post, i) => (
-              <ArticleGridCard key={post._id || i} post={post} />
-            ))}
-          </div>
-          
-          <Pagination 
-            currentPage={page} 
-            totalPages={totalPages} 
-            baseUrl={`/category/${slug}`} 
-          />
+          Category:{' '}
+          <span style={{ color: primaryColor }}>{title}</span>
         </>
-      ) : (
-        <div className="text-center py-20">
-          <h2 className="text-xl text-gray-500">No posts found in this category.</h2>
-        </div>
-      )}
-    </div>
+      }
+      meta={`${posts.length} articles • Page ${page}`}
+      posts={posts}
+      page={page}
+      totalPages={totalPages}
+      baseUrl={`/category/${slug}`}
+      primaryColor={primaryColor}
+      urlStructure={urlStructure}
+      sidebar={templateId !== 'classic'}
+    />
   );
 }

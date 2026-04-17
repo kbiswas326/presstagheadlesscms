@@ -1,9 +1,9 @@
 import React from 'react';
-import ArticleGridCard from '../../../components/ArticleGridCard';
-import Pagination from '../../../components/Pagination';
+import TemplateListing from '../../../components/TemplateListing';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 import { buildOpenGraphImage, fillTemplate, resolveSiteAssetUrl } from '../../../lib/seo';
 import { permanentRedirect } from 'next/navigation';
+import { resolveTemplateId } from '../../../lib/templates';
 
 async function getLayoutConfig() {
   try {
@@ -113,37 +113,30 @@ export default async function TagPage({ params, searchParams }) {
   }
 
   const { articles: posts, totalPages } = await getTagPosts(slug, page);
+  const templateId = resolveTemplateId(config?.branding?.templateId);
+  const primaryColor = config?.branding?.primaryColor || '#006356';
+  const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
   
   // Format title from slug
   const title = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
   return (
-    <div className="container mx-auto px-4 py-8 min-h-screen">
-      <div className="mb-8 border-b border-gray-200 pb-4">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Tag: <span className="text-emerald-600">{title}</span>
-        </h1>
-      </div>
-      
-      {posts.length > 0 ? (
+    <TemplateListing
+      templateId={templateId}
+      heading={
         <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {posts.map((post, i) => (
-                <ArticleGridCard key={i} post={post} />
-              ))}
-            </div>
-            
-            <Pagination 
-                currentPage={page} 
-                totalPages={totalPages} 
-                baseUrl={`/${preferredPrefix}/${slug}`} 
-            />
+          Tag:{' '}
+          <span style={{ color: primaryColor }}>{title}</span>
         </>
-      ) : (
-        <div className="text-center py-20">
-            <h2 className="text-xl text-gray-500">No posts found for this tag.</h2>
-        </div>
-      )}
-    </div>
+      }
+      meta={posts.length ? `${posts.length} articles • Page ${page}` : `Page ${page}`}
+      posts={posts}
+      page={page}
+      totalPages={totalPages}
+      baseUrl={`/${preferredPrefix}/${slug}`}
+      primaryColor={primaryColor}
+      urlStructure={urlStructure}
+      sidebar={templateId !== 'classic'}
+    />
   );
 }

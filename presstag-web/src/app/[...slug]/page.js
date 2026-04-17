@@ -16,6 +16,7 @@ import { fetchWithTenant } from '@/lib/fetchWithTenant';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
 import SidebarDeferredClient from '../../components/SidebarDeferredClient';
 import { formatPublishDateTime } from '../../util/timeFormat';
+import { resolveTemplateId } from '@/lib/templates';
 
 export const revalidate = 60;
 
@@ -195,6 +196,7 @@ if (!post) {
   const layoutConfig = await fetchWithTenant('/layout-config', { next: { revalidate: 300 } })
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
+  const templateId = resolveTemplateId(layoutConfig?.branding?.templateId);
   const tagPrefix = String(layoutConfig?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
 
   const cleanType = post.type?.toLowerCase().trim();
@@ -244,10 +246,16 @@ if (!post) {
     contentString.includes('instagram-media') ||
     contentString.includes('instagram.com');
 
+  const isBoldTemplate = templateId === 'bold';
+  const wrapperBg = isBoldTemplate ? 'bg-slate-950' : 'bg-gray-50';
+  const mainShell = isBoldTemplate
+    ? 'bg-white rounded-xl shadow-sm border border-white/10'
+    : 'bg-white rounded-xl shadow-sm border border-gray-100';
+
   return (
-    <div className={`min-h-screen bg-gray-50 ${merriweather.className}`}>
+    <div className={`min-h-screen ${wrapperBg} ${merriweather.className}`}>
       <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
-        <main className="w-full lg:w-[72%] bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-8">
+        <main className={`w-full lg:w-[72%] ${mainShell} p-4 lg:p-8`}>
           <header className="w-full pt-4 pb-6">
 
             {/* Breadcrumb */}
