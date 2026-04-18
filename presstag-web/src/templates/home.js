@@ -158,6 +158,8 @@ export const renderHomeBold = ({
   }
 
   const resolveImageSrc = (post) => {
+    const direct = getImageUrl(post?.image);
+    if (direct) return direct;
     return resolvePostImage(post, fallbackImage ? String(fallbackImage).trim() : null);
   };
 
@@ -240,6 +242,15 @@ export const renderHomeBold = ({
               </div>
             </div>
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[0.9] group-hover:opacity-90 transition-opacity mb-4">
+              {post.isLive ? (
+                <span className="inline-flex items-center gap-2 mr-3 align-middle">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+                  </span>
+                  <span className="text-red-600 text-xs font-extrabold uppercase tracking-widest">Live</span>
+                </span>
+              ) : null}
               {post.title}
             </h1>
             <div className="flex items-center gap-2">
@@ -269,7 +280,9 @@ export const renderHomeBold = ({
                 />
                 <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors" />
               </>
-            ) : null}
+            ) : (
+              <div className="absolute inset-0 bg-gray-200" />
+            )}
           </div>
         </div>
       </Link>
@@ -287,7 +300,10 @@ export const renderHomeBold = ({
           {img ? <Image src={img} alt={post?.featuredImage?.altText || post?.title || ''} fill sizes="80px" className="object-cover" /> : null}
         </div>
         <div className="flex flex-col gap-1 min-w-0">
-          <div className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{post.title}</div>
+          <div className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">
+            {post.isLive ? <span className="text-red-600 font-extrabold uppercase mr-2">Live</span> : null}
+            {post.title}
+          </div>
           <div className="text-[10px] text-gray-500">{formatDate(displayDate)}</div>
         </div>
       </Link>
@@ -408,6 +424,15 @@ export const renderHomeBold = ({
                   <h2 className="text-2xl md:text-3xl text-white font-bold leading-tight max-w-sm mt-2 line-clamp-2">
                     {post.title}
                   </h2>
+                  {post.isLive ? (
+                    <div className="mt-3 inline-flex items-center gap-2 text-white">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                      </span>
+                      <span className="text-xs font-extrabold uppercase tracking-widest">Live</span>
+                    </div>
+                  ) : null}
                 </div>
               </Link>
             );
@@ -450,11 +475,6 @@ export const renderHomeBold = ({
                       <Link key={normalizeKey(post) || i} href={postUrl} className="py-5 first:pt-0 last:pb-0 group flex items-center gap-4">
                         <div className="relative h-16 w-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                           {img ? <Image src={img} alt={post?.featuredImage?.altText || post?.title || ''} fill sizes="96px" className="object-cover group-hover:scale-105 transition-transform duration-700" /> : null}
-                          <div className="absolute inset-0 bg-black/15 flex items-center justify-center">
-                            <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur text-white flex items-center justify-center border border-white/30">
-                              <div className="w-0 h-0 border-y-[6px] border-y-transparent border-l-[10px] border-l-white ml-0.5" />
-                            </div>
-                          </div>
                         </div>
                         <div className="min-w-0">
                           <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{getPrimaryCategoryLabel(post) || 'Video'}</div>
@@ -467,7 +487,7 @@ export const renderHomeBold = ({
                 {splitSection?.viewAllUrl ? (
                   <div className="mt-6">
                     <a href={splitSection.viewAllUrl} className="w-full inline-flex justify-center bg-white border border-gray-200 py-3 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white hover:border-black transition-all">
-                      Show more clips
+                      Read more
                     </a>
                   </div>
                 ) : null}
