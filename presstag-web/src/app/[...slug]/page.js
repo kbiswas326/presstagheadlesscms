@@ -197,6 +197,7 @@ if (!post) {
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
   const templateId = resolveTemplateId(layoutConfig?.branding?.templateId);
+  const primaryColor = layoutConfig?.branding?.primaryColor || '#006356';
   const tagPrefix = String(layoutConfig?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
 
   const cleanType = post.type?.toLowerCase().trim();
