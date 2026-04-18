@@ -38,6 +38,10 @@ if (imageUrl) {
   const displayDate = post.publishedAt || post.publishDate || post.createdAt || post.updatedAt;
   const tpl = String(variant || '').trim().toLowerCase();
   const isBold = tpl === 'bold';
+  const cat = (post?.primary_category?.[0] || post?.categories?.[0]) || null;
+  const catLabel = typeof cat === 'string' ? cat : (cat?.name || cat?.title || cat?.slug || '');
+  const cleanedCat = String(catLabel || '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const displayCat = cleanedCat ? cleanedCat.replace(/\b\w/g, (ch) => ch.toUpperCase()) : '';
 
   return (
     <Link
@@ -75,15 +79,21 @@ if (imageUrl) {
                         <span className="text-red-600 text-[10px] font-bold uppercase tracking-wider">LIVE</span>
                      </div>
                 )}
-             {uniqueRenderingCategories.slice(0, 1).map((cat, i) => (
-                 <span 
-                    key={i} 
-                    className="text-[10px] font-bold uppercase tracking-wider"
-                    style={{ color: 'var(--primary-color)' }}
-                 >
-                     {cat.name}
+             {isBold && displayCat ? (
+                 <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--primary-color)' }}>
+                     {displayCat}
                  </span>
-             ))}
+             ) : (
+               uniqueRenderingCategories.slice(0, 1).map((cat, i) => (
+                   <span 
+                      key={i} 
+                      className="text-[10px] font-bold uppercase tracking-wider"
+                      style={{ color: 'var(--primary-color)' }}
+                   >
+                       {cat.name}
+                   </span>
+               ))
+             )}
         </div>
         <h3 className={`text-sm md:text-base font-bold leading-snug mb-1 transition-colors line-clamp-2 group-hover:text-[var(--primary-color)] ${isBold ? 'text-gray-900' : 'text-gray-900'}`}>
           {post.title}

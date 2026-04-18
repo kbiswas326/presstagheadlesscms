@@ -246,13 +246,16 @@ if (!post) {
     contentString.includes('instagram-media') ||
     contentString.includes('instagram.com');
 
+  const isBoldTemplate = templateId === 'bold';
   const wrapperBg = 'bg-gray-50';
-  const mainShell = 'bg-white rounded-xl shadow-sm border border-gray-100';
+  const mainShell = isBoldTemplate
+    ? 'bg-white rounded-xl shadow-sm border border-gray-100 border-t-4'
+    : 'bg-white rounded-xl shadow-sm border border-gray-100';
 
   return (
     <div className={`min-h-screen ${wrapperBg} ${merriweather.className}`}>
       <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
-        <main className={`w-full lg:w-[72%] ${mainShell} p-4 lg:p-8`}>
+        <main className={`w-full lg:w-[72%] ${mainShell} p-4 lg:p-8`} style={isBoldTemplate ? { borderTopColor: primaryColor } : undefined}>
           <header className="w-full pt-4 pb-6">
 
             {/* Breadcrumb */}

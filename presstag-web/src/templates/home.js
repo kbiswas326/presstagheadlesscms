@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { formatDate } from '../util/timeFormat';
 import { buildPostUrl } from '../lib/urlBuilder';
 import { getImageUrl } from '../lib/imageHelper';
+import { calculateReadTime } from '../util/readTime';
 
 const SectionHeading = ({ label, primaryColor, viewAllUrl }) => {
   return (
@@ -170,6 +171,23 @@ export const renderHomeBold = ({
     return list.length ? list.join(', ') : (post?.author?.name || 'SportzPoint');
   };
 
+  const getAuthorAvatar = (post) => {
+    const primary = (Array.isArray(post?.authors) && post.authors.length > 0) ? post.authors[0] : post?.author;
+    const raw = primary?.image || primary?.avatar || '';
+    const src = raw ? getImageUrl(raw) : '';
+    if (!src) return null;
+    if (src.startsWith('http')) return src;
+    if (src.startsWith('/uploads')) return `${process.env.NEXT_PUBLIC_API_URL}${src}`;
+    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${src}`;
+  };
+
+  const getInitials = (name) => {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    const first = parts[0]?.[0] || '';
+    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] : '';
+    return (first + last).toUpperCase() || 'SP';
+  };
+
   const BoldHero = ({ post }) => {
     if (!post) return null;
     const postUrl = buildPostUrl(post, urlStructure);
@@ -177,35 +195,58 @@ export const renderHomeBold = ({
     const category = getPrimaryCategoryLabel(post);
     const displayDate = post?.publishedAt || post?.publishDate || post?.createdAt || post?.updatedAt;
     const author = getAuthorLabel(post);
+    const avatar = getAuthorAvatar(post);
+    const readTime = post?.content ? calculateReadTime(post.content) : '';
     return (
-      <Link href={postUrl} className="block h-full rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+      <Link href={postUrl} className="block h-full group cursor-pointer">
         <div className="h-full flex flex-col">
-          <div className="px-6 pt-5 pb-4">
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <span className="font-medium text-gray-700">{author}</span>
-              <span>{formatDate(displayDate)}</span>
+          <div className="mb-6 flex-1 order-2 lg:order-1">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-200 relative">
+                {avatar ? (
+                  <Image src={avatar} alt={author} fill sizes="40px" className="object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[11px] font-bold text-gray-600">
+                    {getInitials(author)}
+                  </div>
+                )}
+              </div>
+              <div className="text-[11px] font-bold">
+                <span className="text-gray-900 uppercase">{author}</span>
+                <span className="text-gray-300 mx-2">/</span>
+                <span className="text-gray-400 uppercase">{formatDate(displayDate)}</span>
+              </div>
             </div>
-            <h1 className="mt-3 text-2xl md:text-3xl font-bold text-gray-900 leading-tight line-clamp-3">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[0.9] group-hover:opacity-90 transition-opacity mb-4">
               {post.title}
             </h1>
-            {category ? (
-              <div className="mt-3">
-                <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider" style={{ color: primaryColor }}>
+            <div className="flex items-center gap-2">
+              {category ? (
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--primary-color)' }}>
                   {category}
                 </span>
-              </div>
-            ) : null}
+              ) : null}
+              {category && readTime ? <span className="text-gray-300">•</span> : null}
+              {readTime ? (
+                <span className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">
+                  {readTime}
+                </span>
+              ) : null}
+            </div>
           </div>
-          <div className="relative flex-1 bg-gray-100">
+          <div className="relative aspect-video rounded-xl overflow-hidden mb-0 order-1 lg:order-2 shadow-2xl bg-gray-100 border border-gray-100">
             {img ? (
-              <Image
-                src={img}
-                alt={post?.featuredImage?.altText || post?.title || ''}
-                fill
-                sizes="(max-width: 1024px) 100vw, 66vw"
-                className="object-cover"
-                priority
-              />
+              <>
+                <Image
+                  src={img}
+                  alt={post?.featuredImage?.altText || post?.title || ''}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 66vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-700"
+                  priority
+                />
+                <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors" />
+              </>
             ) : null}
           </div>
         </div>
@@ -243,16 +284,29 @@ export const renderHomeBold = ({
                 </div>
               </div>
               <div className="lg:col-span-4">
-                <div className="h-[520px] flex flex-col">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold text-gray-900 border-l-4 pl-3" style={{ borderColor: primaryColor }}>
-                      {headlinesSection?.name || 'Headlines'}
-                    </h2>
-                  </div>
-                  <div className="flex flex-col gap-3 overflow-auto pr-1">
-                    {headlines.map((post, i) => (
-                      <HeadlineItem key={normalizeKey(post) || i} post={post} />
-                    ))}
+                <div className="h-[520px] flex flex-col bg-[#fcfcfc] border border-gray-100 rounded-xl p-8">
+                  <div className="flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">
+                          {headlinesSection?.name || 'Headlines'}
+                        </h2>
+                      </div>
+                      {headlines.map((post, i) => (
+                        <div key={normalizeKey(post) || i} className="border-b border-gray-100 last:border-0 pb-4 mb-4 last:pb-0 last:mb-0">
+                          <HeadlineItem post={post} />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-8 pt-8 border-t border-gray-200 lg:block hidden">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Must Read</h4>
+                        <span className="text-xs font-bold" style={{ color: 'var(--primary-color)' }}>&rarr;</span>
+                      </div>
+                      <p className="text-sm text-gray-600 leading-relaxed font-medium">
+                        Our team provides in-depth analysis and key updates as the biggest stories develop.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -260,22 +314,34 @@ export const renderHomeBold = ({
           </section>
         ) : null}
 
-        <section className="mb-10">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold text-gray-900 border-l-4 pl-3" style={{ borderColor: primaryColor }}>
-              {twoColSection?.name || 'Featured'}
-            </h2>
-            {twoColSection?.viewAllUrl ? (
-              <a href={twoColSection.viewAllUrl} className="text-sm font-medium hover:underline" style={{ color: primaryColor }}>
-                View all
-              </a>
-            ) : null}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {twoCol.map((post, i) => (
-              <ArticleGridCard key={normalizeKey(post) || i} post={post} urlStructure={urlStructure} variant={variant} />
-            ))}
-          </div>
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-24">
+          {twoCol.map((post, i) => {
+            const postUrl = buildPostUrl(post, urlStructure);
+            const img = resolveImageSrc(post);
+            const displayDate = post?.publishedAt || post?.publishDate || post?.createdAt || post?.updatedAt;
+            const category = getPrimaryCategoryLabel(post);
+            return (
+              <Link key={normalizeKey(post) || i} href={postUrl} className="relative aspect-[16/9] rounded-2xl overflow-hidden group cursor-pointer">
+                {img ? (
+                  <Image
+                    src={img}
+                    alt={post?.featuredImage?.altText || post?.title || ''}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                ) : null}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-8 flex flex-col justify-end">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-white/90">
+                    {category ? `${category} • ` : ''}{formatDate(displayDate)}
+                  </div>
+                  <h2 className="text-2xl md:text-3xl text-white font-bold leading-tight max-w-sm mt-2 line-clamp-2">
+                    {post.title}
+                  </h2>
+                </div>
+              </Link>
+            );
+          })}
         </section>
 
         <section className="mb-12 rounded-2xl overflow-hidden" style={{ backgroundColor: primaryColor }}>

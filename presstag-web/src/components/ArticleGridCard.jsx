@@ -38,12 +38,16 @@ if (imageUrl) {
   const postUrl = buildPostUrl(post, urlStructure);
   const tpl = String(variant || '').trim().toLowerCase();
   const isBold = tpl === 'bold';
+  const cat = (post?.primary_category?.[0] || post?.categories?.[0]) || null;
+  const catLabel = typeof cat === 'string' ? cat : (cat?.name || cat?.title || cat?.slug || '');
+  const cleanedCat = String(catLabel || '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const displayCat = cleanedCat ? cleanedCat.replace(/\b\w/g, (ch) => ch.toUpperCase()) : '';
 
   return (
     <Link
       href={postUrl}
       className={`transition-colors border rounded-lg overflow-hidden cursor-pointer flex flex-col block ${
-        isBold ? 'bg-white hover:bg-gray-50 border-gray-200 shadow-sm' : 'bg-white hover:bg-gray-50 border-gray-200'
+        isBold ? 'bg-white hover:bg-gray-50 border-gray-200 shadow-sm rounded-xl' : 'bg-white hover:bg-gray-50 border-gray-200'
       }`}
     >
       {/* Image container with fixed aspect ratio */}
@@ -68,6 +72,11 @@ if (imageUrl) {
       </div>
 
       <div className="p-4 flex flex-col flex-grow">
+        {isBold && displayCat ? (
+          <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--primary-color)' }}>
+            {displayCat}
+          </div>
+        ) : null}
         <h3 className={`text-sm font-semibold line-clamp-2 mb-2 ${isBold ? 'text-gray-900' : 'text-gray-800'}`}>{post.isLive && (<span className="inline-flex items-center gap-1 mr-2 align-middle"><span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span></span><span className="text-red-600 text-[9px] font-bold uppercase">LIVE</span></span>)}
           {post.title}
         </h3>
