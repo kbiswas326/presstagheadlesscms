@@ -42,7 +42,8 @@ if (imageUrl) {
   const cat = (post?.primary_category?.[0] || post?.categories?.[0]) || null;
   const catLabel = typeof cat === 'string' ? cat : (cat?.name || cat?.title || cat?.slug || '');
   const cleanedCat = String(catLabel || '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
-  const displayCat = cleanedCat ? cleanedCat.replace(/\b\w/g, (ch) => ch.toUpperCase()) : '';
+  const displayCatCandidate = cleanedCat ? cleanedCat.replace(/\\b\\w/g, (ch) => ch.toUpperCase()) : '';
+  const displayCat = /^[0-9a-f]{24}$/i.test(displayCatCandidate) ? '' : displayCatCandidate;
   const displayDate = post.publishedAt || post.publishDate || post.createdAt || post.updatedAt;
   const authorNames = Array.isArray(post?.authors)
     ? post.authors.map((a) => a?.name).filter(Boolean)

@@ -61,7 +61,7 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding, templateI
   const tpl = String(templateId || '').trim().toLowerCase();
   const isBold = tpl === 'bold';
   const navBg = primaryColor;
-  const logoChipBg = isBold ? 'bg-white/10' : 'bg-white';
+  const logoChipBg = isBold ? '' : 'bg-white';
 
   const showLogo = (displayMode === 'logo' || displayMode === 'both') && logoUrl;
   const showTitle = (displayMode === 'text' || displayMode === 'both') && siteTitle;
@@ -120,7 +120,7 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding, templateI
                 {/* Site Title */}
                 {showTitle && (
                     <div className={`${showLogo ? 'hidden md:flex' : 'flex'} flex-col justify-center ${logoChipBg} py-0.5 px-1.5 rounded-sm hover:opacity-90 transition-opacity`}>
-                      <span style={{ color: primaryColor }} className="font-bold text-xl tracking-tighter leading-none">
+                      <span style={{ color: isBold ? '#ffffff' : primaryColor }} className="font-bold text-xl tracking-tighter leading-none">
                         {siteTitle}
                       </span>
                     </div>
@@ -154,7 +154,8 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding, templateI
                 <div className="hidden lg:flex items-center">
                   <button
                     type="button"
-                    className="ml-2 px-4 py-2 rounded bg-orange-500 hover:bg-orange-600 transition-colors text-white text-[12px] font-bold"
+                    className="ml-2 px-4 py-2 rounded bg-white hover:bg-white/90 transition-colors text-[12px] font-bold"
+                    style={{ color: primaryColor }}
                   >
                     Subscribe
                   </button>
@@ -182,36 +183,8 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding, templateI
           </div>
         </div>
 
-        {isBold ? (
-          <div className="bg-white text-gray-600 border-b border-gray-100">
-            <div className="container mx-auto px-4 lg:px-8">
-              <div className="h-11 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="text-gray-700 hover:text-gray-900 p-1"
-                  aria-label="Menu"
-                >
-                  <MenuIcon className="h-5 w-5" />
-                </button>
-                <div className="text-xs font-medium text-gray-500 text-center flex-1 px-4">
-                  Sign up for our Newsletter and stay updated
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSearch(search === "remove" ? "add" : "remove")}
-                  className="text-gray-700 hover:text-gray-900 p-1"
-                  aria-label="Search"
-                >
-                  <SearchIcon className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
         <div
-          className={`lg:hidden absolute left-0 right-0 ${isBold ? 'top-[100px]' : 'top-12'} bg-white text-black border-t border-gray-200 shadow-lg overflow-hidden transition-[max-height,opacity] duration-200 ease-out ${isMenuOpen ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+          className={`lg:hidden absolute left-0 right-0 ${isBold ? 'top-14' : 'top-12'} bg-white text-black border-t border-gray-200 shadow-lg overflow-hidden transition-[max-height,opacity] duration-200 ease-out ${isMenuOpen ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
           <div className="container mx-auto px-4 lg:px-8">
             <ul className="flex flex-col py-2">
@@ -231,7 +204,7 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding, templateI
         </div>
 
         <div
-          className={`absolute ${isBold ? 'top-[100px]' : 'top-12'} left-0 w-full bg-white shadow-md transition-[opacity,transform] duration-200 ease-out ${search === 'add' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}
+          className={`absolute ${isBold ? 'top-14' : 'top-12'} left-0 w-full bg-white shadow-md transition-[opacity,transform] duration-200 ease-out ${search === 'add' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}
         >
           <div className="container mx-auto px-4 lg:px-8 p-4 flex items-center gap-2">
             <input

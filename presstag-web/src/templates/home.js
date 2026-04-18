@@ -84,6 +84,7 @@ export const renderHomeBold = ({
   sidePosts,
   sectionsData,
   excludePostKeys,
+  fallbackImage,
   primaryColor,
   urlStructure,
 }) => {
@@ -139,10 +140,10 @@ export const renderHomeBold = ({
   const twoCol = pick(twoColSection?.posts, 2);
 
   const fourColSection = section(2);
-  const fourCol = pick(fourColSection?.posts, 4);
+  const fourCol = pick(fourColSection?.posts, 8);
 
   const splitSection = section(3);
-  const splitLeft = pick(splitSection?.posts, 3);
+  const splitLeft = pick(splitSection?.posts, 4);
   const splitRight = pick(splitSection?.posts, 1);
 
   const nextFourASection = section(4);
@@ -152,18 +153,21 @@ export const renderHomeBold = ({
   const nextFourB = pick(nextFourBSection?.posts, 4);
 
   const resolveImageSrc = (post) => {
-    const imageUrl = post?.image || getImageUrl(post?.featuredImage?.url || post?.featuredImage || post?.banner_image || post?.coverImage?.url || post?.coverImage);
-    if (!imageUrl) return null;
-    if (imageUrl.startsWith('http')) return imageUrl;
-    if (imageUrl.startsWith('/uploads')) return `${process.env.NEXT_PUBLIC_API_URL}${imageUrl}`;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${imageUrl}`;
+    const rawImage = post?.image || post?.featuredImage?.url || post?.featuredImage || post?.banner_image || post?.coverImage?.url || post?.coverImage || '';
+    const imageUrl = String(rawImage || '').trim() ? (String(rawImage || '').trim()) : getImageUrl(rawImage);
+    const resolved = imageUrl || (fallbackImage ? String(fallbackImage).trim() : '');
+    if (!resolved) return null;
+    if (resolved.startsWith('http')) return resolved;
+    if (resolved.startsWith('/uploads')) return `${process.env.NEXT_PUBLIC_API_URL}${resolved}`;
+    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${resolved}`;
   };
 
   const getPrimaryCategoryLabel = (post) => {
     const cat = (post?.primary_category?.[0] || post?.categories?.[0]) || null;
     const raw = typeof cat === 'string' ? cat : (cat?.name || cat?.title || cat?.slug || '');
     const cleaned = String(raw || '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
-    return cleaned ? cleaned.replace(/\b\w/g, (ch) => ch.toUpperCase()) : '';
+    const label = cleaned ? cleaned.replace(/\b\w/g, (ch) => ch.toUpperCase()) : '';
+    return /^[0-9a-f]{24}$/i.test(label) ? '' : label;
   };
 
   const getAuthorLabel = (post) => {
@@ -186,6 +190,29 @@ export const renderHomeBold = ({
     const first = parts[0]?.[0] || '';
     const last = parts.length > 1 ? parts[parts.length - 1]?.[0] : '';
     return (first + last).toUpperCase() || 'SP';
+  };
+
+  const getPrimaryAuthor = (post) => {
+    if (!post) return null;
+    if (Array.isArray(post?.authors) && post.authors.length > 0) return post.authors[0];
+    return post?.author || null;
+  };
+
+  const getAuthorSlug = (post) => {
+    const a = getPrimaryAuthor(post);
+    const slug = String(a?.slug || '').trim();
+    return slug || '';
+  };
+
+  const getAuthorKey = (post) => {
+    const a = getPrimaryAuthor(post);
+    const slug = String(a?.slug || '').trim();
+    if (slug) return `slug:${slug.toLowerCase()}`;
+    const id = String(a?._id || a?.id || '').trim();
+    if (id) return `id:${id}`;
+    const name = String(a?.name || '').trim().toLowerCase();
+    if (name) return `name:${name}`;
+    return '';
   };
 
   const BoldHero = ({ post }) => {
@@ -272,19 +299,67 @@ export const renderHomeBold = ({
     );
   };
 
+  const authorOfWeekKey = getAuthorKey(hero);
+  const authorOfWeekName = getAuthorLabel(hero);
+  const authorOfWeekSlug = getAuthorSlug(hero);
+  const authorOfWeekAvatar = getAuthorAvatar(hero);
+  const authorOfWeekPosts = authorOfWeekKey
+    ? pool
+        .filter((p) => getAuthorKey(p) === authorOfWeekKey)
+        .filter((p) => normalizeKey(p) && normalizeKey(p) !== normalizeKey(hero))
+        .slice(0, 4)
+    : [];
+  const authorSectionPosts = authorOfWeekPosts.length ? authorOfWeekPosts : headlines.slice(0, 4);
+
+  const AuthorStoryCard = ({ post }) => {
+    if (!post) return null;
+    const postUrl = buildPostUrl(post, urlStructure);
+    const img = resolveImageSrc(post);
+    const displayDate = post?.publishedAt || post?.publishDate || post?.createdAt || post?.updatedAt;
+    return (
+      <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-shadow">
+        <Link href={postUrl} className="block relative pb-[56.25%] bg-gray-100">
+          {img ? (
+            <Image
+              src={img}
+              alt={post?.featuredImage?.altText || post?.title || ''}
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover"
+            />
+          ) : null}
+        </Link>
+        <div className="p-5">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+            {authorOfWeekSlug ? (
+              <Link href={`/author/${authorOfWeekSlug}`} className="hover:underline">
+                {authorOfWeekName}
+              </Link>
+            ) : (
+              <span>{authorOfWeekName}</span>
+            )}
+            <span className="text-gray-300">•</span>
+            <span>{formatDate(displayDate)}</span>
+          </div>
+          <Link href={postUrl} className="block mt-2 text-base font-bold text-gray-900 leading-snug line-clamp-2 hover:opacity-90 transition-opacity">
+            {post.title}
+          </Link>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-white min-h-screen pb-16">
       <div className="container mx-auto px-4 pt-6">
         {hero ? (
           <section className="mb-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-              <div className="lg:col-span-8">
-                <div className="h-[520px]">
-                  <BoldHero post={hero} />
-                </div>
+              <div className="lg:col-span-8 min-h-[520px] h-full">
+                <BoldHero post={hero} />
               </div>
               <div className="lg:col-span-4">
-                <div className="h-[520px] flex flex-col bg-[#fcfcfc] border border-gray-100 rounded-xl p-8">
+                <div className="min-h-[520px] h-full flex flex-col bg-[#fcfcfc] border border-gray-100 rounded-xl p-8">
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between mb-6">
@@ -354,7 +429,7 @@ export const renderHomeBold = ({
             ) : null}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-            {fourCol.slice(0, 4).map((post, i) => (
+            {fourCol.slice(0, 8).map((post, i) => (
               <ArticleGridCard key={normalizeKey(post) || i} post={post} urlStructure={urlStructure} variant={variant} />
             ))}
           </div>
@@ -438,49 +513,29 @@ export const renderHomeBold = ({
 
         <section className="mb-24">
           <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-bold">Listen to Person of the week</h2>
-            <p className="text-gray-500 mt-2">Listen to the latest conversation and updates.</p>
+            <h2 className="text-3xl md:text-4xl font-bold">Author of the week</h2>
+            <p className="text-gray-500 mt-2">Read the articles from our author of the week</p>
           </div>
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 md:p-8">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Person of the Week</div>
-                  <div className="text-lg font-bold text-gray-900 mt-1">{getAuthorLabel(hero) || 'SportzPoint'}</div>
-                </div>
-                <button type="button" className="h-10 w-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors">
-                  <div className="w-0 h-0 border-y-[7px] border-y-transparent border-l-[12px] border-l-gray-900 ml-0.5" />
-                </button>
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center justify-center gap-4 mb-10">
+              <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gray-100 border border-gray-200 flex-shrink-0">
+                {authorOfWeekAvatar ? <Image src={authorOfWeekAvatar} alt={authorOfWeekName} fill sizes="56px" className="object-cover" /> : null}
               </div>
-              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full w-1/3" style={{ backgroundColor: 'var(--primary-color)' }} />
-              </div>
-              <div className="flex items-center justify-between text-xs text-gray-400 mt-3">
-                <span>02:14</span>
-                <span>08:32</span>
-              </div>
-              <div className="flex items-center justify-center gap-4 mt-8">
-                <button type="button" className="h-10 w-10 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors" aria-label="Previous" />
-                <button type="button" className="h-12 w-12 rounded-full text-white font-bold" style={{ backgroundColor: 'var(--primary-color)' }} aria-label="Play" />
-                <button type="button" className="h-10 w-10 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors" aria-label="Next" />
+              <div className="text-left">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Author of the week</div>
+                {authorOfWeekSlug ? (
+                  <Link href={`/author/${authorOfWeekSlug}`} className="text-lg font-bold hover:underline" style={{ color: 'var(--primary-color)' }}>
+                    {authorOfWeekName}
+                  </Link>
+                ) : (
+                  <div className="text-lg font-bold text-gray-900">{authorOfWeekName}</div>
+                )}
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-              {[hero, ...headlines].filter(Boolean).slice(0, 2).map((post, i) => {
-                const name = getAuthorLabel(post);
-                const avatar = getAuthorAvatar(post);
-                return (
-                  <div key={`${name}-${i}`} className="bg-white border border-gray-100 rounded-2xl p-6 flex items-center gap-4">
-                    <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gray-100 border border-gray-200 flex-shrink-0">
-                      {avatar ? <Image src={avatar} alt={name} fill sizes="56px" className="object-cover" /> : null}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-bold text-gray-900">{name}</div>
-                      <div className="text-xs text-gray-500 mt-1">Contributor</div>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {authorSectionPosts.slice(0, 4).map((post, i) => (
+                <AuthorStoryCard key={normalizeKey(post) || i} post={post} />
+              ))}
             </div>
           </div>
         </section>
