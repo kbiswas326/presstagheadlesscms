@@ -17,17 +17,8 @@ const HorizontalCard = ({ post, urlStructure, variant = 'classic' }) => {
   
   const postUrl = buildPostUrl(post, urlStructure);
 
-const imageUrl = post.image || resolvePostImage(post) || getImageUrl(post.featuredImage?.url || post.featuredImage || post.banner_image || post.coverImage?.url || post.coverImage);
-let finalImageSrc = null;
-if (imageUrl) {
-  if (imageUrl.startsWith('http')) {
-    finalImageSrc = imageUrl;
-  } else if (imageUrl.startsWith('/uploads')) {
-    finalImageSrc = `${process.env.NEXT_PUBLIC_API_URL}${imageUrl}`;
-  } else {
-    finalImageSrc = `${process.env.NEXT_PUBLIC_API_URL}/uploads/${imageUrl}`;
-  }
-}
+  const imageUrl = post.image || post.featuredImage?.url || post.featuredImage || post.banner_image || post.coverImage?.url || post.coverImage;
+  const finalImageSrc = resolvePostImage(post) || getImageUrl(imageUrl);
 
   const renderingCategories = [
     ...(post.primary_category || []),

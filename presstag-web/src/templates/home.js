@@ -154,12 +154,7 @@ export const renderHomeBold = ({
 
   const resolveImageSrc = (post) => {
     const rawImage = post?.image || post?.featuredImage?.url || post?.featuredImage || post?.banner_image || post?.coverImage?.url || post?.coverImage || '';
-    const imageUrl = String(rawImage || '').trim() ? (String(rawImage || '').trim()) : getImageUrl(rawImage);
-    const resolved = imageUrl || (fallbackImage ? String(fallbackImage).trim() : '');
-    if (!resolved) return null;
-    if (resolved.startsWith('http')) return resolved;
-    if (resolved.startsWith('/uploads')) return `${process.env.NEXT_PUBLIC_API_URL}${resolved}`;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${resolved}`;
+    return getImageUrl(rawImage) || (fallbackImage ? String(fallbackImage).trim() : null);
   };
 
   const getPrimaryCategoryLabel = (post) => {
@@ -178,11 +173,7 @@ export const renderHomeBold = ({
   const getAuthorAvatar = (post) => {
     const primary = (Array.isArray(post?.authors) && post.authors.length > 0) ? post.authors[0] : post?.author;
     const raw = primary?.image || primary?.avatar || '';
-    const src = raw ? getImageUrl(raw) : '';
-    if (!src) return null;
-    if (src.startsWith('http')) return src;
-    if (src.startsWith('/uploads')) return `${process.env.NEXT_PUBLIC_API_URL}${src}`;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${src}`;
+    return getImageUrl(raw) || null;
   };
 
   const getInitials = (name) => {
