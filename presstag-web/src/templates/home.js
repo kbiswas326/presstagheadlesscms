@@ -7,7 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatDate } from '../util/timeFormat';
 import { buildPostUrl } from '../lib/urlBuilder';
-import { getImageUrl } from '../lib/imageHelper';
+import { getImageUrl, resolvePostImage } from '../lib/imageHelper';
 import { calculateReadTime } from '../util/readTime';
 
 const SectionHeading = ({ label, primaryColor, viewAllUrl }) => {
@@ -147,14 +147,18 @@ export const renderHomeBold = ({
   const splitRight = pick(splitSection?.posts, 1);
 
   const nextFourASection = section(4);
-  const nextFourA = pick(nextFourASection?.posts, 4);
+  const nextFourA = pick(nextFourASection?.posts, 8);
 
-  const nextFourBSection = section(5);
-  const nextFourB = pick(nextFourBSection?.posts, 4);
+  const extraSections = [];
+  const totalSections = Array.isArray(sectionsData) ? sectionsData.length : 0;
+  for (let idx = 5; idx < totalSections; idx += 1) {
+    const sec = section(idx);
+    const posts = pick(sec?.posts, 8);
+    if (posts.length > 0) extraSections.push({ section: sec, posts });
+  }
 
   const resolveImageSrc = (post) => {
-    const rawImage = post?.image || post?.featuredImage?.url || post?.featuredImage || post?.banner_image || post?.coverImage?.url || post?.coverImage || '';
-    return getImageUrl(rawImage) || (fallbackImage ? String(fallbackImage).trim() : null);
+    return resolvePostImage(post, fallbackImage ? String(fallbackImage).trim() : null);
   };
 
   const getPrimaryCategoryLabel = (post) => {
@@ -541,11 +545,29 @@ export const renderHomeBold = ({
             ) : null}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-            {nextFourA.slice(0, 4).map((post, i) => (
+            {nextFourA.slice(0, 8).map((post, i) => (
               <ArticleGridCard key={normalizeKey(post) || i} post={post} urlStructure={urlStructure} variant={variant} />
             ))}
           </div>
         </section>
+
+        {extraSections.map((block, idx) => (
+          <section key={block.section?.name || idx} className="py-24 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold">{block.section?.name || 'More'}</h2>
+              {block.section?.viewAllUrl ? (
+                <a href={block.section.viewAllUrl} className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest hover:gap-3 transition-all" style={{ color: 'var(--primary-color)' }}>
+                  Show More <span aria-hidden="true">&rarr;</span>
+                </a>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+              {block.posts.slice(0, 8).map((post, i) => (
+                <ArticleGridCard key={normalizeKey(post) || i} post={post} urlStructure={urlStructure} variant={variant} />
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
     </div>
   );
