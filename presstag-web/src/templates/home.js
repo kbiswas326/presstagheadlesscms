@@ -344,81 +344,162 @@ export const renderHomeBold = ({
           })}
         </section>
 
-        <section className="mb-12 rounded-2xl overflow-hidden" style={{ backgroundColor: primaryColor }}>
-          <div className="p-6 md:p-8">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-white tracking-wide">
-                {fourColSection?.name || 'Top Stories'}
-              </h2>
-              {fourColSection?.viewAllUrl ? (
-                <a href={fourColSection.viewAllUrl} className="text-sm font-medium underline text-white">
-                  View all
+        <section className="mb-24">
+          <div className="flex items-center justify-between mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold">{fourColSection?.name || 'Latest Articles'}</h2>
+            {fourColSection?.viewAllUrl ? (
+              <a href={fourColSection.viewAllUrl} className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest hover:gap-3 transition-all" style={{ color: 'var(--primary-color)' }}>
+                Show More <span aria-hidden="true">&rarr;</span>
+              </a>
+            ) : null}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+            {fourCol.slice(0, 4).map((post, i) => (
+              <ArticleGridCard key={normalizeKey(post) || i} post={post} urlStructure={urlStructure} variant={variant} />
+            ))}
+          </div>
+        </section>
+
+        {splitSection ? (
+          <section className="mb-24 py-16 border-y border-gray-100">
+            <div className="flex items-center justify-between mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold">{splitSection?.name || 'News in Video'}</h2>
+              {splitSection?.viewAllUrl ? (
+                <a href={splitSection.viewAllUrl} className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest hover:gap-3 transition-all" style={{ color: 'var(--primary-color)' }}>
+                  Show More <span aria-hidden="true">&rarr;</span>
                 </a>
               ) : null}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              {fourCol.map((post, i) => (
-                <ArticleGridCard key={normalizeKey(post) || i} post={post} urlStructure={urlStructure} variant={variant} />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="mb-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            <div className="lg:col-span-8">
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-bold text-gray-900 border-l-4 pl-3" style={{ borderColor: primaryColor }}>
-                  {splitSection?.name || 'Latest'}
-                </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch">
+              <div className="lg:col-span-5 flex flex-col h-full bg-[#fafafa] p-8 rounded-xl border border-gray-100">
+                <div className="divide-y divide-gray-200 flex-1 flex flex-col justify-between">
+                  {splitLeft.map((post, i) => {
+                    const postUrl = buildPostUrl(post, urlStructure);
+                    const img = resolveImageSrc(post);
+                    return (
+                      <Link key={normalizeKey(post) || i} href={postUrl} className="py-5 first:pt-0 last:pb-0 group flex items-center gap-4">
+                        <div className="relative h-16 w-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          {img ? <Image src={img} alt={post?.featuredImage?.altText || post?.title || ''} fill sizes="96px" className="object-cover group-hover:scale-105 transition-transform duration-700" /> : null}
+                          <div className="absolute inset-0 bg-black/15 flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur text-white flex items-center justify-center border border-white/30">
+                              <div className="w-0 h-0 border-y-[6px] border-y-transparent border-l-[10px] border-l-white ml-0.5" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{getPrimaryCategoryLabel(post) || 'Video'}</div>
+                          <div className="mt-1 text-sm font-bold text-gray-900 leading-snug line-clamp-2">{post.title}</div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
                 {splitSection?.viewAllUrl ? (
-                  <a href={splitSection.viewAllUrl} className="text-sm font-medium hover:underline" style={{ color: primaryColor }}>
-                    View all
-                  </a>
+                  <div className="mt-6">
+                    <a href={splitSection.viewAllUrl} className="w-full inline-flex justify-center bg-white border border-gray-200 py-3 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white hover:border-black transition-all">
+                      Show more clips
+                    </a>
+                  </div>
                 ) : null}
               </div>
-              <div className="flex flex-col gap-4">
-                {splitLeft.map((post, i) => (
-                  <HorizontalCard key={normalizeKey(post) || i} post={post} urlStructure={urlStructure} variant={variant} />
-                ))}
+              <div className="lg:col-span-7 flex flex-col">
+                {splitRight[0] ? (() => {
+                  const post = splitRight[0];
+                  const postUrl = buildPostUrl(post, urlStructure);
+                  const img = resolveImageSrc(post);
+                  return (
+                    <>
+                      <Link href={postUrl} className="relative flex-1 rounded-xl overflow-hidden group cursor-pointer mb-8 shadow-2xl bg-gray-100">
+                        {img ? <Image src={img} alt={post?.featuredImage?.altText || post?.title || ''} fill sizes="(max-width: 1024px) 100vw, 60vw" className="object-cover group-hover:scale-105 transition-transform duration-1000" /> : null}
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/30 transition-colors">
+                          <div className="w-20 h-20 bg-white/10 backdrop-blur text-white rounded-full flex items-center justify-center border border-white/30">
+                            <div className="w-0 h-0 border-y-[12px] border-y-transparent border-l-[18px] border-l-white ml-1" />
+                          </div>
+                        </div>
+                      </Link>
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--primary-color)' }}>
+                          {getPrimaryCategoryLabel(post) || 'Featured Video'}
+                        </div>
+                        <Link href={postUrl} className="block mt-2 text-3xl font-bold mb-4 hover:opacity-90 transition-opacity leading-tight">
+                          {post.title}
+                        </Link>
+                        <p className="text-gray-500 text-lg leading-relaxed max-w-2xl">
+                          Watch the latest highlight and analysis in this featured clip.
+                        </p>
+                      </div>
+                    </>
+                  );
+                })() : null}
               </div>
             </div>
-            <div className="lg:col-span-4">
-              <div className="flex flex-col gap-4">
-                {splitRight.map((post, i) => (
-                  <ArticleGridCard key={normalizeKey(post) || i} post={post} urlStructure={urlStructure} variant={variant} />
-                ))}
+          </section>
+        ) : null}
+
+        <section className="mb-24">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold">Listen to Person of the week</h2>
+            <p className="text-gray-500 mt-2">Listen to the latest conversation and updates.</p>
+          </div>
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 md:p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Person of the Week</div>
+                  <div className="text-lg font-bold text-gray-900 mt-1">{getAuthorLabel(hero) || 'SportzPoint'}</div>
+                </div>
+                <button type="button" className="h-10 w-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors">
+                  <div className="w-0 h-0 border-y-[7px] border-y-transparent border-l-[12px] border-l-gray-900 ml-0.5" />
+                </button>
               </div>
+              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full w-1/3" style={{ backgroundColor: 'var(--primary-color)' }} />
+              </div>
+              <div className="flex items-center justify-between text-xs text-gray-400 mt-3">
+                <span>02:14</span>
+                <span>08:32</span>
+              </div>
+              <div className="flex items-center justify-center gap-4 mt-8">
+                <button type="button" className="h-10 w-10 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors" aria-label="Previous" />
+                <button type="button" className="h-12 w-12 rounded-full text-white font-bold" style={{ backgroundColor: 'var(--primary-color)' }} aria-label="Play" />
+                <button type="button" className="h-10 w-10 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors" aria-label="Next" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
+              {[hero, ...headlines].filter(Boolean).slice(0, 2).map((post, i) => {
+                const name = getAuthorLabel(post);
+                const avatar = getAuthorAvatar(post);
+                return (
+                  <div key={`${name}-${i}`} className="bg-white border border-gray-100 rounded-2xl p-6 flex items-center gap-4">
+                    <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gray-100 border border-gray-200 flex-shrink-0">
+                      {avatar ? <Image src={avatar} alt={name} fill sizes="56px" className="object-cover" /> : null}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-gray-900">{name}</div>
+                      <div className="text-xs text-gray-500 mt-1">Contributor</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-8">
-            {[{ s: nextFourASection, posts: nextFourA }, { s: nextFourBSection, posts: nextFourB }]
-              .filter((x) => x.posts && x.posts.length > 0)
-              .map((block, idx) => (
-                <section key={idx} className="mb-12">
-                  <div className="flex items-center justify-between mb-5 border-b border-gray-100 pb-3">
-                    <h2 className="text-xl font-bold text-gray-900">{block.s?.name || 'More'}</h2>
-                    {block.s?.viewAllUrl ? (
-                      <a href={block.s.viewAllUrl} className="text-sm font-medium hover:underline" style={{ color: primaryColor }}>
-                        View all
-                      </a>
-                    ) : null}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {block.posts.map((post, i) => (
-                      <ArticleGridCard key={normalizeKey(post) || i} post={post} urlStructure={urlStructure} variant={variant} />
-                    ))}
-                  </div>
-                </section>
-              ))}
+        <section className="py-24">
+          <div className="flex items-center justify-between mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold">{nextFourASection?.name || 'Basketball News'}</h2>
+            {nextFourASection?.viewAllUrl ? (
+              <a href={nextFourASection.viewAllUrl} className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest hover:gap-3 transition-all" style={{ color: 'var(--primary-color)' }}>
+                Show More <span aria-hidden="true">&rarr;</span>
+              </a>
+            ) : null}
           </div>
-          <div className="lg:col-span-4 lg:sticky lg:top-0">
-            <Sidebar variant="homepage" excludePostKeys={excludePostKeys} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+            {nextFourA.slice(0, 4).map((post, i) => (
+              <ArticleGridCard key={normalizeKey(post) || i} post={post} urlStructure={urlStructure} variant={variant} />
+            ))}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

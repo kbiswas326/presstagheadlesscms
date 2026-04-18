@@ -59,8 +59,9 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding, templateI
   const logoUrl = branding?.logo || null;
   const displayMode = branding?.logoDisplayMode || 'both'; // 'both', 'logo', 'text'
   const tpl = String(templateId || '').trim().toLowerCase();
+  const isBold = tpl === 'bold';
   const navBg = primaryColor;
-  const logoChipBg = tpl === 'bold' ? 'bg-white/10' : 'bg-white';
+  const logoChipBg = isBold ? 'bg-white/10' : 'bg-white';
 
   const showLogo = (displayMode === 'logo' || displayMode === 'both') && logoUrl;
   const showTitle = (displayMode === 'text' || displayMode === 'both') && siteTitle;
@@ -99,7 +100,7 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding, templateI
       {/* Main navigation bar with dynamic background */}
       <div style={{ backgroundColor: navBg }} className="text-white relative">
         <div className="container mx-auto px-4 lg:px-8">
-          <div className="flex items-center justify-between h-12">
+          <div className={`flex items-center justify-between ${isBold ? 'h-14' : 'h-12'}`}>
             {/* Logo section */}
             <div className="flex-shrink-0">
               <Link href="/" className="flex items-center gap-3 cursor-pointer">
@@ -128,7 +129,7 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding, templateI
             </div>
 
             {/* Navigation items - Desktop */}
-            <div className="hidden lg:flex flex-1 justify-start space-x-5 ml-6">
+            <div className={`hidden lg:flex flex-1 ${isBold ? 'justify-center space-x-7' : 'justify-start space-x-5 ml-6'}`}>
               {navigationItems && navigationItems.map((item,index) => (
                 <Link
                   key={index}
@@ -141,12 +142,24 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding, templateI
             </div>
 
             {/* Header Ad Spot */}
-            <div className="hidden lg:block mx-4">
-                <AdSpot position="header_inside" className="!my-0" />
-            </div>
+            {!isBold ? (
+              <div className="hidden lg:block mx-4">
+                  <AdSpot position="header_inside" className="!my-0" />
+              </div>
+            ) : null}
 
             {/* Search and Menu buttons */}
             <div className="flex items-center space-x-2">
+              {isBold ? (
+                <div className="hidden lg:flex items-center">
+                  <button
+                    type="button"
+                    className="ml-2 px-4 py-2 rounded bg-orange-500 hover:bg-orange-600 transition-colors text-white text-[12px] font-bold"
+                  >
+                    Subscribe
+                  </button>
+                </div>
+              ) : null}
               <button
                 onClick={() =>
                   setSearch(search === "remove" ? "add" : "remove")
@@ -169,8 +182,36 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding, templateI
           </div>
         </div>
 
+        {isBold ? (
+          <div className="bg-white text-gray-600 border-b border-gray-100">
+            <div className="container mx-auto px-4 lg:px-8">
+              <div className="h-11 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="text-gray-700 hover:text-gray-900 p-1"
+                  aria-label="Menu"
+                >
+                  <MenuIcon className="h-5 w-5" />
+                </button>
+                <div className="text-xs font-medium text-gray-500 text-center flex-1 px-4">
+                  Sign up for our Newsletter and stay updated
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSearch(search === "remove" ? "add" : "remove")}
+                  className="text-gray-700 hover:text-gray-900 p-1"
+                  aria-label="Search"
+                >
+                  <SearchIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div
-          className={`lg:hidden absolute left-0 right-0 top-12 bg-white text-black border-t border-gray-200 shadow-lg overflow-hidden transition-[max-height,opacity] duration-200 ease-out ${isMenuOpen ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+          className={`lg:hidden absolute left-0 right-0 ${isBold ? 'top-[100px]' : 'top-12'} bg-white text-black border-t border-gray-200 shadow-lg overflow-hidden transition-[max-height,opacity] duration-200 ease-out ${isMenuOpen ? 'max-h-[70vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
         >
           <div className="container mx-auto px-4 lg:px-8">
             <ul className="flex flex-col py-2">
@@ -190,7 +231,7 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding, templateI
         </div>
 
         <div
-          className={`absolute top-12 left-0 w-full bg-white shadow-md transition-[opacity,transform] duration-200 ease-out ${search === 'add' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}
+          className={`absolute ${isBold ? 'top-[100px]' : 'top-12'} left-0 w-full bg-white shadow-md transition-[opacity,transform] duration-200 ease-out ${search === 'add' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}
         >
           <div className="container mx-auto px-4 lg:px-8 p-4 flex items-center gap-2">
             <input

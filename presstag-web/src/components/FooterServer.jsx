@@ -88,6 +88,8 @@ export default async function FooterServer({ config }) {
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
   const primaryColor = branding?.primaryColor || '#006356';
   const siteTitle = branding?.siteTitle || 'PressTag';
+  const templateId = String(branding?.templateId || '').trim().toLowerCase();
+  const isBold = templateId === 'bold';
 
   const sidebarWidgets = sidebarConfig.postWidgets || sidebarConfig.homepageWidgets || sidebarConfig.widgets || [];
   const socialWidget = sidebarWidgets?.find((w) => w.type === 'social_links' || w.type === 'social');
@@ -125,9 +127,28 @@ export default async function FooterServer({ config }) {
   return (
     <footer style={{ backgroundColor: primaryColor }} className="text-white mt-auto pt-8 pb-4">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="mb-8 border-b border-white/10 pb-6">
-          <span className="text-white font-bold text-3xl tracking-tighter">{siteTitle}</span>
-        </div>
+        {isBold ? (
+          <div className="mb-10 border-b border-white/10 pb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <span className="text-white font-bold text-3xl tracking-tighter">{siteTitle}</span>
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center w-full md:max-w-md">
+              <input
+                type="email"
+                placeholder="Your email address"
+                className="flex-1 px-4 py-3 rounded bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:border-white text-sm"
+              />
+              <button
+                type="button"
+                className="px-5 py-3 rounded font-bold text-sm bg-orange-500 hover:bg-orange-600 transition-colors text-white whitespace-nowrap"
+              >
+                Subscribe
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-8 border-b border-white/10 pb-6">
+            <span className="text-white font-bold text-3xl tracking-tighter">{siteTitle}</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {showCompanyInfo && (
@@ -192,8 +213,8 @@ export default async function FooterServer({ config }) {
                     />
                     <button
                       type="button"
-                      className="px-4 py-2 rounded bg-white font-bold text-sm hover:bg-zinc-100 transition-colors"
-                      style={{ color: primaryColor }}
+                      className={isBold ? "px-4 py-2 rounded bg-orange-500 font-bold text-sm hover:bg-orange-600 transition-colors text-white" : "px-4 py-2 rounded bg-white font-bold text-sm hover:bg-zinc-100 transition-colors"}
+                      style={isBold ? undefined : { color: primaryColor }}
                     >
                       Subscribe
                     </button>
