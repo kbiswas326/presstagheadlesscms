@@ -8,7 +8,7 @@ import Link from "next/link";
 import { getImageUrl } from '@/lib/imageHelper';
 import { buildPostUrl } from '@/lib/urlBuilder';
 
-const FeaturedHero = ({ post, urlStructure }) => {
+const FeaturedHero = ({ post, urlStructure, heightClassName, className = '' }) => {
 
   if (!post) return null;
   const postUrl = buildPostUrl(post, urlStructure);
@@ -64,11 +64,12 @@ if (imageUrl) {
   const heroCategories = Array.from(uniqueRenderingCategories.values());
 
   const displayDate = post.publishedAt || post.publishDate || post.createdAt || post.updatedAt;
+  const heightClass = heightClassName || 'h-[400px] md:h-[500px]';
 
   return (
     <Link
       href={postUrl}
-      className="relative block w-full h-[400px] md:h-[500px] group cursor-pointer rounded-2xl overflow-hidden shadow-sm"
+      className={`relative block w-full ${heightClass} group cursor-pointer rounded-2xl overflow-hidden shadow-sm ${className}`}
     >
         {/* Image Background */}
         {finalImageSrc ? (
