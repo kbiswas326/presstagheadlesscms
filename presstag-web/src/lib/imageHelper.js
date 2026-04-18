@@ -6,6 +6,7 @@ export const getImageUrl = (relativePath) => {
     relativePath = relativePath.url || relativePath.src || null;
     if (!relativePath) return null;
   }
+  if (typeof relativePath !== 'string') return null;
 
   if (
     relativePath.startsWith('http://') ||
