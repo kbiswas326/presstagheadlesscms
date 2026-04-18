@@ -37,6 +37,10 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'www.sportzpoint.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'img.youtube.com',
       },
       {
