@@ -16,7 +16,36 @@ const SeoScoreModal = ({
 
   // Dummy data for demonstration
   const seoScore = 75;
-  const readabilityScore = 85;
+  const plainText = String(content || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const words = plainText ? plainText.split(/\s+/).filter(Boolean) : [];
+  const wordCount = words.length;
+  const sentences = plainText ? plainText.split(/[.!?]+/).map((s) => s.trim()).filter(Boolean) : [];
+  const sentenceCount = Math.max(1, sentences.length);
+  const avgWordsPerSentence = wordCount ? wordCount / sentenceCount : 0;
+
+  const estimateSyllables = (w) => {
+    const s = String(w || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (!s) return 0;
+    if (s.length <= 3) return 1;
+    const withoutSilentE = s.replace(/e$/i, '');
+    const groups = withoutSilentE.match(/[aeiouy]+/g);
+    const count = groups ? groups.length : 1;
+    const adjusted = withoutSilentE.endsWith('le') && !/[aeiouy]le$/.test(withoutSilentE) ? count + 1 : count;
+    return Math.max(1, adjusted);
+  };
+
+  const syllableCount = words.reduce((sum, w) => sum + estimateSyllables(w), 0);
+  const wordsPerSentence = wordCount ? wordCount / sentenceCount : 0;
+  const syllablesPerWord = wordCount ? syllableCount / wordCount : 0;
+  const fleschScoreRaw = 206.835 - (1.015 * wordsPerSentence) - (84.6 * syllablesPerWord);
+  const fleschScore = Number.isFinite(fleschScoreRaw) ? Math.max(0, Math.min(100, fleschScoreRaw)) : 0;
+  const readabilityScore = Math.round(fleschScore);
   
   const seoSuggestions = [
     {
@@ -31,30 +60,48 @@ const SeoScoreModal = ({
     }
   ];
 
-  const readabilitySuggestions = [
-    {
-      type: 'warning',
-      message: 'Sentences are too long. Try to keep them shorter for better readability.'
-    },
-    {
-      type: 'warning',
-      message: 'Some paragraphs are too long. Break them into smaller chunks.'
+  const readabilitySuggestions = (() => {
+    const suggestions = [];
+    if (avgWordsPerSentence > 22) {
+      suggestions.push({ type: 'warning', message: 'Average sentence length is high. Shorter sentences usually read better.' });
     }
-  ];
+    if (wordCount > 0 && wordCount < 300) {
+      suggestions.push({ type: 'warning', message: 'Content may be too short. Longer content often ranks better and reads more complete.' });
+    }
+    if (readabilityScore < 40) {
+      suggestions.push({ type: 'warning', message: 'Readability is low. Use simpler words, shorter sentences, and more headings.' });
+    }
+    if (suggestions.length === 0) {
+      suggestions.push({ type: 'success', message: 'Readability looks good. Keep paragraphs short and add headings where helpful.' });
+    }
+    return suggestions;
+  })();
 
-  const dummyKeywords = [
-    { keyword: 'react', density: 2.5 },
-    { keyword: 'javascript', density: 1.8 },
-    { keyword: 'development', density: 1.2 },
-    { keyword: 'web', density: 1.0 },
-  ];
+  const keywords = (() => {
+    const stop = new Set([
+      'the','a','an','and','or','but','if','then','else','when','while','for','to','of','in','on','at','by','with','as',
+      'is','are','was','were','be','been','being','it','this','that','these','those','you','your','we','our','they','their',
+      'from','into','over','under','after','before','about','between','during','without','within','also','more','most','very',
+    ]);
+    const counts = new Map();
+    for (const w of words) {
+      const token = String(w).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!token) continue;
+      if (token.length < 3) continue;
+      if (stop.has(token)) continue;
+      counts.set(token, (counts.get(token) || 0) + 1);
+    }
+    const items = Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([keyword, count]) => ({
+        keyword,
+        density: wordCount ? (count / wordCount) * 100 : 0,
+      }));
+    return items;
+  })();
 
-  const dummyMetrics = {
-    readingTime: { text: '3 min read' },
-    sentenceCount: 25,
-    avgWordsPerSentence: 15,
-    fleschScore: 65
-  };
+  const readingTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
   const getScoreColor = (score) => {
     if (score >= 80) return 'text-green-500';
@@ -155,7 +202,7 @@ const SeoScoreModal = ({
               <div className="mt-4">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Top Keywords:</h4>
                 <div className="flex flex-wrap gap-2">
-                  {dummyKeywords.map((keyword, index) => (
+                  {keywords.map((keyword, index) => (
                     <span 
                       key={index}
                       className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
@@ -170,10 +217,10 @@ const SeoScoreModal = ({
               <div className="mt-4">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Reading Metrics:</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>Reading time: {dummyMetrics.readingTime.text}</div>
-                  <div>Sentences: {dummyMetrics.sentenceCount}</div>
-                  <div>Avg. words per sentence: {Math.round(dummyMetrics.avgWordsPerSentence)}</div>
-                  <div>Flesch score: {Math.round(dummyMetrics.fleschScore)}</div>
+                  <div>Reading time: {readingTimeMinutes} min read</div>
+                  <div>Sentences: {sentenceCount}</div>
+                  <div>Avg. words per sentence: {Math.round(avgWordsPerSentence)}</div>
+                  <div>Flesch score: {Math.round(fleschScore)}</div>
                 </div>
               </div>
             </div>

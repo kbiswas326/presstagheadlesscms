@@ -794,10 +794,407 @@ export const renderHomeMagazine = ({
   );
 };
 
+const renderHomeBoldClean = ({
+  featuredPost,
+  sidePosts,
+  sectionsData,
+  excludePostKeys,
+  fallbackImage,
+  primaryColor,
+  urlStructure,
+}) => {
+  const fallback = fallbackImage ? String(fallbackImage).trim() : null;
+  const resolveImg = (post) => getImageUrl(post?.image) || resolvePostImage(post, fallback);
+
+  const HeroCard = ({ post }) => {
+    if (!post) return null;
+    const postUrl = buildPostUrl(post, urlStructure);
+    const img = resolveImg(post);
+    const displayDate = post?.publishedAt || post?.publishDate || post?.createdAt || post?.updatedAt;
+    const authorLabel = Array.isArray(post?.authors) && post.authors.length
+      ? post.authors.map((a) => a?.name).filter(Boolean).join(', ')
+      : (post?.author?.name || 'PressTag');
+    const readTime = post?.content ? calculateReadTime(post.content) : '';
+    return (
+      <Link href={postUrl} className="block rounded-2xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow">
+        <div className="relative h-[520px] bg-gray-100">
+          {img ? (
+            <Image
+              src={img}
+              alt={post?.featuredImage?.altText || post?.title || ''}
+              fill
+              sizes="(max-width: 1024px) 100vw, 70vw"
+              className="object-cover"
+              priority
+            />
+          ) : null}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              {post.isLive ? (
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600 text-white text-xs font-extrabold uppercase tracking-wider">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                  </span>
+                  LIVE
+                </span>
+              ) : null}
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-white text-xs font-bold uppercase tracking-wider" style={{ backgroundColor: primaryColor }}>
+                {String(post?.primary_category?.[0]?.name || post?.categories?.[0]?.name || 'Top Story')}
+              </span>
+              {readTime ? (
+                <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-wider">
+                  {readTime}
+                </span>
+              ) : null}
+            </div>
+            <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight mb-4">
+              {post.title}
+            </h1>
+            <div className="text-xs md:text-sm text-white/80 flex flex-wrap gap-3">
+              <span className="font-semibold text-white">{authorLabel}</span>
+              <span>{formatDate(displayDate)}</span>
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  };
+
+  const HeadlineItem = ({ post }) => {
+    if (!post) return null;
+    const postUrl = buildPostUrl(post, urlStructure);
+    const img = resolveImg(post);
+    const displayDate = post?.publishedAt || post?.publishDate || post?.createdAt || post?.updatedAt;
+    return (
+      <Link href={postUrl} className="flex items-start gap-3 rounded-xl border border-gray-100 bg-white p-3 hover:bg-gray-50 transition-colors">
+        <div className="relative h-14 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
+          {img ? <Image src={img} alt={post?.featuredImage?.altText || post?.title || ''} fill sizes="80px" className="object-cover" /> : null}
+        </div>
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">
+            {post.isLive ? <span className="text-red-600 font-extrabold uppercase mr-2">Live</span> : null}
+            {post.title}
+          </div>
+          <div className="text-[10px] text-gray-500 mt-1">{formatDate(displayDate)}</div>
+        </div>
+      </Link>
+    );
+  };
+
+  return (
+    <div className="bg-white min-h-screen pb-16">
+      <div className="container mx-auto px-4 pt-6">
+        <section className="mb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+            <div className="lg:col-span-8">
+              {featuredPost ? <HeroCard post={featuredPost} /> : null}
+            </div>
+            <div className="lg:col-span-4">
+              <div className="h-full rounded-2xl border border-gray-100 bg-[#fcfcfc] p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">Headlines</h2>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {(Array.isArray(sidePosts) ? sidePosts : []).slice(0, 8).map((post, i) => (
+                    <HeadlineItem key={String(post?.slug || post?._id || i)} post={post} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-8">
+            {(Array.isArray(sectionsData) ? sectionsData : []).map((section, idx) => {
+              const posts = Array.isArray(section?.posts) ? section.posts : [];
+              const title = section?.name || 'Section';
+              const viewAllUrl = section?.viewAllUrl || null;
+              const renderAsList = idx % 3 === 2;
+
+              return (
+                <section key={String(title) + idx} className="mb-16">
+                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                    <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+                    {viewAllUrl ? (
+                      <a href={viewAllUrl} className="text-[11px] font-bold uppercase tracking-widest hover:opacity-80" style={{ color: primaryColor }}>
+                        View all <span aria-hidden="true">&rarr;</span>
+                      </a>
+                    ) : null}
+                  </div>
+                  {renderAsList ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {posts.slice(0, 10).map((post, i) => (
+                        <HorizontalCard key={String(post?.slug || post?._id || i)} post={post} urlStructure={urlStructure} variant="bold" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                      {posts.slice(0, 8).map((post, i) => (
+                        <ArticleGridCard key={String(post?.slug || post?._id || i)} post={post} urlStructure={urlStructure} variant="bold" />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+          <div className="lg:col-span-4 lg:sticky lg:top-0">
+            <Sidebar variant="homepage" excludePostKeys={excludePostKeys} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const renderHomeModernClean = ({
+  featuredPost,
+  sidePosts,
+  sectionsData,
+  fallbackImage,
+  primaryColor,
+  urlStructure,
+}) => {
+  const fallback = fallbackImage ? String(fallbackImage).trim() : null;
+  const resolveImg = (post) => getImageUrl(post?.image) || resolvePostImage(post, fallback);
+  const top = [featuredPost, ...(Array.isArray(sidePosts) ? sidePosts : [])].filter(Boolean).slice(0, 5);
+
+  const MosaicCard = ({ post, className, priority }) => {
+    const postUrl = buildPostUrl(post, urlStructure);
+    const img = resolveImg(post);
+    return (
+      <Link href={postUrl} className={`relative overflow-hidden rounded-2xl bg-gray-100 border border-gray-100 group ${className}`}>
+        {img ? (
+          <Image src={img} alt={post?.featuredImage?.altText || post?.title || ''} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" priority={priority} />
+        ) : null}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-5">
+          <div className="text-white text-sm font-semibold leading-snug line-clamp-2">{post.title}</div>
+        </div>
+      </Link>
+    );
+  };
+
+  return (
+    <div className="bg-white min-h-screen pb-16">
+      <div className="container mx-auto px-4 pt-6">
+        <section className="mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-[180px]">
+            {top[0] ? <MosaicCard post={top[0]} className="lg:col-span-2 lg:row-span-2 md:row-span-2 row-span-2" priority /> : null}
+            {top.slice(1).map((post, i) => (
+              <MosaicCard key={String(post?.slug || post?._id || i)} post={post} className="lg:col-span-1 lg:row-span-1" />
+            ))}
+          </div>
+        </section>
+
+        {(Array.isArray(sectionsData) ? sectionsData : []).map((section, idx) => {
+          const posts = Array.isArray(section?.posts) ? section.posts : [];
+          const title = section?.name || 'Section';
+          const viewAllUrl = section?.viewAllUrl || null;
+          return (
+            <section key={String(title) + idx} className="mb-16">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+                {viewAllUrl ? (
+                  <a href={viewAllUrl} className="text-[11px] font-bold uppercase tracking-widest hover:opacity-80" style={{ color: primaryColor }}>
+                    View all <span aria-hidden="true">&rarr;</span>
+                  </a>
+                ) : null}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                {posts.slice(0, 8).map((post, i) => (
+                  <ArticleGridCard key={String(post?.slug || post?._id || i)} post={post} urlStructure={urlStructure} variant="modern" />
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const renderHomeNewsClean = ({
+  featuredPost,
+  sidePosts,
+  sectionsData,
+  fallbackImage,
+  primaryColor,
+  urlStructure,
+}) => {
+  const fallback = fallbackImage ? String(fallbackImage).trim() : null;
+  const resolveImg = (post) => getImageUrl(post?.image) || resolvePostImage(post, fallback);
+
+  const Hero = ({ post }) => {
+    if (!post) return null;
+    const postUrl = buildPostUrl(post, urlStructure);
+    const img = resolveImg(post);
+    const displayDate = post?.publishedAt || post?.publishDate || post?.createdAt || post?.updatedAt;
+    return (
+      <Link href={postUrl} className="block rounded-2xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow">
+        <div className="relative h-[520px] bg-gray-100">
+          {img ? <Image src={img} alt={post?.featuredImage?.altText || post?.title || ''} fill sizes="(max-width: 1024px) 100vw, 70vw" className="object-cover" priority /> : null}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-8">
+            {post.isLive ? <div className="text-red-300 text-xs font-extrabold uppercase tracking-widest mb-3">Live</div> : null}
+            <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight">{post.title}</h1>
+            <div className="text-xs text-white/80 mt-4">{formatDate(displayDate)}</div>
+          </div>
+        </div>
+      </Link>
+    );
+  };
+
+  return (
+    <div className="bg-white min-h-screen pb-16">
+      <div className="container mx-auto px-4 pt-6">
+        <section className="mb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div className="lg:col-span-8">
+              {featuredPost ? <Hero post={featuredPost} /> : null}
+            </div>
+            <div className="lg:col-span-4">
+              <div className="rounded-2xl border border-gray-100 bg-white p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">Latest</h2>
+                </div>
+                <div className="flex flex-col gap-4">
+                  {(Array.isArray(sidePosts) ? sidePosts : []).slice(0, 10).map((post, i) => (
+                    <HorizontalCard key={String(post?.slug || post?._id || i)} post={post} urlStructure={urlStructure} variant="news" />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {(Array.isArray(sectionsData) ? sectionsData : []).map((section, idx) => {
+          const posts = Array.isArray(section?.posts) ? section.posts : [];
+          const title = section?.name || 'Section';
+          const viewAllUrl = section?.viewAllUrl || null;
+          const lead = posts[0] || null;
+          const rest = posts.slice(1, 13);
+          return (
+            <section key={String(title) + idx} className="mb-16">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+                {viewAllUrl ? (
+                  <a href={viewAllUrl} className="text-[11px] font-bold uppercase tracking-widest hover:opacity-80" style={{ color: primaryColor }}>
+                    View all <span aria-hidden="true">&rarr;</span>
+                  </a>
+                ) : null}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="lg:col-span-5">
+                  {lead ? (
+                    <Link href={buildPostUrl(lead, urlStructure)} className="block rounded-2xl overflow-hidden border border-gray-100 bg-white hover:shadow-md transition-shadow">
+                      <div className="relative h-[300px] bg-gray-100">
+                        {resolveImg(lead) ? <Image src={resolveImg(lead)} alt={lead?.featuredImage?.altText || lead?.title || ''} fill sizes="(max-width: 1024px) 100vw, 40vw" className="object-cover" /> : null}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-6">
+                          <div className="text-white font-bold text-lg leading-snug line-clamp-2">{lead.title}</div>
+                        </div>
+                      </div>
+                    </Link>
+                  ) : null}
+                </div>
+                <div className="lg:col-span-7">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {rest.slice(0, 8).map((post, i) => (
+                      <HorizontalCard key={String(post?.slug || post?._id || i)} post={post} urlStructure={urlStructure} variant="news" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const renderHomeMagazineClean = ({
+  featuredPost,
+  sidePosts,
+  sectionsData,
+  excludePostKeys,
+  fallbackImage,
+  primaryColor,
+  urlStructure,
+}) => {
+  const fallback = fallbackImage ? String(fallbackImage).trim() : null;
+  const resolveImg = (post) => getImageUrl(post?.image) || resolvePostImage(post, fallback);
+  const top = [featuredPost, ...(Array.isArray(sidePosts) ? sidePosts : [])].filter(Boolean).slice(0, 7);
+
+  const Cover = ({ post, className, priority }) => {
+    if (!post) return null;
+    const postUrl = buildPostUrl(post, urlStructure);
+    const img = resolveImg(post);
+    return (
+      <Link href={postUrl} className={`relative overflow-hidden rounded-2xl bg-gray-100 border border-gray-100 group ${className}`}>
+        {img ? <Image src={img} alt={post?.featuredImage?.altText || post?.title || ''} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" priority={priority} /> : null}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-5">
+          <div className="text-white text-sm font-semibold leading-snug line-clamp-2">{post.title}</div>
+        </div>
+      </Link>
+    );
+  };
+
+  return (
+    <div className="bg-white min-h-screen pb-16">
+      <div className="container mx-auto px-4 pt-6">
+        <section className="mb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 auto-rows-[190px]">
+            {top[0] ? <Cover post={top[0]} className="lg:col-span-7 lg:row-span-3 row-span-2" priority /> : null}
+            {top.slice(1, 7).map((post, i) => (
+              <Cover key={String(post?.slug || post?._id || i)} post={post} className="lg:col-span-5 lg:row-span-1" />
+            ))}
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-8">
+            {(Array.isArray(sectionsData) ? sectionsData : []).map((section, idx) => {
+              const posts = Array.isArray(section?.posts) ? section.posts : [];
+              const title = section?.name || 'Section';
+              const viewAllUrl = section?.viewAllUrl || null;
+              return (
+                <section key={String(title) + idx} className="mb-16">
+                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                    <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+                    {viewAllUrl ? (
+                      <a href={viewAllUrl} className="text-[11px] font-bold uppercase tracking-widest hover:opacity-80" style={{ color: primaryColor }}>
+                        View all <span aria-hidden="true">&rarr;</span>
+                      </a>
+                    ) : null}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    {posts.slice(0, 8).map((post, i) => (
+                      <ArticleGridCard key={String(post?.slug || post?._id || i)} post={post} urlStructure={urlStructure} variant="magazine" />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+          <div className="lg:col-span-4 lg:sticky lg:top-0">
+            <Sidebar variant="homepage" excludePostKeys={excludePostKeys} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const renderHomeByTemplate = (templateId, props) => {
-  if (templateId === 'bold') return renderHomeBold(props);
-  if (templateId === 'modern') return renderHomeModern(props);
-  if (templateId === 'news') return renderHomeNews(props);
-  if (templateId === 'magazine') return renderHomeMagazine(props);
+  if (templateId === 'bold') return renderHomeBoldClean(props);
+  if (templateId === 'modern') return renderHomeModernClean(props);
+  if (templateId === 'news') return renderHomeNewsClean(props);
+  if (templateId === 'magazine') return renderHomeMagazineClean(props);
   return renderHomeClassic(props);
 };

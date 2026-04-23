@@ -15,7 +15,7 @@ async function getLayoutConfig() {
 
 async function getTag(slug) {
   try {
-    const res = await fetchWithTenant(`/tags/by-slug/${slug}`, { cache: 'no-store' });
+    const res = await fetchWithTenant(`/tags/by-slug/${encodeURIComponent(String(slug || ''))}`, { cache: 'no-store' });
     if (res.ok) return res.json();
   } catch {}
   return null;
@@ -25,7 +25,20 @@ async function getTagPosts(slug, page = 1) {
   if (!slug) return { articles: [], totalPages: 0 };
   const limit = 20;
   try {
-    const res = await fetchWithTenant(`/posts?tag=${slug}&page=${page}&limit=${limit}`, { cache: 'no-store' });
+    const decoded = (() => {
+      const s = String(slug || '').replace(/\+/g, ' ');
+      try {
+        return decodeURIComponent(s);
+      } catch {
+        return s;
+      }
+    })();
+    const tag = await getTag(decoded);
+    const tagKey = tag?._id ? String(tag._id) : decoded;
+    const res = await fetchWithTenant(
+      `/posts?status=published&tag=${encodeURIComponent(tagKey)}&page=${page}&limit=${limit}&lite=1`,
+      { cache: 'no-store' }
+    );
     if (!res.ok) {
       throw new Error('Failed to fetch posts');
     }
@@ -54,14 +67,22 @@ async function getTagPosts(slug, page = 1) {
 export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const slug = resolvedParams?.slug;
+  const decodedSlug = (() => {
+    const s = String(slug || '').replace(/\+/g, ' ');
+    try {
+      return decodeURIComponent(s);
+    } catch {
+      return s;
+    }
+  })();
   const [config, tag] = await Promise.all([
     getLayoutConfig(),
-    slug ? getTag(slug) : null,
+    decodedSlug ? getTag(decodedSlug) : null,
   ]);
 
   const siteTitle = config?.branding?.siteTitle || 'PressTag';
   const preferredPrefix = String(config?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
-  const tagName = tag?.name || (slug ? slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'Tag');
+  const tagName = tag?.name || (decodedSlug ? decodedSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'Tag');
 
   const title = tag?.metaTitle
     || fillTemplate(config?.seo?.tagMetaTitleTemplate || 'Tag: {tag} | {site}', { tag: tagName, site: siteTitle });
@@ -94,11 +115,19 @@ export async function generateMetadata({ params }) {
 export default async function TagPage({ params, searchParams }) {
   const resolvedParams = await params;
   const { slug } = resolvedParams;
+  const decodedSlug = (() => {
+    const s = String(slug || '').replace(/\+/g, ' ');
+    try {
+      return decodeURIComponent(s);
+    } catch {
+      return s;
+    }
+  })();
 
   const resolvedSearchParams = await searchParams;
   const page = Number(resolvedSearchParams?.page) || 1;
 
-  if (!slug) {
+  if (!decodedSlug) {
     return <div className="container mx-auto px-4 py-8">Invalid tag</div>;
   }
 
@@ -106,12 +135,12 @@ export default async function TagPage({ params, searchParams }) {
   const preferredPrefix = String(config?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
   if (preferredPrefix !== 'tags') {
     const qs = page && page > 1 ? `?page=${page}` : '';
-    permanentRedirect(`/${preferredPrefix}/${slug}${qs}`);
+    permanentRedirect(`/${preferredPrefix}/${encodeURIComponent(decodedSlug)}${qs}`);
   }
 
-  const { articles: posts, totalPages } = await getTagPosts(slug, page);
+  const { articles: posts, totalPages } = await getTagPosts(decodedSlug, page);
 
-  const title = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  const title = decodedSlug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen">
@@ -132,7 +161,7 @@ export default async function TagPage({ params, searchParams }) {
           <Pagination
             currentPage={page}
             totalPages={totalPages}
-            baseUrl={`/${preferredPrefix}/${slug}`}
+            baseUrl={`/${preferredPrefix}/${encodeURIComponent(decodedSlug)}`}
           />
         </>
       ) : (

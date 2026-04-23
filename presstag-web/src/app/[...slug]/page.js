@@ -241,11 +241,20 @@ if (!post) {
 
   const videoId = isVideo && post.videoUrl ? getYouTubeId(post.videoUrl) : null;
   const contentString = String(post?.content || '');
-  const shouldLoadEmbeds =
-    contentString.includes('twitter-tweet') ||
-    contentString.includes('pbs.twimg.com') ||
-    contentString.includes('instagram-media') ||
-    contentString.includes('instagram.com');
+  const shouldLoadEmbeds = (() => {
+    const s = contentString.toLowerCase();
+    return (
+      s.includes('twitter-tweet') ||
+      s.includes('platform.twitter.com') ||
+      s.includes('twitter.com') ||
+      s.includes('x.com') ||
+      s.includes('t.co/') ||
+      s.includes('pbs.twimg.com') ||
+      s.includes('instagram-media') ||
+      s.includes('instagram.com') ||
+      s.includes('instagr.am')
+    );
+  })();
 
   const isBoldTemplate = templateId === 'bold';
   const wrapperBg = 'bg-gray-50';

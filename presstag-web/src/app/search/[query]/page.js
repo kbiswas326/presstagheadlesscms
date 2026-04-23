@@ -37,7 +37,15 @@ async function searchPosts(query, page = 1) {
 export default async function SearchResultsPage({ params, searchParams }) {
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
-  const query = resolvedParams?.query ? String(resolvedParams.query) : '';
+  const rawQuery = resolvedParams?.query ? String(resolvedParams.query) : '';
+  const query = (() => {
+    const q = rawQuery.replace(/\+/g, ' ');
+    try {
+      return decodeURIComponent(q);
+    } catch {
+      return q;
+    }
+  })();
   const page = Number(resolvedSearchParams?.page) || 1;
 
   const [config, result] = await Promise.all([
