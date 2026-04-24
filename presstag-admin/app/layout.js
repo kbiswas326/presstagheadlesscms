@@ -4,11 +4,60 @@ import { Toaster } from 'react-hot-toast';
 import { UserProvider } from "./context/UserContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import LayoutContent from "./LayoutContent";
+import { headers } from "next/headers";
 
-export const metadata = {
-  title: "CMS Dashboard",
-  description: "CMS Dashboard Layout",
+const normalizeApiBase = (raw) => {
+  const trimmed = String(raw || "").trim().replace(/\/+$/, "");
+  if (!trimmed) return "http://localhost:5000/api";
+  if (trimmed.endsWith("/api")) return trimmed;
+  return `${trimmed}/api`;
 };
+
+const API_BASE = normalizeApiBase(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000");
+
+const resolveTenantIdFromHost = (host) => {
+  const envTenant = String(process.env.NEXT_PUBLIC_TENANT_ID || "").trim();
+  if (envTenant) return envTenant;
+
+  const h = String(host || "").toLowerCase();
+  if (h.includes("sportzpoint")) return "sportzpoint";
+  if (h.includes("presstag")) return "presstag";
+  return "presstag";
+};
+
+async function getTenantSiteTitle(tenantId) {
+  try {
+    const res = await fetch(`${API_BASE}/layout-config`, {
+      headers: {
+        "Content-Type": "application/json",
+        "x-tenant-id": tenantId,
+      },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const cfg = await res.json();
+    const title = String(cfg?.branding?.siteTitle || "").trim();
+    return title || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata() {
+  const h = await headers();
+  const host = h.get("host") || "";
+  const tenantId = resolveTenantIdFromHost(host);
+  const siteTitle = (await getTenantSiteTitle(tenantId)) || tenantId;
+  const suffix = `${siteTitle} | PressTag`;
+
+  return {
+    title: {
+      default: `Dashboard - ${suffix}`,
+      template: `%s - ${suffix}`,
+    },
+    description: "CMS Dashboard Layout",
+  };
+}
 
 export default function RootLayout({ children }) {
   return (

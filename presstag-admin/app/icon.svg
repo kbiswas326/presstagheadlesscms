@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <rect width="256" height="256" fill="#000"/>
+  <g fill="#fff">
+    <polygon points="58,78 126,44 126,128 66,114"/>
+    <polygon points="138,44 206,78 190,114 138,128"/>
+    <polygon points="66,142 126,128 126,212 58,178"/>
+    <polygon points="138,128 190,142 206,178 138,212"/>
+    <rect x="122" y="110" width="12" height="92" transform="rotate(-45 128 156)"/>
+    <rect x="122" y="64" width="12" height="92" transform="rotate(45 128 110)"/>
+  </g>
+  <text x="128" y="238" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="44" text-anchor="middle">presstag</text>
+</svg>
