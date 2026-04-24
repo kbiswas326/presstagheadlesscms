@@ -41,6 +41,11 @@ function normalizePath(input) {
   return raw.startsWith('/') ? raw : `/${raw}`;
 }
 
+function isCustomPageType(type) {
+  const t = String(type || '').toLowerCase().trim();
+  return t === 'custompage' || t === 'custom-page' || t === 'custom page';
+}
+
 async function getPostBySlug(slug) {
   try {
     const res = await fetchWithTenant(`/posts/slug/${encodeURIComponent(String(slug))}`, { next: { revalidate: 30 } });
@@ -149,9 +154,7 @@ export async function generateMetadata({ params }) {
   const pageSlug = extractSlugFromUrl(slugParts, pageUrlStructure);
   if (pageSlug) {
     const maybePage = await getPostBySlug(pageSlug);
-    const type = String(maybePage?.type || '').toLowerCase().trim();
-    const isCustomPage = type === 'custompage' || type === 'custom-page' || type === 'custom page';
-    if (isCustomPage && maybePage) {
+    if (isCustomPageType(maybePage?.type) && maybePage) {
       const siteTitle = config?.branding?.siteTitle || 'PressTag';
       const canonicalPath = preservePostUrls
         ? (buildPageUrl(maybePage, pageUrlStructure) || `/${encodeURIComponent(String(pageSlug))}`)
@@ -192,9 +195,17 @@ export async function generateMetadata({ params }) {
 
   const siteTitle = config?.branding?.siteTitle || 'PressTag';
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
-  const canonicalPath = preservePostUrls
-    ? (buildPostUrl(post, urlStructure) || `/posts/${encodeURIComponent(String(post.slug || post._id))}`)
-    : (buildPostUrlByStructure(post, urlStructure) || `/posts/${encodeURIComponent(String(post.slug || post._id))}`);
+  const canonicalPath = isCustomPageType(post?.type)
+    ? (
+        preservePostUrls
+          ? (buildPageUrl(post, pageUrlStructure) || `/${encodeURIComponent(String(post.slug || post._id))}`)
+          : (buildPageUrlByStructure(post, pageUrlStructure) || `/${encodeURIComponent(String(post.slug || post._id))}`)
+      )
+    : (
+        preservePostUrls
+          ? (buildPostUrl(post, urlStructure) || `/posts/${encodeURIComponent(String(post.slug || post._id))}`)
+          : (buildPostUrlByStructure(post, urlStructure) || `/posts/${encodeURIComponent(String(post.slug || post._id))}`)
+      );
   const ogImage = resolveSiteAssetUrl(
     post?.seo?.ogImage ||
     post?.featuredImage?.url ||
@@ -245,9 +256,7 @@ export default async function CatchAllPostPage({ params }) {
   const pageSlug = extractSlugFromUrl(slugParts, pageUrlStructure);
   if (pageSlug) {
     const maybePage = await getPostBySlug(pageSlug);
-    const type = String(maybePage?.type || '').toLowerCase().trim();
-    const isCustomPage = type === 'custompage' || type === 'custom-page' || type === 'custom page';
-    if (isCustomPage && maybePage) {
+    if (isCustomPageType(maybePage?.type) && maybePage) {
       const canonicalPath = preservePostUrls
         ? buildPageUrl(maybePage, pageUrlStructure)
         : buildPageUrlByStructure(maybePage, pageUrlStructure);
@@ -294,10 +303,29 @@ if (!post) {
   const primaryColor = layoutConfig?.branding?.primaryColor || '#006356';
   const tagPrefix = String(layoutConfig?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
   const urlStructure = layoutConfig?.seo?.postUrlStructure || '/{category}/{slug}';
-  const canonicalPath = preservePostUrls ? buildPostUrl(post, urlStructure) : buildPostUrlByStructure(post, urlStructure);
+  const canonicalPath = isCustomPageType(post?.type)
+    ? (preservePostUrls ? buildPageUrl(post, pageUrlStructure) : buildPageUrlByStructure(post, pageUrlStructure))
+    : (preservePostUrls ? buildPostUrl(post, urlStructure) : buildPostUrlByStructure(post, urlStructure));
   const currentPath = `/${slugParts.join('/')}`;
   if (canonicalPath && normalizePath(canonicalPath) !== normalizePath(currentPath)) {
     permanentRedirect(canonicalPath);
+  }
+
+  if (isCustomPageType(post?.type)) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 py-10">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-10">
+            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900">
+              {post.title}
+            </h1>
+            <div className="mt-6">
+              <ArticleContent content={post.content} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const cleanType = post.type?.toLowerCase().trim();
