@@ -290,7 +290,9 @@ if (!post) {
   const oldPost = await getPostByPreviousSlug(lastSegment);
   if (oldPost) {
     const urlStructure = layoutConfig?.seo?.postUrlStructure || '/{category}/{slug}';
-    const canonicalPath = preservePostUrls ? buildPostUrl(oldPost, urlStructure) : buildPostUrlByStructure(oldPost, urlStructure);
+    const canonicalPath = isCustomPageType(oldPost?.type)
+      ? (preservePostUrls ? buildPageUrl(oldPost, pageUrlStructure) : buildPageUrlByStructure(oldPost, pageUrlStructure))
+      : (preservePostUrls ? buildPostUrl(oldPost, urlStructure) : buildPostUrlByStructure(oldPost, urlStructure));
     if (canonicalPath) redirect(canonicalPath);
   }
   notFound();

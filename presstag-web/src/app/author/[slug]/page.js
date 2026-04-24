@@ -33,7 +33,10 @@ async function getLayoutConfig() {
 
 async function getAuthorPosts(authorId, page = 1) {
     try {
-        const res = await fetchWithTenant(`/posts?author=${authorId}&limit=20&page=${page}`, { cache: 'no-store' });
+        const res = await fetchWithTenant(
+            `/posts?status=published&excludeType=custompage&author=${authorId}&limit=20&page=${page}&lite=1`,
+            { cache: 'no-store' }
+        );
         if (!res.ok) throw new Error('Failed to fetch posts');
         const data = await res.json();
         

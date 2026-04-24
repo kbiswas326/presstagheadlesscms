@@ -30,7 +30,7 @@ const resolveTenantId = () => {
 export async function getPosts(page = 1, limit = 20, status = 'published') {
   try {
     const res = await fetch(
-      `${API_BASE}/posts?status=${status}&page=${page}&limit=${limit}`,
+      `${API_BASE}/posts?status=${encodeURIComponent(String(status))}&page=${page}&limit=${limit}&excludeType=custompage`,
       {
         cache: 'no-store',
         headers: { 'x-tenant-id': resolveTenantId() },
