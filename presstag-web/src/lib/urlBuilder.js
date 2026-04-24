@@ -2,7 +2,19 @@
 
 export function buildPostUrl(post, urlStructure = '/{category}/{slug}') {
   // Use original URL if preserved from migration
-  if (post.originalUrl) return post.originalUrl;
+  if (post.originalUrl) {
+    const raw = String(post.originalUrl || '').trim();
+    if (!raw) return null;
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      try {
+        const u = new URL(raw);
+        return u.pathname || '/';
+      } catch {
+        return raw;
+      }
+    }
+    return raw.startsWith('/') ? raw : `/${raw}`;
+  }
 
   // Web stories always use their own route
   const cleanType = post.type?.toLowerCase().trim();

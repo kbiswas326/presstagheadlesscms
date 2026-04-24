@@ -66,6 +66,8 @@ export default function CustomizationPage() {
 
   categoryPrefix: 'category',
   tagPrefix: 'tag',
+  preservePostUrls: false,
+  redirects: [],
 
   homeMetaTitle: '',
   homeMetaDescription: '',
@@ -1368,6 +1370,120 @@ export default function CustomizationPage() {
               .replace('{year}', '2025')
               .replace('{month}', '03')
           }
+        </div>
+
+        <div className="mt-4 flex items-start gap-3">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={Boolean(settings.seo.preservePostUrls)}
+            onChange={(e) =>
+              setSettings((prev) => ({
+                ...prev,
+                seo: { ...prev.seo, preservePostUrls: e.target.checked },
+              }))
+            }
+          />
+          <div>
+            <div className="text-sm font-medium">Preserve existing post URLs</div>
+            <div className="text-xs text-gray-400">
+              When enabled, posts can keep their old URL (useful after migrations) while new posts follow the current URL structure.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-md font-semibold mb-3">Redirects</h3>
+        <p className="text-xs mt-1 text-gray-400">
+          Add manual redirects to fix duplicate URLs (example: /stats-6132209 → /stats-). Use absolute paths starting with /.
+        </p>
+
+        <div className="mt-3 space-y-3">
+          {(Array.isArray(settings.seo.redirects) ? settings.seo.redirects : []).map((rule, idx) => (
+            <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+              <div className="md:col-span-5">
+                <input
+                  type="text"
+                  value={rule?.from || ''}
+                  onChange={(e) =>
+                    setSettings((prev) => {
+                      const prevRules = Array.isArray(prev.seo?.redirects) ? prev.seo.redirects : [];
+                      const nextRules = [...prevRules];
+                      nextRules[idx] = { ...(nextRules[idx] || {}), from: e.target.value };
+                      return { ...prev, seo: { ...prev.seo, redirects: nextRules } };
+                    })
+                  }
+                  className={inputClass}
+                  placeholder="/old-path"
+                />
+              </div>
+              <div className="md:col-span-5">
+                <input
+                  type="text"
+                  value={rule?.to || ''}
+                  onChange={(e) =>
+                    setSettings((prev) => {
+                      const prevRules = Array.isArray(prev.seo?.redirects) ? prev.seo.redirects : [];
+                      const nextRules = [...prevRules];
+                      nextRules[idx] = { ...(nextRules[idx] || {}), to: e.target.value };
+                      return { ...prev, seo: { ...prev.seo, redirects: nextRules } };
+                    })
+                  }
+                  className={inputClass}
+                  placeholder="/new-path"
+                />
+              </div>
+              <div className="md:col-span-1">
+                <select
+                  value={(rule?.permanent ?? true) ? '301' : '302'}
+                  onChange={(e) =>
+                    setSettings((prev) => {
+                      const prevRules = Array.isArray(prev.seo?.redirects) ? prev.seo.redirects : [];
+                      const nextRules = [...prevRules];
+                      nextRules[idx] = { ...(nextRules[idx] || {}), permanent: e.target.value === '301' };
+                      return { ...prev, seo: { ...prev.seo, redirects: nextRules } };
+                    })
+                  }
+                  className={selectClass}
+                >
+                  <option value="301">301</option>
+                  <option value="302">302</option>
+                </select>
+              </div>
+              <div className="md:col-span-1 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSettings((prev) => {
+                      const prevRules = Array.isArray(prev.seo?.redirects) ? prev.seo.redirects : [];
+                      const nextRules = prevRules.filter((_, i) => i !== idx);
+                      return { ...prev, seo: { ...prev.seo, redirects: nextRules } };
+                    })
+                  }
+                  className="px-3 py-2 rounded-md bg-red-500/10 text-red-600 hover:bg-red-500/20"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() =>
+              setSettings((prev) => {
+                const prevRules = Array.isArray(prev.seo?.redirects) ? prev.seo.redirects : [];
+                const nextRules = [...prevRules, { from: '', to: '', permanent: true }];
+                return { ...prev, seo: { ...prev.seo, redirects: nextRules } };
+              })
+            }
+            className="px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600"
+          >
+            Add Redirect
+          </button>
         </div>
       </div>
 

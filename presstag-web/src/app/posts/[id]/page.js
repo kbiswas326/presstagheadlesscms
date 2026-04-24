@@ -3,7 +3,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getCategories, getPostById } from '../../../lib/api';
-import { notFound, redirect } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { Inter, Merriweather } from 'next/font/google';
 import VideoPlayer from '../../../components/VideoPlayer';
 import WebStoryViewer from '../../../components/WebStoryViewer';
@@ -16,6 +16,7 @@ import SocialShareButtons from '../../../components/SocialShareButtons';
 import ResponsivePostGrid from '../../../components/ResponsivePostGrid';
 import { getImageUrl, resolvePostImage } from '@/lib/imageHelper';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
+import { buildPostUrl } from '@/lib/urlBuilder';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 import SidebarDeferredClient from '../../../components/SidebarDeferredClient';
 import { formatPublishDateTime } from '../../../util/timeFormat';
@@ -30,6 +31,19 @@ const merriweather = Merriweather({
   subsets: ['latin'],
   display: 'swap',
 });
+
+function normalizePath(input) {
+  const raw = String(input || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    try {
+      return new URL(raw).pathname || '';
+    } catch {
+      return raw;
+    }
+  }
+  return raw.startsWith('/') ? raw : `/${raw}`;
+}
 
 export async function generateMetadata({ params }) {
   const resolvedParams = await params;
@@ -48,6 +62,8 @@ export async function generateMetadata({ params }) {
   }
 
   const siteTitle = config?.branding?.siteTitle || 'PressTag';
+  const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
+  const canonicalPath = buildPostUrl(post, urlStructure) || `/posts/${encodeURIComponent(String(post.slug || post._id))}`;
   const ogImage = resolveSiteAssetUrl(
     post?.seo?.ogImage ||
     post?.featuredImage?.url ||
@@ -64,7 +80,7 @@ export async function generateMetadata({ params }) {
     title: post.seo?.metaTitle || post.title,
     description: post.seo?.metaDescription || post.summary,
     alternates: {
-      canonical: `/posts/${encodeURIComponent(String(post.slug || post._id))}`,
+      canonical: canonicalPath,
     },
     openGraph: {
       title: post.seo?.metaTitle || post.title,
@@ -102,6 +118,12 @@ export default async function PostPage({ params }) {
     const map = new Map(cats.map((c) => [String(c?._id), c]));
     const resolved = ids.map((id) => map.get(String(id))).filter(Boolean);
     if (resolved.length > 0) post = { ...post, categories: resolved };
+  }
+
+  const canonicalPath = buildPostUrl(post, urlStructure);
+  const currentPath = `/posts/${encodeURIComponent(String(resolvedParams.id || ''))}`;
+  if (canonicalPath && normalizePath(canonicalPath) !== normalizePath(currentPath)) {
+    permanentRedirect(canonicalPath);
   }
 
   // Determine post type

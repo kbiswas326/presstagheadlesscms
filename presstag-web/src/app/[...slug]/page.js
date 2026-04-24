@@ -2,7 +2,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { Merriweather } from 'next/font/google';
 import VideoPlayer from '../../components/VideoPlayer';
 import LiveBlogViewer from '../../components/LiveBlogViewer';
@@ -17,6 +17,7 @@ import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
 import SidebarDeferredClient from '../../components/SidebarDeferredClient';
 import { formatPublishDateTime } from '../../util/timeFormat';
 import { resolveTemplateId } from '@/lib/templates';
+import { buildPostUrl } from '@/lib/urlBuilder';
 
 export const revalidate = 60;
 
@@ -26,6 +27,19 @@ const merriweather = Merriweather({
   subsets: ['latin'],
   display: 'swap',
 });
+
+function normalizePath(input) {
+  const raw = String(input || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    try {
+      return new URL(raw).pathname || '';
+    } catch {
+      return raw;
+    }
+  }
+  return raw.startsWith('/') ? raw : `/${raw}`;
+}
 
 async function getPostBySlug(slug) {
   try {
@@ -134,6 +148,8 @@ export async function generateMetadata({ params }) {
   if (!post) return { title: 'Post Not Found' };
 
   const siteTitle = config?.branding?.siteTitle || 'PressTag';
+  const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
+  const canonicalPath = buildPostUrl(post, urlStructure) || `/posts/${encodeURIComponent(String(post.slug || post._id))}`;
   const ogImage = resolveSiteAssetUrl(
     post?.seo?.ogImage ||
     post?.featuredImage?.url ||
@@ -150,7 +166,7 @@ export async function generateMetadata({ params }) {
     title: post.seo?.metaTitle || post.title,
     description: post.seo?.metaDescription || post.summary,
     alternates: {
-      canonical: `/posts/${encodeURIComponent(String(post.slug || post._id))}`,
+      canonical: canonicalPath,
     },
     openGraph: {
       title: post.seo?.metaTitle || post.title,
@@ -184,8 +200,8 @@ if (!post) {
   if (oldPost) {
     const config = await fetchWithTenant('/layout-config', { next: { revalidate: 60 } }).then(r => r.json()).catch(() => null);
     const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
-    const { buildPostUrl } = await import('@/lib/urlBuilder');
-    redirect(buildPostUrl(oldPost, urlStructure));
+    const canonicalPath = buildPostUrl(oldPost, urlStructure);
+    if (canonicalPath) redirect(canonicalPath);
   }
   notFound();
 }
@@ -199,6 +215,12 @@ if (!post) {
   const templateId = resolveTemplateId(layoutConfig?.branding?.templateId);
   const primaryColor = layoutConfig?.branding?.primaryColor || '#006356';
   const tagPrefix = String(layoutConfig?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
+  const urlStructure = layoutConfig?.seo?.postUrlStructure || '/{category}/{slug}';
+  const canonicalPath = buildPostUrl(post, urlStructure);
+  const currentPath = `/${slugParts.join('/')}`;
+  if (canonicalPath && normalizePath(canonicalPath) !== normalizePath(currentPath)) {
+    permanentRedirect(canonicalPath);
+  }
 
   const cleanType = post.type?.toLowerCase().trim();
   const isGallery = cleanType === 'photo gallery' || cleanType === 'photo-gallery';

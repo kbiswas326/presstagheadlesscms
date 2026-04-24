@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const Post = require('../models/Post');
+const LayoutConfig = require('../models/LayoutConfig');
 const authMiddleware = require('../middleware/auth');
 const { getDB } = require('../config/db');
 const { ObjectId } = require('mongodb');
@@ -129,6 +130,36 @@ function getIstDateParts(date) {
   } catch {
     return { publishDate: null, publishTime: null };
   }
+}
+
+function buildPostUrlFromStructure(post, urlStructure = '/{category}/{slug}') {
+  if (!post) return null;
+  const structure = String(urlStructure || '/{category}/{slug}').trim() || '/{category}/{slug}';
+  const cleanStructure = structure.startsWith('/') ? structure : `/${structure}`;
+
+  const cleanType = String(post.type || '').toLowerCase().trim();
+  const isWebStory = cleanType === 'web story' || cleanType === 'web-story' || cleanType === 'story';
+  if (isWebStory) return `/web-stories/${post.slug || post._id}`;
+
+  const category =
+    post?.categories?.[0]?.slug ||
+    post?.categories?.[0]?.name ||
+    post?.primary_category?.[0]?.slug ||
+    post?.primary_category?.[0]?.name ||
+    'general';
+
+  const slug = post.slug || post._id;
+  const author = post?.author?.slug || post?.primaryAuthor?.slug || 'author';
+  const date = new Date(post.publishedAt || post.publishDate || post.createdAt || Date.now());
+  const year = date.getFullYear().toString();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+
+  return cleanStructure
+    .replace('{category}', String(category))
+    .replace('{slug}', String(slug))
+    .replace('{author}', String(author))
+    .replace('{year}', year)
+    .replace('{month}', month);
 }
 
 // Helper: Populate categories, primary_category, tags, and author
@@ -801,7 +832,22 @@ router.post('/', authMiddleware, async (req, res) => {
     }
     const post = await Post.create(payload, req.tenantId);
     const db = getDB(req.tenantId);
-    const enrichedPost = await populatePost(post, db);
+    let enrichedPost = await populatePost(post, db);
+    try {
+      const config = await LayoutConfig.get(req.tenantId);
+      const preservePostUrls = Boolean(config?.seo?.preservePostUrls);
+      if (preservePostUrls && status === 'published' && !enrichedPost?.originalUrl) {
+        const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
+        const canonicalPath = buildPostUrlFromStructure(enrichedPost || post, urlStructure);
+        if (canonicalPath) {
+          await db.collection('posts').updateOne(
+            { _id: post._id },
+            { $set: { originalUrl: canonicalPath } }
+          );
+          enrichedPost = enrichedPost ? { ...enrichedPost, originalUrl: canonicalPath } : enrichedPost;
+        }
+      }
+    } catch {}
     if (status === 'published' && notifySubscribers !== false) {
       const idOrSlug = String(post.slug || post._id || '');
       await sendTenantPush(req.tenantId, {
@@ -883,7 +929,23 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     const post = await Post.update(targetId, updateBody, req.tenantId);
     const enrichedPost = await populatePost(post, db);
-    const next = enrichedPost || post;
+    let next = enrichedPost || post;
+    try {
+      const config = await LayoutConfig.get(req.tenantId);
+      const preservePostUrls = Boolean(config?.seo?.preservePostUrls);
+      const nextStatus = String(next?.status || '').toLowerCase();
+      if (preservePostUrls && nextStatus === 'published' && !next?.originalUrl) {
+        const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
+        const canonicalPath = buildPostUrlFromStructure(next, urlStructure);
+        if (canonicalPath) {
+          await db.collection('posts').updateOne(
+            { _id: new ObjectId(targetId) },
+            { $set: { originalUrl: canonicalPath } }
+          );
+          next = { ...next, originalUrl: canonicalPath };
+        }
+      }
+    } catch {}
 
     const nextStatus = String(next?.status || '').toLowerCase();
     const nextUpdatesCount = Array.isArray(next?.liveUpdates) ? next.liveUpdates.length : 0;
