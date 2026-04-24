@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { getLayoutConfig, posts as postsApi } from '../../../../../lib/api';
 import { useTheme } from '../../../../context/ThemeContext';
+import MediaImagesSelector from '../../../../media/MediaImagesSelector';
 
 const Editor = dynamic(() => import('@tinymce/tinymce-react').then((mod) => mod.Editor), { ssr: false });
 
@@ -33,6 +34,8 @@ export default function CustomPageEditor() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const editorRef = useRef(null);
+  const editorCallbackRef = useRef(null);
+  const [showMediaSelector, setShowMediaSelector] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -228,6 +231,7 @@ export default function CustomPageEditor() {
               <label className="text-sm font-medium">Content</label>
               <div className="mt-1">
                 <Editor
+                  apiKey={process.env.NEXT_PUBLIC_TINYMCE_API_KEY}
                   onInit={(_, editor) => {
                     editorRef.current = editor;
                   }}
@@ -235,10 +239,64 @@ export default function CustomPageEditor() {
                   onEditorChange={(v) => setContent(v)}
                   init={{
                     height: 520,
-                    menubar: false,
-                    plugins: 'link lists table code',
+                    menubar: true,
+                    branding: false,
+                    promotion: false,
+                    skin: isDark ? 'oxide-dark' : 'oxide',
+                    content_css: isDark ? 'dark' : 'default',
+                    extended_valid_elements: 'script[src|type|async|defer]',
+                    valid_children: '+body[script],+head[script]',
+                    verify_html: false,
+                    plugins: 'link image media table lists code wordcount',
                     toolbar:
-                      'undo redo | blocks | bold italic underline | alignleft aligncenter alignright | bullist numlist | link table | removeformat | code',
+                      'blocks fontsize | bold italic | image media table link | alignleft aligncenter alignright | bullist numlist | writingcheck',
+                    browser_spellcheck: true,
+                    file_picker_callback: function (callback, value, meta) {
+                      if (meta.filetype === 'image') {
+                        if (window.tinymce && window.tinymce.activeEditor) {
+                          editorCallbackRef.current = { editor: window.tinymce.activeEditor };
+                        } else {
+                          editorCallbackRef.current = callback;
+                        }
+                        setShowMediaSelector(true);
+                      }
+                    },
+                    setup: (editor) => {
+                      editor.ui.registry.addButton('writingcheck', {
+                        text: 'Check',
+                        onAction: async () => {
+                          try {
+                            const text = editor.getContent({ format: 'text' }) || '';
+                            const endpoint = process.env.NEXT_PUBLIC_LANGUAGETOOL_URL || 'https://api.languagetool.org/v2/check';
+                            const body = new URLSearchParams({ text, language: 'en-US' });
+                            const res = await fetch(endpoint, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                              body: body.toString(),
+                            });
+                            if (!res.ok) {
+                              editor.windowManager.alert('Writing check failed.');
+                              return;
+                            }
+                            const data = await res.json();
+                            const matches = Array.isArray(data?.matches) ? data.matches : [];
+                            if (matches.length === 0) {
+                              editor.windowManager.alert('No issues found.');
+                              return;
+                            }
+                            const lines = matches.slice(0, 10).map((m) => {
+                              const msg = String(m?.message || 'Issue');
+                              const repl = Array.isArray(m?.replacements) && m.replacements.length > 0 ? ` → ${m.replacements[0].value}` : '';
+                              return `- ${msg}${repl}`;
+                            });
+                            const more = matches.length > 10 ? `\n(+${matches.length - 10} more)` : '';
+                            editor.windowManager.alert(`${matches.length} issue(s) found:\n${lines.join('\n')}${more}`);
+                          } catch {
+                            editor.windowManager.alert('Writing check failed.');
+                          }
+                        },
+                      });
+                    },
                   }}
                 />
               </div>
@@ -274,10 +332,37 @@ export default function CustomPageEditor() {
                 placeholder='{"@context":"https://schema.org","@type":"WebPage"}'
               />
             </div>
+
+            {showMediaSelector ? (
+              <MediaImagesSelector
+                onSelect={(image) => {
+                  if (editorCallbackRef.current && editorCallbackRef.current.editor) {
+                    const captionHtml = image.caption
+                      ? `<figcaption class="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-sm">${image.caption}</figcaption>`
+                      : '';
+                    const imgContent = `<figure class="relative rounded-lg overflow-hidden mb-6 block w-full">
+                        <img src="${image.url}" alt="${image.altText || ''}" title="${image.title || ''}" class="w-full h-auto object-cover" />
+                        ${captionHtml}
+                    </figure><p></p>`;
+                    editorCallbackRef.current.editor.insertContent(imgContent);
+                    editorCallbackRef.current = null;
+                  } else if (typeof editorCallbackRef.current === 'function') {
+                    editorCallbackRef.current(image.url, { alt: image.altText, title: image.title });
+                    editorCallbackRef.current = null;
+                  } else if (editorRef.current) {
+                    editorRef.current.insertContent(`<p><img src="${image.url}" alt="${image.altText || ''}" /></p>`);
+                  }
+                  setShowMediaSelector(false);
+                }}
+                onClose={() => {
+                  setShowMediaSelector(false);
+                  editorCallbackRef.current = null;
+                }}
+              />
+            ) : null}
           </div>
         </div>
       </div>
     </div>
   );
 }
-
