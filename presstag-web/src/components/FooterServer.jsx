@@ -72,7 +72,7 @@ const SocialIcon = ({ platform }) => {
 
 async function getLatestStories(limit = 10) {
   try {
-    const res = await fetchWithTenant(`/posts?status=published&limit=${limit}&lite=1`, { next: { revalidate: 60 } });
+    const res = await fetchWithTenant(`/posts?status=published&excludeType=custompage&limit=${limit}&lite=1`, { next: { revalidate: 60 } });
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data) ? data : (data.posts || []);

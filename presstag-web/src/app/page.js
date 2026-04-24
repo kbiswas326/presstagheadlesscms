@@ -17,7 +17,7 @@ async function getLayoutConfig() {
 
 async function getPosts(params = {}) {
   const { type = 'latest', value, limit = 10, excludeKeys = [], sort } = params;
-  let path = `/posts?status=published&limit=${limit}&lite=1`;
+  let path = `/posts?status=published&excludeType=custompage&limit=${limit}&lite=1`;
   const normalizedValue = value != null ? String(value).trim() : '';
   const cleanedValue = normalizedValue.replace(/^#/, '').trim();
   const normalizedSlug = cleanedValue.toLowerCase();

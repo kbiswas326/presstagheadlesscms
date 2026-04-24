@@ -85,7 +85,7 @@ const usePostStore = create((set, get) => ({
     try {
       const targetUrl = (typeof url === 'string' && url)
         ? (url.startsWith('http') ? url : `${API_BASE}${url.startsWith('/') ? url : `/${url}`}`)
-        : `${API_BASE}/posts?status=published&limit=20&page=1`;
+        : `${API_BASE}/posts?status=published&excludeType=custompage&limit=20&page=1`;
       console.log('[PostStore] Fetching posts from:', targetUrl);
       const response = await fetch(targetUrl, { cache: 'no-store', headers: withHeaders() });
       if (!response.ok) throw new Error("Failed to fetch posts");
@@ -121,7 +121,7 @@ const usePostStore = create((set, get) => ({
   fetchLatestStory: async (url) => {
     const targetUrl = (typeof url === 'string' && url)
       ? (url.startsWith('http') ? url : `${API_BASE}${url.startsWith('/') ? url : `/${url}`}`)
-      : `${API_BASE}/posts?limit=10&status=published`;
+      : `${API_BASE}/posts?limit=10&status=published&excludeType=custompage`;
     console.log('[PostStore] Fetching latest stories from:', targetUrl);
     set({ loading: true, error: null });
     try {

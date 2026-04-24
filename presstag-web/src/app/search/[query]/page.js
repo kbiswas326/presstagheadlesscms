@@ -17,7 +17,7 @@ async function searchPosts(query, page = 1) {
   const limit = 20;
   try {
     const res = await fetchWithTenant(
-      `/posts?status=published&search=${encodeURIComponent(String(query || ''))}&page=${page}&limit=${limit}&lite=1`,
+      `/posts?status=published&excludeType=custompage&search=${encodeURIComponent(String(query || ''))}&page=${page}&limit=${limit}&lite=1`,
       { next: { revalidate: 60 } }
     );
     if (!res.ok) return { posts: [], totalPages: 1, total: 0 };

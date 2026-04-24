@@ -212,7 +212,7 @@ export default async function PostPage({ params }) {
     if (!primaryCategorySlug) return [];
     try {
       const res = await fetchWithTenant(
-        `/posts?status=published&category=${encodeURIComponent(String(primaryCategorySlug))}&limit=12&lite=1`,
+        `/posts?status=published&excludeType=custompage&category=${encodeURIComponent(String(primaryCategorySlug))}&limit=12&lite=1`,
         { next: { revalidate: 60 } }
       );
       if (!res.ok) return [];

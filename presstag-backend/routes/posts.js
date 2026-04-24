@@ -393,7 +393,7 @@ router.get('/', async (req, res) => {
   try {
     const { 
       status, type, author, category, tag, 
-      page = 1, limit = 20, sort, search, previousSlug, lite
+      page = 1, limit = 20, sort, search, previousSlug, lite, excludeType
     } = req.query;
 
     const db = getDB(req.tenantId);
@@ -414,9 +414,28 @@ router.get('/', async (req, res) => {
         'photo-gallery': ['photo-gallery', 'photo gallery', 'Photo Gallery', 'photoGallery', 'photo_gallery'],
         'web-story': ['web-story', 'web story', 'Web Story', 'webStory', 'WebStory', 'story', 'Story'],
         'live-blog': ['live-blog', 'live blog', 'Live Blog', 'LiveBlog', 'liveblog'],
+        custompage: ['custompage', 'custom-page', 'custom page', 'CustomPage', 'Custom Page', 'customPage'],
       };
       const variants = typeVariantsByCanonical[normalizedType];
       query.type = variants ? { $in: variants } : rawType;
+    }
+    if (excludeType && excludeType !== 'All') {
+      const rawExclude = String(excludeType || '');
+      const normalizedExclude = rawExclude.toLowerCase().trim();
+      const typeVariantsByCanonical = {
+        article: ['article', 'Article'],
+        video: ['video', 'Video'],
+        'photo-gallery': ['photo-gallery', 'photo gallery', 'Photo Gallery', 'photoGallery', 'photo_gallery'],
+        'web-story': ['web-story', 'web story', 'Web Story', 'webStory', 'WebStory', 'story', 'Story'],
+        'live-blog': ['live-blog', 'live blog', 'Live Blog', 'LiveBlog', 'liveblog'],
+        custompage: ['custompage', 'custom-page', 'custom page', 'CustomPage', 'Custom Page', 'customPage'],
+      };
+      const variants = typeVariantsByCanonical[normalizedExclude] || [rawExclude];
+      if (query.type) {
+        and.push({ type: { $nin: variants } });
+      } else {
+        query.type = { $nin: variants };
+      }
     }
     if (search) query.title = { $regex: search, $options: 'i' };
     if (previousSlug && typeof previousSlug === 'string' && previousSlug.trim()) {

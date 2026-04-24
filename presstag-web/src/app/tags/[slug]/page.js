@@ -36,7 +36,7 @@ async function getTagPosts(slug, page = 1) {
     const tag = await getTag(decoded);
     const tagKey = tag?._id ? String(tag._id) : decoded;
     const res = await fetchWithTenant(
-      `/posts?status=published&tag=${encodeURIComponent(tagKey)}&page=${page}&limit=${limit}&lite=1`,
+        `/posts?status=published&excludeType=custompage&tag=${encodeURIComponent(tagKey)}&page=${page}&limit=${limit}&lite=1`,
       { cache: 'no-store' }
     );
     if (!res.ok) {

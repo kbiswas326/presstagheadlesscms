@@ -17,6 +17,7 @@ async function getArchivePosts({ page = 1, limit = 24, sort, type, category, tag
   try {
     const params = new URLSearchParams();
     params.set('status', 'published');
+    params.set('excludeType', 'custompage');
     params.set('page', String(page));
     params.set('limit', String(limit));
     params.set('lite', '1');

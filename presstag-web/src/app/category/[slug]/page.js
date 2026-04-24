@@ -30,7 +30,7 @@ async function getCategoryPosts(slug, page = 1) {
 
   try {
     const res = await fetchWithTenant(
-      `/posts?category=${encodeURIComponent(String(slug))}&page=${page}&limit=${limit}&lite=1`,
+      `/posts?status=published&excludeType=custompage&category=${encodeURIComponent(String(slug))}&page=${page}&limit=${limit}&lite=1`,
       { next: { revalidate: 120 } }
     );
 

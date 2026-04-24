@@ -69,10 +69,33 @@ async function loadRedirects(tenantId) {
   }
 }
 
+function shouldSkipLowercase(pathname) {
+  if (!pathname) return true;
+  if (pathname.startsWith('/_next')) return true;
+  if (pathname.startsWith('/api')) return true;
+  if (pathname.startsWith('/admin')) return true;
+  if (pathname.startsWith('/uploads')) return true;
+  if (pathname.startsWith('/assets')) return true;
+  if (pathname === '/favicon.ico') return true;
+  if (pathname === '/robots.txt') return true;
+  if (pathname === '/sitemap.xml') return true;
+  if (pathname === '/ads.txt') return true;
+  return false;
+}
+
 export async function middleware(request) {
   const tenantId = process.env.NEXT_PUBLIC_TENANT_ID || 'sportzpoint';
 
   const pathname = request.nextUrl.pathname;
+  if (!shouldSkipLowercase(pathname) && /[A-Z]/.test(pathname)) {
+    const lower = pathname.toLowerCase();
+    if (lower !== pathname) {
+      const target = request.nextUrl.clone();
+      target.pathname = lower;
+      return NextResponse.redirect(target, { status: 301 });
+    }
+  }
+
   const rules = await loadRedirects(tenantId);
   const match = rules.find((r) => r.from === pathname || (r.from.endsWith('/') && r.from.slice(0, -1) === pathname));
   if (match) {

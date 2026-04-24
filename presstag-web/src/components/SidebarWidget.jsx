@@ -70,7 +70,7 @@ const TrendingWidget = ({ widget, currentPostId, excludePostKeys, urlStructure, 
 
         if (isHomeSidebar) {
           const recentRes = await fetchWithTenant(
-            `/posts?status=published&limit=${desiredCount * 10}`,
+            `/posts?status=published&excludeType=custompage&limit=${desiredCount * 10}`,
             { cache: 'no-store' }
           );
           if (recentRes.ok) {
@@ -85,7 +85,7 @@ const TrendingWidget = ({ widget, currentPostId, excludePostKeys, urlStructure, 
         }
 
         const res = await fetchWithTenant(
-          `/posts?sort=trending&status=published&limit=${desiredCount * 3}`,
+          `/posts?sort=trending&status=published&excludeType=custompage&limit=${desiredCount * 3}`,
           { cache: 'no-store' }
         );
         if (res.ok) {
@@ -99,7 +99,7 @@ const TrendingWidget = ({ widget, currentPostId, excludePostKeys, urlStructure, 
         }
 
         const fallbackRes = await fetchWithTenant(
-          `/posts?status=published&limit=${desiredCount * 10}`,
+          `/posts?status=published&excludeType=custompage&limit=${desiredCount * 10}`,
           { cache: 'no-store' }
         );
         if (fallbackRes.ok) {
@@ -244,7 +244,7 @@ const RelatedPostsWidget = ({ widget, categorySlug, currentPostId, urlStructure,
       try {
         const { fetchWithTenant } = await import('../lib/fetchWithTenant');
         const res = await fetchWithTenant(
-          `/posts?status=published&category=${encodeURIComponent(String(categorySlug))}&limit=${widget.limit || 5}&lite=1`,
+          `/posts?status=published&excludeType=custompage&category=${encodeURIComponent(String(categorySlug))}&limit=${widget.limit || 5}&lite=1`,
           { next: { revalidate: 60 } }
         );
         if (res.ok) {
@@ -313,7 +313,7 @@ const AuthorPostsWidget = ({ widget, authorId, currentPostId, urlStructure, fall
       try {
         const { fetchWithTenant } = await import('../lib/fetchWithTenant');
         const res = await fetchWithTenant(
-          `/posts?status=published&author=${encodeURIComponent(String(authorId))}&limit=${widget.limit || 5}&lite=1`,
+          `/posts?status=published&excludeType=custompage&author=${encodeURIComponent(String(authorId))}&limit=${widget.limit || 5}&lite=1`,
           { next: { revalidate: 60 } }
         );
         if (res.ok) {
