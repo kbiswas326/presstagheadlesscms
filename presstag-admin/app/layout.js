@@ -56,6 +56,11 @@ export async function generateMetadata() {
       template: `%s - ${suffix}`,
     },
     description: "CMS Dashboard Layout",
+    icons: {
+      icon: [{ url: "/icon.png", type: "image/png" }],
+      shortcut: [{ url: "/icon.png", type: "image/png" }],
+      apple: [{ url: "/icon.png", type: "image/png" }],
+    },
   };
 }
 
