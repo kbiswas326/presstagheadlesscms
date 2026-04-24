@@ -1,4 +1,5 @@
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
+import { buildPageUrl, buildPageUrlByStructure, buildPostUrl, buildPostUrlByStructure } from '@/lib/urlBuilder';
 
 const xmlEscape = (value) =>
   String(value || '')
@@ -32,6 +33,9 @@ export async function GET() {
 
   const baseUrl = resolveBaseUrl(config);
   const posts = Array.isArray(latest?.posts) ? latest.posts : [];
+  const preservePostUrls = Boolean(config?.seo?.preservePostUrls);
+  const postUrlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
+  const pageUrlStructure = config?.seo?.pageUrlStructure || '/{slug}';
 
   const urls = new Map();
   urls.set(`${baseUrl}/`, { loc: `${baseUrl}/`, changefreq: 'hourly', priority: '1.0' });
@@ -39,12 +43,21 @@ export async function GET() {
   for (const post of posts) {
     const slug = post?.slug || post?._id;
     if (!slug) continue;
-    urls.set(`${baseUrl}/posts/${encodeURIComponent(String(slug))}`, {
-      loc: `${baseUrl}/posts/${encodeURIComponent(String(slug))}`,
-      lastmod: post?.updatedAt || post?.publishedAt || post?.createdAt || null,
-      changefreq: 'daily',
-      priority: '0.8',
-    });
+
+    const cleanType = String(post?.type || '').toLowerCase().trim();
+    const isCustomPage = cleanType === 'custompage' || cleanType === 'custom-page' || cleanType === 'custom page';
+    const path = isCustomPage
+      ? (preservePostUrls ? buildPageUrl(post, pageUrlStructure) : buildPageUrlByStructure(post, pageUrlStructure))
+      : (preservePostUrls ? buildPostUrl(post, postUrlStructure) : buildPostUrlByStructure(post, postUrlStructure));
+
+    if (path) {
+      urls.set(`${baseUrl}${path}`, {
+        loc: `${baseUrl}${path}`,
+        lastmod: post?.updatedAt || post?.publishedAt || post?.createdAt || null,
+        changefreq: 'daily',
+        priority: isCustomPage ? '0.6' : '0.8',
+      });
+    }
 
     const categories = Array.isArray(post?.categories) ? post.categories : [];
     const firstCat = categories[0];

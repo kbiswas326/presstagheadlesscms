@@ -26,6 +26,11 @@ export function getEditPath(post) {
     case 'story':
       return `/posts/web-story/edit/${id}`;
     
+    case 'custompage':
+    case 'custom-page':
+    case 'custom page':
+      return `/posts/custom-page/edit/${id}`;
+    
     case 'live-blog':
     case 'live blog':
     case 'liveblog':

@@ -17,7 +17,7 @@ import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
 import SidebarDeferredClient from '../../components/SidebarDeferredClient';
 import { formatPublishDateTime } from '../../util/timeFormat';
 import { resolveTemplateId } from '@/lib/templates';
-import { buildPostUrl } from '@/lib/urlBuilder';
+import { buildPageUrl, buildPageUrlByStructure, buildPostUrl, buildPostUrlByStructure, extractSlugFromUrl } from '@/lib/urlBuilder';
 
 export const revalidate = 60;
 
@@ -140,16 +140,61 @@ export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const slugParts = resolvedParams.slug;
   const lastSegment = slugParts[slugParts.length - 1];
-  const [post, config] = await Promise.all([
-    getPostBySlug(lastSegment),
-    fetchWithTenant('/layout-config', { next: { revalidate: 60 } }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-  ]);
+  const config = await fetchWithTenant('/layout-config', { next: { revalidate: 60 } })
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null);
 
+  const preservePostUrls = Boolean(config?.seo?.preservePostUrls);
+  const pageUrlStructure = config?.seo?.pageUrlStructure || '/{slug}';
+  const pageSlug = extractSlugFromUrl(slugParts, pageUrlStructure);
+  if (pageSlug) {
+    const maybePage = await getPostBySlug(pageSlug);
+    const type = String(maybePage?.type || '').toLowerCase().trim();
+    const isCustomPage = type === 'custompage' || type === 'custom-page' || type === 'custom page';
+    if (isCustomPage && maybePage) {
+      const siteTitle = config?.branding?.siteTitle || 'PressTag';
+      const canonicalPath = preservePostUrls
+        ? (buildPageUrl(maybePage, pageUrlStructure) || `/${encodeURIComponent(String(pageSlug))}`)
+        : (buildPageUrlByStructure(maybePage, pageUrlStructure) || `/${encodeURIComponent(String(pageSlug))}`);
+      const ogImage = resolveSiteAssetUrl(
+        maybePage?.seo?.ogImage ||
+        config?.seo?.defaultOgImage ||
+        config?.branding?.fallbackImage ||
+        config?.branding?.logo ||
+        '/favicon.ico'
+      );
+
+      return {
+        title: maybePage.seo?.metaTitle || maybePage.title || siteTitle,
+        description: maybePage.seo?.metaDescription || maybePage.summary || '',
+        alternates: {
+          canonical: canonicalPath,
+        },
+        openGraph: {
+          title: maybePage.seo?.metaTitle || maybePage.title,
+          description: maybePage.seo?.metaDescription || maybePage.summary,
+          siteName: siteTitle,
+          images: buildOpenGraphImage(ogImage),
+          type: 'website',
+        },
+        twitter: {
+          card: 'summary_large_image',
+          title: maybePage.seo?.metaTitle || maybePage.title,
+          description: maybePage.seo?.metaDescription || maybePage.summary,
+          images: ogImage ? [ogImage] : undefined,
+        }
+      };
+    }
+  }
+
+  const post = await getPostBySlug(lastSegment);
   if (!post) return { title: 'Post Not Found' };
 
   const siteTitle = config?.branding?.siteTitle || 'PressTag';
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
-  const canonicalPath = buildPostUrl(post, urlStructure) || `/posts/${encodeURIComponent(String(post.slug || post._id))}`;
+  const canonicalPath = preservePostUrls
+    ? (buildPostUrl(post, urlStructure) || `/posts/${encodeURIComponent(String(post.slug || post._id))}`)
+    : (buildPostUrlByStructure(post, urlStructure) || `/posts/${encodeURIComponent(String(post.slug || post._id))}`);
   const ogImage = resolveSiteAssetUrl(
     post?.seo?.ogImage ||
     post?.featuredImage?.url ||
@@ -191,6 +236,43 @@ export default async function CatchAllPostPage({ params }) {
   // Don't handle web-story URLs — they have their own route
   if (slugParts[0] === 'web-stories') notFound();
 
+  const layoutConfig = await fetchWithTenant('/layout-config', { next: { revalidate: 60 } })
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null);
+
+  const preservePostUrls = Boolean(layoutConfig?.seo?.preservePostUrls);
+  const pageUrlStructure = layoutConfig?.seo?.pageUrlStructure || '/{slug}';
+  const pageSlug = extractSlugFromUrl(slugParts, pageUrlStructure);
+  if (pageSlug) {
+    const maybePage = await getPostBySlug(pageSlug);
+    const type = String(maybePage?.type || '').toLowerCase().trim();
+    const isCustomPage = type === 'custompage' || type === 'custom-page' || type === 'custom page';
+    if (isCustomPage && maybePage) {
+      const canonicalPath = preservePostUrls
+        ? buildPageUrl(maybePage, pageUrlStructure)
+        : buildPageUrlByStructure(maybePage, pageUrlStructure);
+      const currentPath = `/${slugParts.join('/')}`;
+      if (canonicalPath && normalizePath(canonicalPath) !== normalizePath(currentPath)) {
+        permanentRedirect(canonicalPath);
+      }
+
+      return (
+        <div className="min-h-screen bg-gray-50">
+          <div className="max-w-4xl mx-auto px-4 py-10">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-10">
+              <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900">
+                {maybePage.title}
+              </h1>
+              <div className="mt-6">
+                <ArticleContent content={maybePage.content} />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
   const lastSegment = slugParts[slugParts.length - 1];
   let post = await getPostBySlug(lastSegment);
 
@@ -198,9 +280,8 @@ if (!post) {
   // Check if this was an old slug that changed — 301 redirect to new URL
   const oldPost = await getPostByPreviousSlug(lastSegment);
   if (oldPost) {
-    const config = await fetchWithTenant('/layout-config', { next: { revalidate: 60 } }).then(r => r.json()).catch(() => null);
-    const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
-    const canonicalPath = buildPostUrl(oldPost, urlStructure);
+    const urlStructure = layoutConfig?.seo?.postUrlStructure || '/{category}/{slug}';
+    const canonicalPath = preservePostUrls ? buildPostUrl(oldPost, urlStructure) : buildPostUrlByStructure(oldPost, urlStructure);
     if (canonicalPath) redirect(canonicalPath);
   }
   notFound();
@@ -209,14 +290,11 @@ if (!post) {
   if (post) post.gallery = post.gallery || post.images;
   post = await ensureCategories(post);
   post = await ensurePeople(post);
-  const layoutConfig = await fetchWithTenant('/layout-config', { next: { revalidate: 60 } })
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null);
   const templateId = resolveTemplateId(layoutConfig?.branding?.templateId);
   const primaryColor = layoutConfig?.branding?.primaryColor || '#006356';
   const tagPrefix = String(layoutConfig?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
   const urlStructure = layoutConfig?.seo?.postUrlStructure || '/{category}/{slug}';
-  const canonicalPath = buildPostUrl(post, urlStructure);
+  const canonicalPath = preservePostUrls ? buildPostUrl(post, urlStructure) : buildPostUrlByStructure(post, urlStructure);
   const currentPath = `/${slugParts.join('/')}`;
   if (canonicalPath && normalizePath(canonicalPath) !== normalizePath(currentPath)) {
     permanentRedirect(canonicalPath);

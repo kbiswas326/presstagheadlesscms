@@ -16,7 +16,7 @@ import SocialShareButtons from '../../../components/SocialShareButtons';
 import ResponsivePostGrid from '../../../components/ResponsivePostGrid';
 import { getImageUrl, resolvePostImage } from '@/lib/imageHelper';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
-import { buildPostUrl } from '@/lib/urlBuilder';
+import { buildPageUrl, buildPageUrlByStructure, buildPostUrl, buildPostUrlByStructure } from '@/lib/urlBuilder';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 import SidebarDeferredClient from '../../../components/SidebarDeferredClient';
 import { formatPublishDateTime } from '../../../util/timeFormat';
@@ -63,7 +63,14 @@ export async function generateMetadata({ params }) {
 
   const siteTitle = config?.branding?.siteTitle || 'PressTag';
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
-  const canonicalPath = buildPostUrl(post, urlStructure) || `/posts/${encodeURIComponent(String(post.slug || post._id))}`;
+  const pageUrlStructure = config?.seo?.pageUrlStructure || '/{slug}';
+  const preservePostUrls = Boolean(config?.seo?.preservePostUrls);
+  const cleanType = String(post?.type || '').toLowerCase().trim();
+  const isCustomPage = cleanType === 'custompage' || cleanType === 'custom-page' || cleanType === 'custom page';
+  const canonicalPath = isCustomPage
+    ? (preservePostUrls ? buildPageUrl(post, pageUrlStructure) : buildPageUrlByStructure(post, pageUrlStructure))
+    : (preservePostUrls ? buildPostUrl(post, urlStructure) : buildPostUrlByStructure(post, urlStructure))
+        || `/posts/${encodeURIComponent(String(post.slug || post._id))}`;
   const ogImage = resolveSiteAssetUrl(
     post?.seo?.ogImage ||
     post?.featuredImage?.url ||
@@ -111,6 +118,8 @@ export default async function PostPage({ params }) {
   const tagPrefix = String(layoutConfig?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
   const primaryColor = layoutConfig?.branding?.primaryColor || '#006356';
   const urlStructure = layoutConfig?.seo?.postUrlStructure || '/{category}/{slug}';
+  const pageUrlStructure = layoutConfig?.seo?.pageUrlStructure || '/{slug}';
+  const preservePostUrls = Boolean(layoutConfig?.seo?.preservePostUrls);
 
   if ((!post.categories || post.categories.length === 0) && (Array.isArray(post.primary_category) ? post.primary_category.length > 0 : !!post.primary_category)) {
     const ids = Array.isArray(post.primary_category) ? post.primary_category : [post.primary_category];
@@ -120,7 +129,11 @@ export default async function PostPage({ params }) {
     if (resolved.length > 0) post = { ...post, categories: resolved };
   }
 
-  const canonicalPath = buildPostUrl(post, urlStructure);
+  const resolvedType = String(post?.type || '').toLowerCase().trim();
+  const isCustomPage = resolvedType === 'custompage' || resolvedType === 'custom-page' || resolvedType === 'custom page';
+  const canonicalPath = isCustomPage
+    ? (preservePostUrls ? buildPageUrl(post, pageUrlStructure) : buildPageUrlByStructure(post, pageUrlStructure))
+    : (preservePostUrls ? buildPostUrl(post, urlStructure) : buildPostUrlByStructure(post, urlStructure));
   const currentPath = `/posts/${encodeURIComponent(String(resolvedParams.id || ''))}`;
   if (canonicalPath && normalizePath(canonicalPath) !== normalizePath(currentPath)) {
     permanentRedirect(canonicalPath);
