@@ -53,6 +53,7 @@ export default function Sidebar() {
         { label: "LIVE", href: "/posts/live-blog", icon: Zap },
         { label: "Pending Approval", href: "/posts/pending-approval", icon: Clock },
         { label: "Drafts", href: "/posts/drafts", icon: Edit },
+        { label: "Custom Pages", href: "/posts/custom-page", icon: FileText },
       ],
     },
     {
