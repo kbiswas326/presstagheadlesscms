@@ -25,7 +25,7 @@ export default function EmbedScripts() {
     <>
       <Script
         src="https://platform.twitter.com/widgets.js"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         async
         charSet="utf-8"
         onLoad={() => {
@@ -36,7 +36,7 @@ export default function EmbedScripts() {
       />
       <Script
         src="https://www.instagram.com/embed.js"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         async
         onLoad={() => {
           try {
