@@ -1,12 +1,15 @@
 /// components/Sidebar.jsx | This component renders the sidebar navigation for the PressTag admin dashboard. It includes links to different sections of the admin panel, a theme toggle button, and a user profile section. The sidebar supports collapsing and expanding, as well as highlighting the active page.///
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import NextImage from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { useTheme } from "../app/context/ThemeContext";
 import { useUser } from "../app/context/UserContext";
+import { getTenantId } from "../lib/api";
+import { getImageUrl } from "../lib/imageHelper";
 import { normalizeRole, canAccessSettings } from "../utils/permissions";
 
 const {
@@ -38,6 +41,7 @@ export default function Sidebar() {
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useUser();
   const role = normalizeRole(user?.role);
+  const [tenantBranding, setTenantBranding] = useState({ siteTitle: "", logo: "" });
 
   const toggleSubmenu = (key) => {
     setOpenMenus((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -138,6 +142,43 @@ export default function Sidebar() {
         toggleIcon: "text-gray-600",
       };
 
+  useEffect(() => {
+    const BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/api$/, "");
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const tenantId = getTenantId();
+    if (!token) {
+      setTenantBranding({ siteTitle: "", logo: "" });
+      return;
+    }
+
+    let cancelled = false;
+    fetch(`${BASE}/api/layout-config`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "x-tenant-id": tenantId,
+      },
+      cache: "no-store",
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((cfg) => {
+        if (cancelled) return;
+        const siteTitle = String(cfg?.branding?.siteTitle || "").trim();
+        const logo = String(cfg?.branding?.logo || "").trim();
+        setTenantBranding({ siteTitle, logo });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setTenantBranding({ siteTitle: "", logo: "" });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const displaySiteTitle = tenantBranding.siteTitle || "Dashboard";
+  const logoSrc = tenantBranding.logo ? getImageUrl(tenantBranding.logo) : "";
+
   return (
     <aside
       className={`${theme.bg} ${theme.text} h-full flex flex-col transition-all duration-300 ease-in-out border-r ${theme.border} ${
@@ -151,9 +192,13 @@ export default function Sidebar() {
             <div
               className={`w-7 h-7 bg-gradient-to-br ${theme.gradientFrom} ${theme.gradientTo} rounded-lg flex items-center justify-center`}
             >
-              <span className="text-white text-sm font-bold">P</span>
+              {logoSrc ? (
+                <NextImage src={logoSrc} alt={displaySiteTitle} width={20} height={20} className="object-contain" />
+              ) : (
+                <span className="text-white text-sm font-bold">{String(displaySiteTitle).slice(0, 1).toUpperCase()}</span>
+              )}
             </div>
-            <span className={`text-sm font-semibold ${theme.headerText}`}>PressTag</span>
+            <span className={`text-sm font-semibold ${theme.headerText}`}>{displaySiteTitle}</span>
           </div>
         )}
 

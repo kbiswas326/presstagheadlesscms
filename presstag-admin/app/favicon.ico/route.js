@@ -9,7 +9,7 @@ export async function GET(request) {
     status: 200,
     headers: {
       "Content-Type": "image/png",
-      "Cache-Control": "public, max-age=3600",
+      "Cache-Control": "no-store, max-age=0",
     },
   });
 }

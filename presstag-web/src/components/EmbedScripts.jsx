@@ -28,11 +28,21 @@ export default function EmbedScripts() {
         strategy="lazyOnload"
         async
         charSet="utf-8"
+        onLoad={() => {
+          try {
+            if (window.twttr?.widgets?.load) window.twttr.widgets.load();
+          } catch {}
+        }}
       />
       <Script
         src="https://www.instagram.com/embed.js"
         strategy="lazyOnload"
         async
+        onLoad={() => {
+          try {
+            if (window.instgrm?.Embeds?.process) window.instgrm.Embeds.process();
+          } catch {}
+        }}
       />
     </>
   );

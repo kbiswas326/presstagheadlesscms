@@ -57,9 +57,9 @@ export async function generateMetadata() {
     },
     description: "CMS Dashboard Layout",
     icons: {
-      icon: [{ url: "/icon.png", type: "image/png" }],
-      shortcut: [{ url: "/icon.png", type: "image/png" }],
-      apple: [{ url: "/icon.png", type: "image/png" }],
+      icon: [{ url: "/favicon.ico?v=presstag", type: "image/png" }],
+      shortcut: [{ url: "/favicon.ico?v=presstag", type: "image/png" }],
+      apple: [{ url: "/favicon.ico?v=presstag", type: "image/png" }],
     },
   };
 }
@@ -68,9 +68,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/icon.png" type="image/png" />
-        <link rel="shortcut icon" href="/icon.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/icon.png" />
+        <link rel="icon" href="/favicon.ico?v=presstag" type="image/png" sizes="32x32" />
+        <link rel="icon" href="/favicon.ico?v=presstag" type="image/png" sizes="16x16" />
+        <link rel="shortcut icon" href="/favicon.ico?v=presstag" type="image/png" />
+        <link rel="apple-touch-icon" href="/favicon.ico?v=presstag" />
       </head>
       <body className="bg-gray-100 dark:bg-gray-900 h-screen overflow-hidden flex transition-colors duration-300">
         <ThemeProvider>

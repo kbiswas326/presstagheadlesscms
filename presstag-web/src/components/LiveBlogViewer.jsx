@@ -377,7 +377,10 @@ const LiveBlogViewer = ({ post }) => {
                                 )}
 
                                 {/* 2. Live Updates Section */}
-                                <div className={`pt-8 mt-8 ${isLive ? 'border-t-2 border-green-600' : 'border-t-4 border-gray-900'}`}>
+                                <div
+                                    className={`pt-8 mt-8 ${isLive ? 'border-t-2' : 'border-t-4 border-gray-900'}`}
+                                    style={isLive ? { borderTopColor: 'var(--primary-color)' } : undefined}
+                                >
                                     <AdSpot position="article_top" />
                                     {/* Live Header */}
                                     <div className="flex items-center justify-between mb-8">
@@ -415,11 +418,14 @@ const LiveBlogViewer = ({ post }) => {
                                             return (
                                                 <React.Fragment key={idx}>
                                                     {idx === 3 && <AdSpot position="article_middle" />}
-                                                    <div className={`relative bg-white rounded-lg shadow-sm border-l-4 p-6 hover:shadow-md transition-shadow ${update.pinned ? 'border-blue-600 bg-blue-50/30' : 'border-teal-700'}`}>
+                                                    <div
+                                                        className={`relative bg-white rounded-lg shadow-sm border-l-4 p-6 hover:shadow-md transition-shadow ${update.pinned ? 'bg-gray-50/60' : ''}`}
+                                                        style={{ borderLeftColor: 'var(--primary-color)' }}
+                                                    >
                                                         
                                                         {/* Pinned Badge */}
                                                         {update.pinned && (
-                                                            <div className="absolute top-4 right-4 text-blue-600">
+                                                            <div className="absolute top-4 right-4" style={{ color: 'var(--primary-color)' }}>
                                                                 <FaMapPin size={18} />
                                                             </div>
                                                         )}
@@ -427,7 +433,11 @@ const LiveBlogViewer = ({ post }) => {
                                                         {/* Timestamp */}
                                                         <div className="text-sm text-gray-500 italic mb-3 flex items-center gap-2" suppressHydrationWarning>
                                                             {dateTimeString}
-                                                            {update.pinned && <span className="text-xs font-bold text-blue-600 uppercase bg-blue-100 px-2 py-0.5 rounded">Pinned</span>}
+                                                            {update.pinned && (
+                                                                <span className="text-xs font-bold uppercase bg-gray-100 px-2 py-0.5 rounded" style={{ color: 'var(--primary-color)' }}>
+                                                                    Pinned
+                                                                </span>
+                                                            )}
                                                         </div>
 
                                                         {/* Update Title */}
@@ -439,7 +449,8 @@ const LiveBlogViewer = ({ post }) => {
 
                                                         {/* Update Body */}
                                                         <div 
-                                                            className={`prose max-w-none text-gray-700 leading-relaxed ${merriweather.className} prose-headings:text-gray-900 prose-green prose-a:text-green-600`}
+                                                            className={`prose max-w-none text-gray-700 leading-relaxed ${merriweather.className} prose-headings:text-gray-900`}
+                                                            style={{ '--tw-prose-links': 'var(--primary-color)' }}
                                                             dangerouslySetInnerHTML={{ __html: update.content?.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001') || '' }}
                                                         />
                                                     </div>
