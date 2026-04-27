@@ -39,7 +39,14 @@ export async function generateMetadata() {
     const explicit = String(process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || '').trim();
     const inferred = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '';
     const base = siteUrlFromConfig || explicit || inferred;
-    metadataBase = new URL(base || 'http://localhost:3000');
+    const normalizedBase = (() => {
+      const v = String(base || '').trim();
+      if (!v) return '';
+      if (v.startsWith('http://') || v.startsWith('https://')) return v;
+      if (v.startsWith('//')) return `https:${v}`;
+      return `https://${v}`;
+    })();
+    metadataBase = new URL(normalizedBase || 'http://localhost:3000');
   } catch {}
   
   const title = config?.seo?.homeMetaTitle || (siteTagline ? `${siteTitle} - ${siteTagline}` : siteTitle);

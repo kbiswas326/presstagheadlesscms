@@ -13,7 +13,9 @@ export function resolveSiteAssetUrl(value) {
   if (!raw) return '';
   if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
 
-  const path = raw.startsWith('/') ? raw : `/${raw}`;
+  let path = raw.startsWith('/') ? raw : `/${raw}`;
+  if (path.startsWith('/api/uploads/')) path = path.replace(/^\/api\/uploads\//, '/uploads/');
+  if (path === '/api/uploads') path = '/uploads';
   if (path.startsWith('/uploads')) {
     const base = String(process.env.NEXT_PUBLIC_API_URL || '').trim().replace(/\/+$/, '').replace(/\/api\/?$/, '');
     if (base) return `${base}${path}`;

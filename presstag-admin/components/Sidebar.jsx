@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import NextImage from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as LucideIcons from "lucide-react";
@@ -42,6 +41,7 @@ export default function Sidebar() {
   const { user, logout } = useUser();
   const role = normalizeRole(user?.role);
   const [tenantBranding, setTenantBranding] = useState({ siteTitle: "", logo: "" });
+  const [logoError, setLogoError] = useState(false);
 
   const toggleSubmenu = (key) => {
     setOpenMenus((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -100,6 +100,24 @@ export default function Sidebar() {
     const parts = name.trim().split(" ");
     if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const extractLogoValue = (value) => {
+    if (!value) return "";
+    if (typeof value === "string") return value.trim();
+    if (typeof value === "object") {
+      const v = value.url || value.src || value.fullUrl || value.path || "";
+      return typeof v === "string" ? v.trim() : "";
+    }
+    return "";
+  };
+
+  const normalizeUploadPath = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    return raw
+      .replace(/^\/api\/uploads\//, "/uploads/")
+      .replace(/^api\/uploads\//, "/uploads/");
   };
 
   const theme = isDark
@@ -163,7 +181,7 @@ export default function Sidebar() {
       .then((cfg) => {
         if (cancelled) return;
         const siteTitle = String(cfg?.branding?.siteTitle || "").trim();
-        const logo = String(cfg?.branding?.logo || "").trim();
+        const logo = extractLogoValue(cfg?.branding?.logo);
         setTenantBranding({ siteTitle, logo });
       })
       .catch(() => {
@@ -177,7 +195,11 @@ export default function Sidebar() {
   }, []);
 
   const displaySiteTitle = tenantBranding.siteTitle || "Dashboard";
-  const logoSrc = tenantBranding.logo ? getImageUrl(tenantBranding.logo) : "";
+  const logoSrc = tenantBranding.logo ? getImageUrl(normalizeUploadPath(tenantBranding.logo)) : "";
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [logoSrc]);
 
   return (
     <aside
@@ -190,10 +212,19 @@ export default function Sidebar() {
         {!collapsed && (
           <div className="flex items-center gap-2">
             <div
-              className={`w-7 h-7 bg-gradient-to-br ${theme.gradientFrom} ${theme.gradientTo} rounded-lg flex items-center justify-center`}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden ${
+                logoSrc && !logoError
+                  ? (isDark ? "bg-white/10" : "bg-white")
+                  : `bg-gradient-to-br ${theme.gradientFrom} ${theme.gradientTo}`
+              }`}
             >
-              {logoSrc ? (
-                <NextImage src={logoSrc} alt={displaySiteTitle} width={20} height={20} className="object-contain" />
+              {logoSrc && !logoError ? (
+                <img
+                  src={logoSrc}
+                  alt={displaySiteTitle}
+                  className="w-full h-full object-contain p-1"
+                  onError={() => setLogoError(true)}
+                />
               ) : (
                 <span className="text-white text-sm font-bold">{String(displaySiteTitle).slice(0, 1).toUpperCase()}</span>
               )}

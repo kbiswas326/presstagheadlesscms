@@ -82,6 +82,10 @@ const RichTextEditor = ({ content, htmlContentGrab }) => {
             'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
             'insertdatetime', 'media', 'table', 'help', 'wordcount', 'emoticons'
           ],
+          link_rel_list: [
+            { title: 'Do-follow', value: '' },
+            { title: 'No-follow', value: 'nofollow' },
+          ],
           toolbar: 'styles fontsize | bold italic | image media table link | alignleft aligncenter alignright | bullist numlist | writingcheck',
           browser_spellcheck: true,
           gecko_spellcheck: true,

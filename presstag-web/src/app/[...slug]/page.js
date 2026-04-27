@@ -167,23 +167,37 @@ export async function generateMetadata({ params }) {
         '/favicon.ico'
       );
 
+      const title = maybePage.seo?.metaTitle || maybePage.title || siteTitle;
+      const description =
+        maybePage?.seo?.metaDescription ||
+        maybePage?.summary ||
+        (() => {
+          const text = String(maybePage?.content || '')
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+          if (!text) return '';
+          return text.length > 200 ? `${text.slice(0, 197).trim()}...` : text;
+        })();
+
       return {
-        title: maybePage.seo?.metaTitle || maybePage.title || siteTitle,
-        description: maybePage.seo?.metaDescription || maybePage.summary || '',
+        title,
+        description,
         alternates: {
           canonical: canonicalPath,
         },
         openGraph: {
-          title: maybePage.seo?.metaTitle || maybePage.title,
-          description: maybePage.seo?.metaDescription || maybePage.summary,
+          title,
+          description,
           siteName: siteTitle,
+          url: canonicalPath,
           images: buildOpenGraphImage(ogImage),
           type: 'website',
         },
         twitter: {
           card: 'summary_large_image',
-          title: maybePage.seo?.metaTitle || maybePage.title,
-          description: maybePage.seo?.metaDescription || maybePage.summary,
+          title,
+          description,
           images: ogImage ? [ogImage] : undefined,
         }
       };
@@ -218,23 +232,37 @@ export async function generateMetadata({ params }) {
     '/favicon.ico'
   );
 
+  const title = post.seo?.metaTitle || post.title;
+  const description =
+    post?.seo?.metaDescription ||
+    post?.summary ||
+    (() => {
+      const text = String(post?.content || '')
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!text) return '';
+      return text.length > 200 ? `${text.slice(0, 197).trim()}...` : text;
+    })();
+
   return {
-    title: post.seo?.metaTitle || post.title,
-    description: post.seo?.metaDescription || post.summary,
+    title,
+    description,
     alternates: {
       canonical: canonicalPath,
     },
     openGraph: {
-      title: post.seo?.metaTitle || post.title,
-      description: post.seo?.metaDescription || post.summary,
+      title,
+      description,
       siteName: siteTitle,
+      url: canonicalPath,
       images: buildOpenGraphImage(ogImage),
       type: 'article',
     },
     twitter: {
       card: 'summary_large_image',
-      title: post.seo?.metaTitle || post.title,
-      description: post.seo?.metaDescription || post.summary,
+      title,
+      description,
       images: ogImage ? [ogImage] : undefined,
     }
   };
