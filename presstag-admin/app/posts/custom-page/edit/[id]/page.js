@@ -250,6 +250,11 @@ export default function CustomPageEditor() {
                     plugins: 'link image media table lists code wordcount',
                     toolbar:
                       'blocks fontsize | bold italic | image media table link | alignleft aligncenter alignright | bullist numlist | writingcheck',
+                    link_advanced_tab: true,
+                    link_rel_list: [
+                      { title: 'Do-follow', text: 'Do-follow', value: '' },
+                      { title: 'No-follow', text: 'No-follow', value: 'nofollow' },
+                    ],
                     browser_spellcheck: true,
                     file_picker_callback: function (callback, value, meta) {
                       if (meta.filetype === 'image') {

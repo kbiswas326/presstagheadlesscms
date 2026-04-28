@@ -748,6 +748,11 @@ export default function VideoEditorPage() {
                     height: 600,
                     menubar: true,
                     plugins: "link image media table lists code wordcount",
+                    link_advanced_tab: true,
+                    link_rel_list: [
+                      { title: 'Do-follow', text: 'Do-follow', value: '' },
+                      { title: 'No-follow', text: 'No-follow', value: 'nofollow' },
+                    ],
                     toolbar:
                       "undo redo | bold italic underline | alignleft aligncenter alignright | bullist numlist | link image media | code",
                   }}

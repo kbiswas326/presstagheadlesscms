@@ -1198,6 +1198,11 @@ export default function ArticleEditorPage() {
                         content_css: isDark ? "dark" : "default",
                         plugins: 'link image media table lists code wordcount',
                         toolbar: 'blocks fontsize | bold italic | image media table link | alignleft aligncenter alignright | bullist numlist | writingcheck',
+                        link_advanced_tab: true,
+                        link_rel_list: [
+                          { title: 'Do-follow', text: 'Do-follow', value: '' },
+                          { title: 'No-follow', text: 'No-follow', value: 'nofollow' },
+                        ],
                         block_formats: 'Paragraph=p;Heading 1=h1;Heading 2=h2;Heading 3=h3;Heading 4=h4;Heading 5=h5',
                         content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.6; } h1 { font-size: 2em; }',
                         image_caption: true,
