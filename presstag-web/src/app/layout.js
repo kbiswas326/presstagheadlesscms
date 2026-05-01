@@ -3,6 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import "../styles/scrollbar-hide.css";
 import { Roboto, PT_Serif } from 'next/font/google';
+import { headers } from 'next/headers';
 import LayoutClient from "../components/LayoutClient";
 import GoogleAnalytics from "../components/GoogleAnalytics";
 import ScrollToTop from "../components/ScrollToTop";
@@ -38,7 +39,15 @@ export async function generateMetadata() {
   try {
     const explicit = String(process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || '').trim();
     const inferred = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '';
-    const base = siteUrlFromConfig || explicit || inferred;
+    let base = siteUrlFromConfig || explicit || inferred;
+    if (!base) {
+      try {
+        const h = headers();
+        const host = String(h.get('x-forwarded-host') || h.get('host') || '').trim();
+        const proto = String(h.get('x-forwarded-proto') || 'https').trim() || 'https';
+        if (host) base = `${proto}://${host}`;
+      } catch {}
+    }
     const normalizedBase = (() => {
       const v = String(base || '').trim();
       if (!v) return '';

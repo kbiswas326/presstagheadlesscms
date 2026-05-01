@@ -306,7 +306,10 @@ const LiveBlogViewer = ({ post }) => {
 
                             {/* Summary */}
                             {summary && (
-                                <p className="text-lg md:text-xl text-gray-600 mb-6 leading-relaxed border-l-4 border-green-600 pl-4 italic">
+                                <p
+                                    className="text-lg md:text-xl text-gray-600 mb-6 leading-relaxed border-l-4 pl-4 italic"
+                                    style={{ borderLeftColor: 'var(--primary-color)' }}
+                                >
                                     {summary}
                                 </p>
                             )}
@@ -371,7 +374,8 @@ const LiveBlogViewer = ({ post }) => {
                                 {/* 1. Main Content (Before Updates) */}
                                 {content && (
                                     <div 
-                                        className={`prose prose-lg prose-green max-w-none ${merriweather.className} prose-headings:font-sans prose-headings:text-gray-900 prose-img:rounded-xl prose-a:text-green-600 mb-12`}
+                                        className={`prose prose-lg max-w-none ${merriweather.className} prose-headings:font-sans prose-headings:text-gray-900 prose-img:rounded-xl prose-a:text-[var(--primary-color)] mb-12`}
+                                        style={{ '--tw-prose-links': 'var(--primary-color)' }}
                                         dangerouslySetInnerHTML={{ __html: content.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001') }}
                                     />
                                 )}
