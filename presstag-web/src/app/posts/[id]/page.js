@@ -433,7 +433,7 @@ export default async function PostPage({ params }) {
 
       {/* Article Content */}
       <article className="prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-headings:mb-2 prose-headings:mt-6 prose-p:text-gray-700 prose-p:leading-loose prose-p:my-2
-        prose-a:no-underline hover:prose-a:underline
+        prose-a:underline
         prose-img:rounded-xl prose-img:shadow-md
         prose-blockquote:border-l-4 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-blockquote:italic
         prose-blockquote:bg-gray-50">
