@@ -22,16 +22,27 @@ async function getPosts(params = {}) {
   const cleanedValue = normalizedValue.replace(/^#/, '').trim();
   const normalizedSlug = cleanedValue.toLowerCase();
   const isObjectId = (v) => /^[a-f0-9]{24}$/i.test(String(v || '').trim());
-  const slugify = (v) => String(v || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
   const normalizeTagQuery = (v) => {
-    const raw = String(v || '').trim().replace(/^#/, '').trim();
+    let raw = String(v || '').trim().replace(/^#/, '').trim();
+    if (!raw) return '';
+    try {
+      if (raw.startsWith('http://') || raw.startsWith('https://')) {
+        raw = new URL(raw).pathname || raw;
+      }
+    } catch {}
+    raw = raw.split('?')[0].split('#')[0];
+    const parts = raw.split('/').filter(Boolean);
+    const last = parts.length > 0 ? parts[parts.length - 1] : raw;
+    const withSpaces = String(last || '').replace(/\+/g, ' ');
+    try {
+      raw = decodeURIComponent(withSpaces);
+    } catch {
+      raw = withSpaces;
+    }
+    raw = raw.trim();
     if (!raw) return '';
     if (isObjectId(raw)) return raw;
-    return slugify(raw) || raw;
+    return raw;
   };
   if (type === 'category' && cleanedValue) path += '&category=' + encodeURIComponent(normalizedSlug);
   else if (type === 'tag' && cleanedValue) path += '&tag=' + encodeURIComponent(normalizeTagQuery(cleanedValue));
@@ -119,8 +130,8 @@ export default async function Page() {
           const normalized = cleanedValue.toLowerCase();
           if (section.sourceType === 'category') viewAllUrl = `/category/${encodeURIComponent(normalized)}`;
           else if (section.sourceType === 'tag') {
-            const tagSlug = /^[a-f0-9]{24}$/i.test(cleanedValue) ? cleanedValue : cleanedValue.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-            viewAllUrl = `/${tagPrefix}/${encodeURIComponent(tagSlug || cleanedValue)}`;
+            const tagSlug = normalizeTagQuery(cleanedValue);
+            viewAllUrl = `/${tagPrefix}/${encodeURIComponent(tagSlug)}`;
           }
           else if (section.sourceType === 'author') viewAllUrl = `/author/${encodeURIComponent(cleanedValue)}`;
         }

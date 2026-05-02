@@ -12,7 +12,7 @@ const normalizeApiBase = (raw) => {
 
 const API_URL = normalizeApiBase(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
 
-const resolveTenantId = () => {
+const resolveTenantId = async () => {
   const envTenant = String(process.env.NEXT_PUBLIC_TENANT_ID || '').trim();
   if (envTenant) return envTenant;
 
@@ -21,6 +21,13 @@ const resolveTenantId = () => {
     if (host.includes('sportzpoint')) return 'sportzpoint';
     if (host.includes('presstag')) return 'presstag';
   } else {
+    try {
+      const { headers } = await import('next/headers');
+      const h = headers();
+      const host = String(h.get('x-forwarded-host') || h.get('host') || '').toLowerCase().trim();
+      if (host.includes('sportzpoint')) return 'sportzpoint';
+      if (host.includes('presstag')) return 'presstag';
+    } catch {}
     const vercelUrl = String(process.env.VERCEL_URL || '').toLowerCase();
     if (vercelUrl.includes('sportzpoint')) return 'sportzpoint';
     if (vercelUrl.includes('presstag')) return 'presstag';
@@ -42,7 +49,7 @@ export async function fetchWithTenant(path, options = {}) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'x-tenant-id': resolveTenantId(),
+      'x-tenant-id': await resolveTenantId(),
       ...options.headers,
     },
     cache: defaultCache,

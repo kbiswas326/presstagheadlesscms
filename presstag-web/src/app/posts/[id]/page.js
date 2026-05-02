@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getCategories, getPostById } from '../../../lib/api';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { Inter, Merriweather } from 'next/font/google';
 import VideoPlayer from '../../../components/VideoPlayer';
 import WebStoryViewer from '../../../components/WebStoryViewer';
@@ -62,6 +63,29 @@ export async function generateMetadata({ params }) {
   }
 
   const siteTitle = config?.branding?.siteTitle || 'PressTag';
+  let metadataBase;
+  try {
+    const siteUrlFromConfig = String(config?.branding?.siteUrl || '').trim();
+    const explicit = String(process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || '').trim();
+    const inferred = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '';
+    let base = siteUrlFromConfig || explicit || inferred;
+    if (!base) {
+      try {
+        const h = headers();
+        const host = String(h.get('x-forwarded-host') || h.get('host') || '').trim();
+        const proto = String(h.get('x-forwarded-proto') || 'https').trim() || 'https';
+        if (host) base = `${proto}://${host}`;
+      } catch {}
+    }
+    const normalizedBase = (() => {
+      const v = String(base || '').trim();
+      if (!v) return '';
+      if (v.startsWith('http://') || v.startsWith('https://')) return v;
+      if (v.startsWith('//')) return `https:${v}`;
+      return `https://${v}`;
+    })();
+    metadataBase = new URL(normalizedBase || 'http://localhost:3000');
+  } catch {}
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
   const pageUrlStructure = config?.seo?.pageUrlStructure || '/{slug}';
   const preservePostUrls = Boolean(config?.seo?.preservePostUrls);
@@ -71,6 +95,13 @@ export async function generateMetadata({ params }) {
     ? (preservePostUrls ? buildPageUrl(post, pageUrlStructure) : buildPageUrlByStructure(post, pageUrlStructure))
     : (preservePostUrls ? buildPostUrl(post, urlStructure) : buildPostUrlByStructure(post, urlStructure))
         || `/posts/${encodeURIComponent(String(post.slug || post._id))}`;
+  const canonicalUrl = (() => {
+    try {
+      return metadataBase ? new URL(String(canonicalPath || '/'), metadataBase).toString() : String(canonicalPath || '/');
+    } catch {
+      return String(canonicalPath || '/');
+    }
+  })();
   const ogImage = resolveSiteAssetUrl(
     post?.seo?.ogImage ||
     post?.featuredImage?.url ||
@@ -97,16 +128,17 @@ export async function generateMetadata({ params }) {
     })();
 
   return {
+    metadataBase,
     title,
     description,
     alternates: {
-      canonical: canonicalPath,
+      canonical: canonicalUrl,
     },
     openGraph: {
       title,
       description,
       siteName: siteTitle,
-      url: canonicalPath,
+      url: canonicalUrl,
       images: buildOpenGraphImage(ogImage),
       type: 'article',
     },
@@ -172,7 +204,7 @@ export default async function PostPage({ params }) {
 
   // --- SPECIAL HANDLING FOR LIVE BLOGS ---
   if (isLiveBlog) {
-      return <LiveBlogViewer post={post} />;
+      return <LiveBlogViewer post={post} tagPrefix={tagPrefix} />;
   }
 
   // --- STANDARD ARTICLE LAYOUT ---

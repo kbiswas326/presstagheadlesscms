@@ -17,7 +17,7 @@ const merriweather = Merriweather({
   display: 'swap',
 });
 
-const LiveBlogViewer = ({ post }) => {
+const LiveBlogViewer = ({ post, tagPrefix = 'tag' }) => {
     const [livePost, setLivePost] = useState(post);
     const embedsRootRef = useRef(null);
 
@@ -42,6 +42,8 @@ const LiveBlogViewer = ({ post }) => {
         content, // Main content before updates
         tags = []
     } = livePost || {};
+
+    const resolvedTagPrefix = String(tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
 
     const { hasTwitterEmbeds, hasInstagramEmbeds } = useMemo(() => {
         const combined = [
@@ -477,11 +479,25 @@ const LiveBlogViewer = ({ post }) => {
                                     <div className="mt-12 pt-8 border-t border-gray-100">
                                         <h3 className="text-sm font-bold text-gray-400 uppercase mb-4">Tags :</h3>
                                         <div className="flex flex-wrap gap-2">
-                                            {tags.map((tag, idx) => (
-                                                <span key={idx} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-sm transition cursor-pointer">
-                                                    #{typeof tag === 'string' ? tag : tag.name || 'Tag'}
-                                                </span>
-                                            ))}
+                                            {tags.map((tag, idx) => {
+                                                const value = typeof tag === 'string'
+                                                    ? String(tag || '').trim()
+                                                    : String(tag?.slug || tag?.name || tag?.title || '').trim();
+                                                const label = typeof tag === 'string'
+                                                    ? String(tag || '').trim()
+                                                    : String(tag?.name || tag?.title || tag?.slug || 'Tag').trim();
+                                                if (!value) return null;
+                                                const href = `/${resolvedTagPrefix}/${encodeURIComponent(value)}`;
+                                                return (
+                                                    <Link
+                                                        key={`${value}-${idx}`}
+                                                        href={href}
+                                                        className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-sm transition"
+                                                    >
+                                                        #{label}
+                                                    </Link>
+                                                );
+                                            }).filter(Boolean)}
                                         </div>
                                     </div>
                                 )}
