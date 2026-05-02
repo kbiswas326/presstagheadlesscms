@@ -7,6 +7,31 @@ import { renderHomeByTemplate } from '../templates/home';
 
 export const revalidate = 60;
 
+const isObjectId = (v) => /^[a-f0-9]{24}$/i.test(String(v || '').trim());
+
+const normalizeTagQuery = (v) => {
+  let raw = String(v || '').trim().replace(/^#/, '').trim();
+  if (!raw) return '';
+  try {
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      raw = new URL(raw).pathname || raw;
+    }
+  } catch {}
+  raw = raw.split('?')[0].split('#')[0];
+  const parts = raw.split('/').filter(Boolean);
+  const last = parts.length > 0 ? parts[parts.length - 1] : raw;
+  const withSpaces = String(last || '').replace(/\+/g, ' ');
+  try {
+    raw = decodeURIComponent(withSpaces);
+  } catch {
+    raw = withSpaces;
+  }
+  raw = raw.trim();
+  if (!raw) return '';
+  if (isObjectId(raw)) return raw;
+  return raw;
+};
+
 async function getLayoutConfig() {
   try {
     const res = await fetchLayoutConfig({ next: { revalidate: 60 } });
@@ -21,29 +46,6 @@ async function getPosts(params = {}) {
   const normalizedValue = value != null ? String(value).trim() : '';
   const cleanedValue = normalizedValue.replace(/^#/, '').trim();
   const normalizedSlug = cleanedValue.toLowerCase();
-  const isObjectId = (v) => /^[a-f0-9]{24}$/i.test(String(v || '').trim());
-  const normalizeTagQuery = (v) => {
-    let raw = String(v || '').trim().replace(/^#/, '').trim();
-    if (!raw) return '';
-    try {
-      if (raw.startsWith('http://') || raw.startsWith('https://')) {
-        raw = new URL(raw).pathname || raw;
-      }
-    } catch {}
-    raw = raw.split('?')[0].split('#')[0];
-    const parts = raw.split('/').filter(Boolean);
-    const last = parts.length > 0 ? parts[parts.length - 1] : raw;
-    const withSpaces = String(last || '').replace(/\+/g, ' ');
-    try {
-      raw = decodeURIComponent(withSpaces);
-    } catch {
-      raw = withSpaces;
-    }
-    raw = raw.trim();
-    if (!raw) return '';
-    if (isObjectId(raw)) return raw;
-    return raw;
-  };
   if (type === 'category' && cleanedValue) path += '&category=' + encodeURIComponent(normalizedSlug);
   else if (type === 'tag' && cleanedValue) path += '&tag=' + encodeURIComponent(normalizeTagQuery(cleanedValue));
   else if (type === 'author' && cleanedValue) path += '&author=' + encodeURIComponent(cleanedValue);
