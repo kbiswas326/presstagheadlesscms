@@ -11,7 +11,12 @@ export function fillTemplate(template, vars = {}) {
 export function resolveSiteAssetUrl(value) {
   const raw = String(value || '').trim();
   if (!raw) return '';
-  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    if (raw.startsWith('http://') && !/^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(raw)) {
+      return raw.replace(/^http:\/\//i, 'https://');
+    }
+    return raw;
+  }
 
   let path = raw.startsWith('/') ? raw : `/${raw}`;
   if (path.startsWith('/api/uploads/')) path = path.replace(/^\/api\/uploads\//, '/uploads/');
@@ -26,6 +31,25 @@ export function resolveSiteAssetUrl(value) {
 export function buildOpenGraphImage(url) {
   const resolved = resolveSiteAssetUrl(url);
   if (!resolved) return undefined;
-  return [{ url: resolved }];
+  const ext = (() => {
+    const clean = String(resolved || '').split('?')[0].split('#')[0];
+    const m = clean.match(/\.([a-z0-9]+)$/i);
+    return m ? m[1].toLowerCase() : '';
+  })();
+  const type = ext === 'png'
+    ? 'image/png'
+    : (ext === 'webp'
+      ? 'image/webp'
+      : (ext === 'gif'
+        ? 'image/gif'
+        : (ext === 'jpg' || ext === 'jpeg'
+          ? 'image/jpeg'
+          : undefined)));
+  return [{
+    url: resolved,
+    width: 1200,
+    height: 630,
+    type,
+  }];
 }
 
