@@ -2,7 +2,7 @@
 import Script from "next/script";
 import "./globals.css";
 import "../styles/scrollbar-hide.css";
-import { Roboto, PT_Serif } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import { headers } from 'next/headers';
 import LayoutClient from "../components/LayoutClient";
 import GoogleAnalytics from "../components/GoogleAnalytics";
@@ -13,18 +13,10 @@ import { buildOpenGraphImage, resolveSiteAssetUrl } from '../lib/seo';
 import { renderHtmlInjection } from '../lib/htmlInjections';
 import { resolveTemplateId } from '../lib/templates';
 
-const roboto = Roboto({
-  weight: ['400', '500', '700'],
+const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-roboto',
-});
-
-const ptSerif = PT_Serif({
-  weight: ['400', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-pt-serif',
+  variable: '--font-inter',
 });
 
 export async function generateMetadata() {
@@ -153,7 +145,7 @@ export default async function RootLayout({ children }) {
   const templateId = resolveTemplateId(config?.branding?.templateId);
 
   return (
-    <html lang="en" data-template={templateId} className={`${roboto.variable} ${ptSerif.variable}`} style={{ '--primary-color': primaryColor }}>
+    <html lang="en" data-template={templateId} className={inter.variable} style={{ '--primary-color': primaryColor }}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

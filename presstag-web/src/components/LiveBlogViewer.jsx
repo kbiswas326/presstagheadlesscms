@@ -4,22 +4,19 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Script from 'next/script';
 import { FaShareAlt, FaLinkedin, FaMapPin, FaSync } from 'react-icons/fa';
-import { Merriweather } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import Sidebar from './Sidebar';
 import AdSpot from './AdSpot';
 import SocialShareButtons from './SocialShareButtons';
+import ArticleGridCard from './ArticleGridCard';
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
 
-const merriweather = Merriweather({ 
-  weight: ['300', '400', '700', '900'],
-  style: ['normal', 'italic'],
-  subsets: ['latin'],
-  display: 'swap',
-});
+const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
 const LiveBlogViewer = ({ post, tagPrefix = 'tag' }) => {
     const [livePost, setLivePost] = useState(post);
     const embedsRootRef = useRef(null);
+    const [readMorePosts, setReadMorePosts] = useState([]);
 
     useEffect(() => {
         setLivePost(post);
@@ -44,6 +41,37 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag' }) => {
     } = livePost || {};
 
     const resolvedTagPrefix = String(tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
+    const readMoreCategorySlug = (() => {
+        const first = Array.isArray(livePost?.categories) ? livePost.categories[0] : null;
+        if (!first) return '';
+        if (typeof first === 'string') return first;
+        return String(first?.slug || first?.name || first?.title || '').trim();
+    })();
+    const readMoreExcludeKey = String(livePost?.slug || livePost?._id || '').trim();
+
+    useEffect(() => {
+        let cancelled = false;
+        const load = async () => {
+            try {
+                const params = readMoreCategorySlug
+                    ? `status=published&excludeType=custompage&category=${encodeURIComponent(readMoreCategorySlug)}&limit=12&lite=1`
+                    : 'status=published&excludeType=custompage&limit=12&lite=1';
+                const res = await fetchWithTenant(`/posts?${params}`, { cache: 'no-store' });
+                if (!res.ok) return;
+                const data = await res.json();
+                const list = Array.isArray(data) ? data : (data.posts || []);
+                const next = list
+                    .filter((p) => p && String(p.slug || p._id || '') !== readMoreExcludeKey)
+                    .slice(0, 6);
+                if (cancelled) return;
+                setReadMorePosts(next);
+            } catch {}
+        };
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [readMoreCategorySlug, readMoreExcludeKey]);
 
     const { hasTwitterEmbeds, hasInstagramEmbeds } = useMemo(() => {
         const combined = [
@@ -211,7 +239,7 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag' }) => {
       : [<span key="desk">{authorName || 'SportzPoint Desk'}</span>];
 
     return (
-        <div className={`min-h-screen bg-gray-50 ${merriweather.className}`}>
+        <div className={`min-h-screen bg-gray-50 ${inter.className}`}>
             <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
                     <main className="w-full lg:w-[72%] bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-8" ref={embedsRootRef}>
                         {hasTwitterEmbeds && (
@@ -309,7 +337,7 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag' }) => {
                             {/* Summary */}
                             {summary && (
                                 <p
-                                    className="text-lg md:text-xl text-gray-600 mb-6 leading-relaxed border-l-4 pl-4 italic"
+                                    className="text-lg md:text-xl text-gray-600 mb-6 leading-relaxed border-l-4 pl-4"
                                     style={{ borderLeftColor: 'var(--primary-color)' }}
                                 >
                                     {summary}
@@ -376,7 +404,7 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag' }) => {
                                 {/* 1. Main Content (Before Updates) */}
                                 {content && (
                                     <div 
-                                        className={`prose prose-lg max-w-none ${merriweather.className} prose-headings:font-sans prose-headings:text-gray-900 prose-img:rounded-xl prose-a:text-[var(--primary-color)] mb-12`}
+                                        className={`prose prose-lg max-w-none ${inter.className} prose-headings:font-sans prose-headings:text-gray-900 prose-img:rounded-xl prose-a:text-[var(--primary-color)] mb-12`}
                                         style={{ '--tw-prose-links': 'var(--primary-color)' }}
                                         dangerouslySetInnerHTML={{ __html: content.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001') }}
                                     />
@@ -455,7 +483,7 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag' }) => {
 
                                                         {/* Update Body */}
                                                         <div 
-                                                            className={`prose max-w-none text-gray-700 leading-relaxed ${merriweather.className} prose-headings:text-gray-900`}
+                                                            className={`prose max-w-none text-gray-700 leading-relaxed ${inter.className} prose-headings:text-gray-900`}
                                                             style={{ '--tw-prose-links': 'var(--primary-color)' }}
                                                             dangerouslySetInnerHTML={{ __html: update.content?.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001') || '' }}
                                                         />
@@ -501,6 +529,17 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag' }) => {
                                         </div>
                                     </div>
                                 )}
+
+                                {readMorePosts.length > 0 ? (
+                                    <section className="mt-10 pt-8 border-t border-gray-100">
+                                        <h2 className="text-2xl font-bold text-gray-900 mb-6">Read More</h2>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {readMorePosts.map((p, i) => (
+                                                <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} />
+                                            ))}
+                                        </div>
+                                    </section>
+                                ) : null}
                              </div>
                         </div>
                     </main>

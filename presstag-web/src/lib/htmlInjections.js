@@ -6,7 +6,8 @@ const parseAttributes = (raw) => {
   const attrRegex = /([^\s=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
   let match;
   while ((match = attrRegex.exec(text)) !== null) {
-    const key = match[1];
+    const originalKey = match[1];
+    const key = originalKey === 'crossorigin' ? 'crossOrigin' : originalKey;
     const value = match[2] ?? match[3] ?? match[4];
     if (value === undefined) attrs[key] = true;
     else attrs[key] = value;

@@ -209,7 +209,7 @@ const WebStoryViewer = ({ images = [], postTitle = '', author = null, date = nul
                     transition={{ delay: 0.2 }}
                 >
                     {currentCaption && (
-                        <h2 className="text-2xl md:text-3xl font-black mb-3 leading-tight drop-shadow-lg font-serif">
+                        <h2 className="text-2xl md:text-3xl font-black mb-3 leading-tight drop-shadow-lg">
                             {currentCaption}
                         </h2>
                     )}

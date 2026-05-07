@@ -3,23 +3,18 @@ import { useState, useEffect, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FaTimes, FaChevronLeft, FaChevronRight, FaSearchPlus, FaTh } from 'react-icons/fa';
-import { Merriweather } from 'next/font/google';
 import Sidebar from './Sidebar';
 import AdSpot from './AdSpot';
 import { getImageUrl } from '@/lib/imageHelper';
 import SocialShareButtons from './SocialShareButtons';
 import { formatPublishDateTime } from '../util/timeFormat';
-
-const merriweather = Merriweather({ 
-  weight: ['300', '400', '700', '900'],
-  style: ['normal', 'italic'],
-  subsets: ['latin'],
-  display: 'swap',
-});
+import ArticleGridCard from './ArticleGridCard';
+import { fetchWithTenant } from '@/lib/fetchWithTenant';
 
 const GalleryClient = ({ post }) => {
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [readMorePosts, setReadMorePosts] = useState([]);
     const isDark = useSyncExternalStore(
         (callback) => {
             if (typeof window === 'undefined' || !window.matchMedia) return () => {};
@@ -32,6 +27,8 @@ const GalleryClient = ({ post }) => {
     );
 
     const images = post.images || [];
+    const readMoreCategorySlug = String(post?.categories?.[0]?.slug || post?.categories?.[0]?.name || post?.categories?.[0]?.title || '').trim();
+    const readMoreExcludeKey = String(post?.slug || post?._id || '').trim();
 
     const formattedDate = formatPublishDateTime(
       post.publishDate,
@@ -78,6 +75,30 @@ const GalleryClient = ({ post }) => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isLightboxOpen, images.length]);
 
+    useEffect(() => {
+        let cancelled = false;
+        const load = async () => {
+            try {
+                const params = readMoreCategorySlug
+                    ? `status=published&excludeType=custompage&category=${encodeURIComponent(readMoreCategorySlug)}&limit=12&lite=1`
+                    : 'status=published&excludeType=custompage&limit=12&lite=1';
+                const res = await fetchWithTenant(`/posts?${params}`, { cache: 'no-store' });
+                if (!res.ok) return;
+                const data = await res.json();
+                const list = Array.isArray(data) ? data : (data.posts || []);
+                const next = list
+                    .filter((p) => p && String(p.slug || p._id || '') !== readMoreExcludeKey)
+                    .slice(0, 6);
+                if (cancelled) return;
+                setReadMorePosts(next);
+            } catch {}
+        };
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [readMoreCategorySlug, readMoreExcludeKey]);
+
     if (!post) return null;
 
     const mainImage = getImageUrl(post.featuredImage || post.banner_image || images[0]);
@@ -85,7 +106,7 @@ const GalleryClient = ({ post }) => {
     const currentHeading = currentImage?.heading || currentImage?.title || currentImage?.caption || `Image ${currentImageIndex + 1}`;
 
     return (
-        <div className={`min-h-screen bg-gray-50 text-gray-900 ${merriweather.className}`}>
+        <div className="min-h-screen bg-gray-50 text-gray-900">
             
             <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 pt-6 pb-12">
                 
@@ -309,6 +330,17 @@ const GalleryClient = ({ post }) => {
                             {post.content && (
                                 <div className={`mt-16 prose prose-lg max-w-none`} dangerouslySetInnerHTML={{ __html: post.content }} />
                             )}
+
+                            {readMorePosts.length > 0 ? (
+                                <section className="mt-10 pt-8 border-t border-gray-100">
+                                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Read More</h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {readMorePosts.map((p, i) => (
+                                            <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} />
+                                        ))}
+                                    </div>
+                                </section>
+                            ) : null}
                         </div>
                     </main>
 

@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { headers } from 'next/headers';
-import { Merriweather } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import VideoPlayer from '../../components/VideoPlayer';
 import LiveBlogViewer from '../../components/LiveBlogViewer';
 import GalleryClient from '../../components/GalleryClient';
@@ -12,6 +12,7 @@ import EmbedScripts from '../../components/EmbedScripts';
 import AdSpot from '../../components/AdSpot';
 import ArticleContent from '../../components/ArticleContent';
 import SocialShareButtons from '../../components/SocialShareButtons';
+import ArticleGridCard from '../../components/ArticleGridCard';
 import { getImageUrl, resolvePostImage } from '@/lib/imageHelper';
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
@@ -22,12 +23,7 @@ import { buildPageUrl, buildPageUrlByStructure, buildPostUrl, buildPostUrlByStru
 
 export const revalidate = 60;
 
-const merriweather = Merriweather({
-  weight: ['300', '400', '700', '900'],
-  style: ['normal', 'italic'],
-  subsets: ['latin'],
-  display: 'swap',
-});
+const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
 function normalizePath(input) {
   const raw = String(input || '').trim();
@@ -381,6 +377,40 @@ if (!post) {
     permanentRedirect(canonicalPath);
   }
 
+  const primaryCategorySlug = post.categories?.[0]?.slug || post.categories?.[0]?.name || post.categories?.[0]?.title || '';
+  const readMorePosts = await (async () => {
+    const currentKey = String(post?.slug || post?._id || '');
+    const fetchList = async (url) => {
+      try {
+        const res = await fetchWithTenant(url, { next: { revalidate: 60 } });
+        if (!res.ok) return [];
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.posts || []);
+        return list.filter((p) => p && String(p.slug || p._id || '') !== currentKey);
+      } catch {
+        return [];
+      }
+    };
+
+    const byCategory = primaryCategorySlug
+      ? await fetchList(`/posts?status=published&excludeType=custompage&category=${encodeURIComponent(String(primaryCategorySlug))}&limit=12&lite=1`)
+      : [];
+
+    if (byCategory.length >= 6) return byCategory.slice(0, 6);
+
+    const latest = await fetchList('/posts?status=published&excludeType=custompage&limit=12&lite=1');
+    const merged = [...byCategory, ...latest].reduce((acc, p) => {
+      const key = String(p?.slug || p?._id || '');
+      if (!key) return acc;
+      if (acc.seen.has(key)) return acc;
+      acc.seen.add(key);
+      acc.items.push(p);
+      return acc;
+    }, { seen: new Set(), items: [] }).items;
+
+    return merged.slice(0, 6);
+  })();
+
   if (isCustomPageType(post?.type)) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -392,6 +422,17 @@ if (!post) {
             <div className="mt-6">
               <ArticleContent content={post.content} />
             </div>
+
+            {readMorePosts.length > 0 ? (
+              <section className="mt-10 pt-8 border-t border-gray-100">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Read More</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {readMorePosts.map((p, i) => (
+                    <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} urlStructure={urlStructure} variant={templateId} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </div>
         </div>
       </div>
@@ -461,7 +502,7 @@ if (!post) {
     : 'bg-white rounded-xl shadow-sm border border-gray-100';
 
   return (
-    <div className={`min-h-screen ${wrapperBg} ${merriweather.className}`}>
+    <div className={`min-h-screen ${wrapperBg} ${inter.className}`}>
       <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
         <main className={`w-full lg:w-[72%] ${mainShell} p-4 lg:p-8`} style={isBoldTemplate ? { borderTopColor: primaryColor } : undefined}>
           <header className="w-full pt-4 pb-6">
@@ -504,7 +545,7 @@ if (!post) {
             </h1>
 
             {(post.summary || post.sub_title) ? (
-              <p className="text-lg md:text-xl text-gray-600 mb-6 leading-relaxed border-l-4 pl-4 italic" style={{ borderColor: 'var(--primary-color)' }}>
+              <p className="text-lg md:text-xl text-gray-600 mb-6 leading-relaxed border-l-4 pl-4" style={{ borderColor: 'var(--primary-color)' }}>
                 {post.summary || post.sub_title}
               </p>
             ) : null}
@@ -631,6 +672,17 @@ if (!post) {
               </div>
             </div>
           )}
+
+          {readMorePosts.length > 0 ? (
+            <section className="mt-10 pt-8 border-t border-gray-100">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Read More</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {readMorePosts.map((p, i) => (
+                  <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} urlStructure={urlStructure} variant={templateId} />
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           {/* Author Box */}
           {primaryAuthor && (

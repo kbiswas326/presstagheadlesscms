@@ -5,12 +5,12 @@
 
 const normalizeApiBase = (raw) => {
   const trimmed = String(raw || '').trim().replace(/\/+$/, '');
-  if (!trimmed) return 'http://localhost:5000/api';
+  if (!trimmed) return 'http://localhost:5001/api';
   if (trimmed.endsWith('/api')) return trimmed;
   return `${trimmed}/api`;
 };
 
-const API_URL = normalizeApiBase(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
+const API_URL = normalizeApiBase(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001');
 
 const resolveTenantId = async () => {
   const envTenant = String(process.env.NEXT_PUBLIC_TENANT_ID || '').trim();

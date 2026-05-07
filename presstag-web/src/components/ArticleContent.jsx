@@ -102,8 +102,9 @@ export default function ArticleContent({ content }) {
   if (!safeContent) return null;
   
   // Prose classes
-  const proseClasses = `prose prose-lg prose-green max-w-none prose-headings:font-sans prose-headings:font-black prose-headings:text-gray-900 prose-headings:mb-2 prose-headings:mt-6 prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-3
-    prose-a:underline
+  const proseClasses = `prose prose-lg prose-green max-w-none prose-headings:text-gray-900 prose-headings:mb-2 prose-headings:mt-6 prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-3
+    prose-h1:font-black prose-h2:font-black prose-h3:font-semibold prose-h4:font-semibold prose-h5:font-semibold prose-h6:font-semibold
+    prose-a:underline prose-a:underline-offset-2
     prose-img:rounded-xl prose-img:shadow-md
     prose-blockquote:border-l-4 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-blockquote:italic
     prose-blockquote:bg-gray-50`;
