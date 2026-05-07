@@ -11,6 +11,7 @@ const COOKIE_CONSENT_KEY = 'cookie_consent';
 const COOKIE_LAST_SHOWN_KEY = 'cookie_consent_last_shown';
 const COOKIE_LOCAL_KEY = 'presstag_cookie_consent_v1';
 const COOKIE_LOCAL_LAST_SHOWN_KEY = 'presstag_cookie_consent_last_shown_v1';
+const COOKIE_OPEN_KEY = 'presstag_cookie_banner_open_v1';
 
 const urlBase64ToUint8Array = (base64String) => {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -34,6 +35,9 @@ const shouldDeferForCookieBanner = () => {
   try {
     const now = Date.now();
 
+    const open = localStorage.getItem(COOKIE_OPEN_KEY);
+    if (open === '1') return true;
+
     const cookieConsent = getCookie(COOKIE_CONSENT_KEY);
     const cookieLastShown = Number(getCookie(COOKIE_LAST_SHOWN_KEY) || '0');
     if (cookieConsent !== 'accepted') {
@@ -54,6 +58,28 @@ const shouldDeferForCookieBanner = () => {
 export default function PushNotificationsPrompt() {
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [cookieOpen, setCookieOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      setCookieOpen(localStorage.getItem(COOKIE_OPEN_KEY) === '1');
+    } catch {}
+    const onCookieOpen = () => {
+      setCookieOpen(true);
+      setVisible(false);
+    };
+    const onCookieClosed = () => setCookieOpen(false);
+    try {
+      window.addEventListener('presstag:cookieBannerOpen', onCookieOpen);
+      window.addEventListener('presstag:cookieBannerClosed', onCookieClosed);
+    } catch {}
+    return () => {
+      try {
+        window.removeEventListener('presstag:cookieBannerOpen', onCookieOpen);
+        window.removeEventListener('presstag:cookieBannerClosed', onCookieClosed);
+      } catch {}
+    };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -82,18 +108,25 @@ export default function PushNotificationsPrompt() {
         }
       } catch {}
 
-      if (shouldDeferForCookieBanner()) {
+      const waitForCookieBanner = () => new Promise((resolve) => {
         const start = Date.now();
+        const onClosed = () => resolve();
+        try {
+          window.addEventListener('presstag:cookieBannerClosed', onClosed, { once: true });
+        } catch {}
         const poll = () => {
-          if (!shouldDeferForCookieBanner() || Date.now() - start > 60_000) {
-            try { localStorage.setItem(LAST_SHOWN_KEY, String(Date.now())); } catch {}
-            setVisible(true);
+          if (!shouldDeferForCookieBanner() || Date.now() - start > 120_000) {
+            try { window.removeEventListener('presstag:cookieBannerClosed', onClosed); } catch {}
+            resolve();
             return;
           }
-          setTimeout(poll, 3000);
+          setTimeout(poll, 500);
         };
         poll();
-        return;
+      });
+
+      if (shouldDeferForCookieBanner()) {
+        await waitForCookieBanner();
       }
 
       try { localStorage.setItem(LAST_SHOWN_KEY, String(now)); } catch {}
@@ -175,7 +208,7 @@ export default function PushNotificationsPrompt() {
     }
   };
 
-  if (!visible) return null;
+  if (!visible || cookieOpen) return null;
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-[9998] px-4 pb-20 pointer-events-none">

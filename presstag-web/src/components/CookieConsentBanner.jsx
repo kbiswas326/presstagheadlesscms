@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const CONSENT_KEY = 'presstag_cookie_consent_v1';
 const LAST_SHOWN_KEY = 'presstag_cookie_consent_last_shown_v1';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const COOKIE_CONSENT_KEY = 'cookie_consent';
 const COOKIE_LAST_SHOWN_KEY = 'cookie_consent_last_shown';
+const COOKIE_OPEN_KEY = 'presstag_cookie_banner_open_v1';
 
 const getCookie = (name) => {
   try {
@@ -52,6 +53,10 @@ export default function CookieConsentBanner() {
   const closeForNow = () => {
     const now = String(Date.now());
     try {
+      localStorage.setItem(COOKIE_OPEN_KEY, '0');
+      window.dispatchEvent(new Event('presstag:cookieBannerClosed'));
+    } catch {}
+    try {
       localStorage.setItem(LAST_SHOWN_KEY, now);
     } catch {}
     setCookie(COOKIE_LAST_SHOWN_KEY, now, 60 * 60 * 24);
@@ -60,6 +65,10 @@ export default function CookieConsentBanner() {
 
   const accept = () => {
     const now = String(Date.now());
+    try {
+      localStorage.setItem(COOKIE_OPEN_KEY, '0');
+      window.dispatchEvent(new Event('presstag:cookieBannerClosed'));
+    } catch {}
     try {
       localStorage.setItem(CONSENT_KEY, 'accepted');
     } catch {}
@@ -74,6 +83,10 @@ export default function CookieConsentBanner() {
   const decline = () => {
     const now = String(Date.now());
     try {
+      localStorage.setItem(COOKIE_OPEN_KEY, '0');
+      window.dispatchEvent(new Event('presstag:cookieBannerClosed'));
+    } catch {}
+    try {
       localStorage.setItem(CONSENT_KEY, 'declined');
     } catch {}
     setCookie(COOKIE_CONSENT_KEY, 'declined', 60 * 60 * 24 * 365);
@@ -83,6 +96,20 @@ export default function CookieConsentBanner() {
     } catch {}
     setVisible(false);
   };
+
+  useEffect(() => {
+    if (!visible) return;
+    try {
+      localStorage.setItem(COOKIE_OPEN_KEY, '1');
+      window.dispatchEvent(new Event('presstag:cookieBannerOpen'));
+    } catch {}
+    return () => {
+      try {
+        localStorage.setItem(COOKIE_OPEN_KEY, '0');
+        window.dispatchEvent(new Event('presstag:cookieBannerClosed'));
+      } catch {}
+    };
+  }, [visible]);
 
   if (!visible) return null;
 
@@ -110,18 +137,18 @@ export default function CookieConsentBanner() {
         <div className="mt-6 flex flex-col sm:flex-row flex-wrap items-center sm:items-start justify-center sm:justify-start gap-3">
           <button
             type="button"
+            onClick={decline}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-lg text-sm font-semibold border border-gray-200 text-gray-900 hover:bg-gray-50"
+          >
+            Decline
+          </button>
+          <button
+            type="button"
             onClick={accept}
             className="w-full sm:w-auto px-5 py-2.5 rounded-lg text-white font-semibold text-sm"
             style={{ backgroundColor: 'var(--primary-color)' }}
           >
             Accept all Cookies
-          </button>
-          <button
-            type="button"
-            onClick={closeForNow}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-lg text-sm font-semibold border border-gray-200 text-gray-900 hover:bg-gray-50"
-          >
-            Manage Preferences
           </button>
         </div>
       </div>
