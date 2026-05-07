@@ -77,7 +77,7 @@ const Sidebar = ({ variant = 'post', currentPostId, categorySlug, authorId, excl
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 font-sans">
         <AdSpot position="sidebar_top" />
         {widgets.map((widget, i) => (
             <SidebarWidget 

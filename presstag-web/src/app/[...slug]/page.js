@@ -425,7 +425,9 @@ if (!post) {
 
             {readMorePosts.length > 0 ? (
               <section className="mt-10 pt-8 border-t border-gray-100">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Read More</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6 border-l-4 pl-3" style={{ borderColor: primaryColor }}>
+                  Read More
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {readMorePosts.map((p, i) => (
                     <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} urlStructure={urlStructure} variant={templateId} />
@@ -673,17 +675,6 @@ if (!post) {
             </div>
           )}
 
-          {readMorePosts.length > 0 ? (
-            <section className="mt-10 pt-8 border-t border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Read More</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {readMorePosts.map((p, i) => (
-                  <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} urlStructure={urlStructure} variant={templateId} />
-                ))}
-              </div>
-            </section>
-          ) : null}
-
           {/* Author Box */}
           {primaryAuthor && (
             <div className="mt-10 p-6 bg-gray-50 rounded-xl border border-gray-100 flex gap-4">
@@ -715,6 +706,19 @@ if (!post) {
               </div>
             </div>
           )}
+
+          {readMorePosts.length > 0 ? (
+            <section className="mt-10 pt-8 border-t border-gray-100">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 border-l-4 pl-3" style={{ borderColor: primaryColor }}>
+                Read More
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {readMorePosts.map((p, i) => (
+                  <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} urlStructure={urlStructure} variant={templateId} />
+                ))}
+              </div>
+            </section>
+          ) : null}
         </main>
 
         <aside className="w-full lg:w-[28%] space-y-8 lg:sticky lg:top-0">
