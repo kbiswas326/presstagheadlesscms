@@ -87,12 +87,12 @@ export default function CookieConsentBanner() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[2147483647] px-4 pb-4">
-      <div className="relative mx-auto max-w-5xl rounded-xl border border-gray-200 bg-white shadow-lg p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+    <div className="fixed inset-0 z-[2147483647] flex items-end justify-center p-4 pb-10 sm:pb-14 bg-black/10">
+      <div className="relative w-full max-w-3xl rounded-xl border border-gray-200 bg-white shadow-lg p-6 sm:p-8 text-center sm:text-left">
         <button
           type="button"
           onClick={closeForNow}
-          className="absolute right-3 top-3 p-2 rounded-lg hover:bg-gray-50 text-gray-500"
+          className="absolute right-4 top-4 p-2 rounded-lg hover:bg-gray-50 text-gray-900"
           aria-label="Close cookie notice"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -100,24 +100,28 @@ export default function CookieConsentBanner() {
             <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
-        <div className="flex-1 text-sm text-gray-700">
-          We use cookies to improve your experience and understand site usage. By continuing, you agree to our cookie policy.
+
+        <h3 className="text-lg font-semibold text-gray-900 pr-10 whitespace-nowrap">Accept the use of cookies.</h3>
+
+        <div className="mt-3 text-sm text-gray-700 leading-relaxed">
+          We use cookies to improve your experience and understand site usage. Accept to agree to our cookie policy.
         </div>
-        <div className="flex items-center gap-2 justify-end">
-          <button
-            type="button"
-            onClick={decline}
-            className="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50"
-          >
-            Decline
-          </button>
+
+        <div className="mt-6 flex flex-col sm:flex-row flex-wrap items-center sm:items-start justify-center sm:justify-start gap-3">
           <button
             type="button"
             onClick={accept}
-            className="px-4 py-2 rounded-lg text-white font-semibold text-sm"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-lg text-white font-semibold text-sm"
             style={{ backgroundColor: 'var(--primary-color)' }}
           >
-            Accept
+            Accept all Cookies
+          </button>
+          <button
+            type="button"
+            onClick={closeForNow}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-lg text-sm font-semibold border border-gray-200 text-gray-900 hover:bg-gray-50"
+          >
+            Manage Preferences
           </button>
         </div>
       </div>

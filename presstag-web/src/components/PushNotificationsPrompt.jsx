@@ -5,6 +5,12 @@ import { fetchWithTenant } from '@/lib/fetchWithTenant';
 
 const OPTIN_KEY = 'presstag_push_opt_in_v1';
 const SUB_ENDPOINT_KEY = 'presstag_push_endpoint_v1';
+const LAST_SHOWN_KEY = 'presstag_push_last_shown_v1';
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const COOKIE_CONSENT_KEY = 'cookie_consent';
+const COOKIE_LAST_SHOWN_KEY = 'cookie_consent_last_shown';
+const COOKIE_LOCAL_KEY = 'presstag_cookie_consent_v1';
+const COOKIE_LOCAL_LAST_SHOWN_KEY = 'presstag_cookie_consent_last_shown_v1';
 
 const urlBase64ToUint8Array = (base64String) => {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -15,22 +21,94 @@ const urlBase64ToUint8Array = (base64String) => {
   return outputArray;
 };
 
+const getCookie = (name) => {
+  try {
+    const match = document.cookie.match(new RegExp(`(?:^|; )${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : '';
+  } catch {
+    return '';
+  }
+};
+
+const shouldDeferForCookieBanner = () => {
+  try {
+    const now = Date.now();
+
+    const cookieConsent = getCookie(COOKIE_CONSENT_KEY);
+    const cookieLastShown = Number(getCookie(COOKIE_LAST_SHOWN_KEY) || '0');
+    if (cookieConsent !== 'accepted') {
+      if (!cookieLastShown || now - cookieLastShown >= ONE_DAY_MS) return true;
+      if (now - cookieLastShown < 15_000) return true;
+    }
+
+    const localConsent = localStorage.getItem(COOKIE_LOCAL_KEY);
+    const localLastShown = Number(localStorage.getItem(COOKIE_LOCAL_LAST_SHOWN_KEY) || '0');
+    if (localConsent !== 'accepted') {
+      if (!localLastShown || now - localLastShown >= ONE_DAY_MS) return true;
+      if (now - localLastShown < 15_000) return true;
+    }
+  } catch {}
+  return false;
+};
+
 export default function PushNotificationsPrompt() {
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    try {
-      const existing = localStorage.getItem(OPTIN_KEY);
-      if (existing) return;
-    } catch {}
-    setVisible(true);
+    (async () => {
+      const now = Date.now();
+      try {
+        const existing = localStorage.getItem(OPTIN_KEY);
+        if (existing === 'accepted' || existing === 'denied' || existing === 'unsupported') return;
+        const lastShown = Number(localStorage.getItem(LAST_SHOWN_KEY) || '0');
+        if (lastShown && now - lastShown < ONE_DAY_MS) return;
+      } catch {}
+
+      try {
+        if (typeof window === 'undefined') return;
+        if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+        if (Notification.permission === 'denied') {
+          try { localStorage.setItem(OPTIN_KEY, 'denied'); } catch {}
+          return;
+        }
+        if (Notification.permission === 'granted') {
+          const reg = await navigator.serviceWorker.getRegistration('/');
+          const sub = reg ? await reg.pushManager.getSubscription() : null;
+          if (sub) {
+            try { localStorage.setItem(OPTIN_KEY, 'accepted'); } catch {}
+            return;
+          }
+        }
+      } catch {}
+
+      if (shouldDeferForCookieBanner()) {
+        const start = Date.now();
+        const poll = () => {
+          if (!shouldDeferForCookieBanner() || Date.now() - start > 60_000) {
+            try { localStorage.setItem(LAST_SHOWN_KEY, String(Date.now())); } catch {}
+            setVisible(true);
+            return;
+          }
+          setTimeout(poll, 3000);
+        };
+        poll();
+        return;
+      }
+
+      try { localStorage.setItem(LAST_SHOWN_KEY, String(now)); } catch {}
+      setVisible(true);
+    })();
   }, []);
 
   const dismiss = (choice, persist = true) => {
     if (persist) {
       try {
-        localStorage.setItem(OPTIN_KEY, choice);
+        if (choice === 'dismissed') {
+          localStorage.setItem(LAST_SHOWN_KEY, String(Date.now()));
+        } else {
+          localStorage.setItem(OPTIN_KEY, choice);
+        }
       } catch {}
     }
     setVisible(false);
@@ -101,11 +179,11 @@ export default function PushNotificationsPrompt() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-[9998] px-4 pb-20 pointer-events-none">
-      <div className="relative mx-auto max-w-5xl rounded-xl border border-gray-200 bg-white shadow-lg p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 pointer-events-auto">
+      <div className="relative mx-auto max-w-5xl rounded-xl border border-gray-200 bg-white shadow-lg pt-10 pb-4 px-4 sm:pb-5 sm:px-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 pointer-events-auto">
         <button
           type="button"
           onClick={() => dismiss('dismissed')}
-          className="absolute right-3 top-3 p-2 rounded-lg hover:bg-gray-50 text-gray-500"
+          className="absolute right-3 top-3 p-2 rounded-lg hover:bg-gray-50 text-gray-500 z-10"
           aria-label="Close notifications prompt"
           disabled={busy}
         >
@@ -115,7 +193,7 @@ export default function PushNotificationsPrompt() {
           </svg>
         </button>
         <div className="flex-1 text-sm text-gray-700">
-          Enable notifications to get alerts when new articles are published (including live blog updates you publish).
+          Enable notifications to get alerts when new articles are published, including every live blog updates we publish.
         </div>
         <div className="flex items-center gap-2 justify-end">
           <button

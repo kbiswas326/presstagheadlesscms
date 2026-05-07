@@ -91,7 +91,19 @@ function getNotificationImage(post) {
     post?.coverImage?.url ||
     post?.coverImage ||
     '';
-  return typeof candidate === 'string' ? candidate : (candidate?.url || '');
+  const raw = typeof candidate === 'string' ? candidate : (candidate?.url || '');
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  if (value.startsWith('http://') || value.startsWith('https://')) return value;
+
+  const apiBase = String(process.env.PUBLIC_API_URL || process.env.API_URL || '').trim();
+  let origin = apiBase ? apiBase.replace(/\/api\/?$/, '').replace(/\/+$/, '') : '';
+  if (!origin) origin = 'http://localhost:5001';
+
+  if (value.startsWith('/uploads/')) return `${origin}${value}`;
+  if (value.startsWith('/uploads')) return `${origin}${value.startsWith('/') ? value : `/${value}`}`;
+  if (value.startsWith('/')) return `${origin}${value}`;
+  return `${origin}/uploads/${value}`;
 }
 
 function buildPostSnippet(post) {
@@ -829,7 +841,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const role = normalizeRole(req.user?.role);
     const now = new Date();
     const status = typeof req.body.status === 'string' ? req.body.status.toLowerCase().trim() : 'draft';
-    const { notifySubscribers, notifyType, ...restBody } = (req.body && typeof req.body === 'object') ? req.body : {};
+    const { notifySubscribers, notifyType, notifyTitle, notifyBody, notifyImage, notifyUrl, ...restBody } = (req.body && typeof req.body === 'object') ? req.body : {};
     if (role === 'writer') {
       if (status === 'published') return res.status(403).json({ error: 'Writers cannot publish posts' });
     }
@@ -869,12 +881,13 @@ router.post('/', authMiddleware, async (req, res) => {
     } catch {}
     if (status === 'published' && notifySubscribers !== false) {
       const idOrSlug = String(post.slug || post._id || '');
+      const resolvedUrl = String(notifyUrl || enrichedPost?.originalUrl || (idOrSlug ? `/posts/${encodeURIComponent(idOrSlug)}` : '/')).trim();
       await sendTenantPush(req.tenantId, {
         type: notifyType === 'live_update' ? 'live_update' : 'post_published',
-        title: post.title || 'New post published',
-        body: buildPostSnippet(post),
-        image: getNotificationImage(post),
-        url: idOrSlug ? `/posts/${encodeURIComponent(idOrSlug)}` : '/',
+        title: String(notifyTitle || post.title || 'New post published'),
+        body: String(notifyBody || buildPostSnippet(post) || ''),
+        image: String(notifyImage || getNotificationImage(post) || ''),
+        url: resolvedUrl,
         postId: String(post._id || ''),
         slug: String(post.slug || ''),
       });
@@ -917,7 +930,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const prevStatus = String(previous?.status || '').toLowerCase();
     const prevUpdatesCount = Array.isArray(previous?.liveUpdates) ? previous.liveUpdates.length : 0;
 
-    const { notifySubscribers, notifyType, ...restBody } = (req.body && typeof req.body === 'object') ? req.body : {};
+    const { notifySubscribers, notifyType, notifyTitle, notifyBody, notifyImage, notifyUrl, ...restBody } = (req.body && typeof req.body === 'object') ? req.body : {};
     const desiredStatus = typeof restBody.status === 'string' ? restBody.status.toLowerCase().trim() : prevStatus;
     if (role === 'writer' && desiredStatus === 'published') {
       return res.status(403).json({ error: 'Writers cannot publish posts' });
@@ -989,14 +1002,15 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (shouldNotifyLiveUpdateAny || shouldNotifyPublish || shouldNotifyExplicitPublish) {
       const idOrSlug = String(next.slug || next._id || '');
       const lastUpdate = Array.isArray(next.liveUpdates) && next.liveUpdates.length > 0 ? next.liveUpdates[next.liveUpdates.length - 1] : null;
+      const resolvedUrl = String(notifyUrl || next?.originalUrl || (idOrSlug ? `/posts/${encodeURIComponent(idOrSlug)}` : '/')).trim();
       await sendTenantPush(req.tenantId, {
         type: shouldNotifyLiveUpdateAny ? 'live_update' : 'post_published',
-        title: next.title || 'New post published',
-        body: shouldNotifyLiveUpdateAny
+        title: String(notifyTitle || next.title || 'New post published'),
+        body: String(notifyBody || (shouldNotifyLiveUpdateAny
           ? (String(lastUpdate?.title || lastUpdate?.heading || 'New live update').trim())
-          : buildPostSnippet(next),
-        image: getNotificationImage(next),
-        url: idOrSlug ? `/posts/${encodeURIComponent(idOrSlug)}` : '/',
+          : buildPostSnippet(next)) || ''),
+        image: String(notifyImage || getNotificationImage(next) || ''),
+        url: resolvedUrl,
         postId: String(next._id || ''),
         slug: String(next.slug || ''),
       });
