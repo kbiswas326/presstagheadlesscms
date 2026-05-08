@@ -44,9 +44,6 @@ router.get('/stats', async (req, res) => {
 
 router.post('/subscribe', async (req, res) => {
   try {
-    const cfg = configureWebPush();
-    if (!cfg) return res.status(400).json({ error: 'VAPID keys not configured' });
-
     const subscription = req.body?.subscription;
     const endpoint = subscription?.endpoint;
     const keys = subscription?.keys;
@@ -72,7 +69,8 @@ router.post('/subscribe', async (req, res) => {
       { upsert: true }
     );
 
-    res.json({ ok: true });
+    const cfg = getWebPushConfig();
+    res.json({ ok: true, vapidConfigured: !!cfg });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

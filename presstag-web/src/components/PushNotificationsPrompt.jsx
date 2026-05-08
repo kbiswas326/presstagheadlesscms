@@ -198,7 +198,14 @@ export default function PushNotificationsPrompt() {
       });
 
       if (!res.ok) {
-        alert('Could not enable notifications. Please try again.');
+        const fallback = `Could not enable notifications. Please try again. (HTTP ${res.status})`;
+        try {
+          const data = await res.json();
+          const msg = typeof data?.error === 'string' && data.error.trim() ? data.error.trim() : fallback;
+          alert(msg);
+        } catch {
+          alert(fallback);
+        }
         return;
       }
 
