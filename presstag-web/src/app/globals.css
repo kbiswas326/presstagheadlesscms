@@ -22,6 +22,14 @@ body {
   color: var(--foreground);
 }
 
+html.presstag-cookie-modal-open body {
+  overflow: hidden;
+}
+
+html.presstag-cookie-modal-open body > *:not(#presstag-cookie-portal-root) {
+  pointer-events: none;
+}
+
 a {
   text-underline-offset: 0.18em;
 }

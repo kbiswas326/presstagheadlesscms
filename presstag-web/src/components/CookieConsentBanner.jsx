@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const CONSENT_KEY = 'presstag_cookie_consent_v1';
 const LAST_SHOWN_KEY = 'presstag_cookie_consent_last_shown_v1';
@@ -8,6 +9,7 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const COOKIE_CONSENT_KEY = 'cookie_consent';
 const COOKIE_LAST_SHOWN_KEY = 'cookie_consent_last_shown';
 const COOKIE_OPEN_KEY = 'presstag_cookie_banner_open_v1';
+const PORTAL_ROOT_ID = 'presstag-cookie-portal-root';
 
 const getCookie = (name) => {
   try {
@@ -29,6 +31,7 @@ const setCookie = (name, value, maxAgeSeconds) => {
 };
 
 export default function CookieConsentBanner() {
+  const [portalRoot, setPortalRoot] = useState(null);
   const [visible, setVisible] = useState(() => {
     const now = Date.now();
 
@@ -49,6 +52,18 @@ export default function CookieConsentBanner() {
 
     return true;
   });
+
+  useEffect(() => {
+    try {
+      let el = document.getElementById(PORTAL_ROOT_ID);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = PORTAL_ROOT_ID;
+        document.body.appendChild(el);
+      }
+      setPortalRoot(el);
+    } catch {}
+  }, []);
 
   const closeForNow = () => {
     const now = String(Date.now());
@@ -103,17 +118,23 @@ export default function CookieConsentBanner() {
       localStorage.setItem(COOKIE_OPEN_KEY, '1');
       window.dispatchEvent(new Event('presstag:cookieBannerOpen'));
     } catch {}
+    try {
+      document.documentElement.classList.add('presstag-cookie-modal-open');
+    } catch {}
     return () => {
       try {
         localStorage.setItem(COOKIE_OPEN_KEY, '0');
         window.dispatchEvent(new Event('presstag:cookieBannerClosed'));
       } catch {}
+      try {
+        document.documentElement.classList.remove('presstag-cookie-modal-open');
+      } catch {}
     };
   }, [visible]);
 
-  if (!visible) return null;
+  if (!visible || !portalRoot) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[2147483647] flex items-end justify-center p-4 pb-10 sm:pb-14 bg-black/10">
       <div className="relative w-full max-w-3xl rounded-xl border border-gray-200 bg-white shadow-lg p-6 sm:p-8 text-center sm:text-left">
         <button
@@ -152,6 +173,7 @@ export default function CookieConsentBanner() {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    portalRoot
   );
 }
