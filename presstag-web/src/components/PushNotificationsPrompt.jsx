@@ -209,6 +209,16 @@ export default function PushNotificationsPrompt() {
         return;
       }
 
+      try {
+        const data = await res.json();
+        if (data?.vapidConfigured === false) {
+          alert('Notifications were enabled on this device, but sending is not configured on the server yet.');
+        } else if (data?.testSent === false) {
+          const details = typeof data?.testError === 'string' && data.testError.trim() ? ` (${data.testError.trim()})` : '';
+          alert(`Notifications enabled, but test delivery failed${details}.`);
+        }
+      } catch {}
+
       dismiss('accepted');
     } finally {
       setBusy(false);

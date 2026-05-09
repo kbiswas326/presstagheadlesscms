@@ -70,7 +70,31 @@ router.post('/subscribe', async (req, res) => {
     );
 
     const cfg = getWebPushConfig();
-    res.json({ ok: true, vapidConfigured: !!cfg });
+    let testSent = false;
+    let testError = '';
+    if (cfg) {
+      try {
+        configureWebPush();
+        await webPush.sendNotification(
+          { endpoint, keys: { p256dh: keys.p256dh, auth: keys.auth } },
+          JSON.stringify({
+            type: 'test',
+            title: 'Notifications enabled',
+            body: 'You will now receive alerts when new posts are published.',
+            url: '/',
+          })
+        );
+        testSent = true;
+      } catch (err) {
+        testError = String(err?.message || '').slice(0, 300);
+        const code = err?.statusCode || err?.status;
+        if (code === 404 || code === 410) {
+          try { await db.collection('pushSubscriptions').deleteOne({ endpoint }); } catch {}
+        }
+      }
+    }
+
+    res.json({ ok: true, vapidConfigured: !!cfg, testSent, testError });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
