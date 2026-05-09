@@ -59,6 +59,7 @@ export default function PushNotificationsPrompt() {
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [cookieOpen, setCookieOpen] = useState(false);
+  const [unsupportedMessage, setUnsupportedMessage] = useState('');
 
   useEffect(() => {
     try {
@@ -93,7 +94,22 @@ export default function PushNotificationsPrompt() {
 
       try {
         if (typeof window === 'undefined') return;
-        if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+        if (!('Notification' in window)) {
+          setUnsupportedMessage('Notifications are not supported on this browser/device.');
+          try { localStorage.setItem(LAST_SHOWN_KEY, String(now)); } catch {}
+          setVisible(true);
+          return;
+        }
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+          const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+          const msg = isiOS
+            ? 'Notifications require iOS 16.4+ and adding this site to your Home Screen (Install to Home Screen) to enable web push.'
+            : 'Notifications are not supported on this browser/device.';
+          setUnsupportedMessage(msg);
+          try { localStorage.setItem(LAST_SHOWN_KEY, String(now)); } catch {}
+          setVisible(true);
+          return;
+        }
         if (Notification.permission === 'denied') {
           try { localStorage.setItem(OPTIN_KEY, 'denied'); } catch {}
           return;
@@ -243,26 +259,28 @@ export default function PushNotificationsPrompt() {
           </svg>
         </button>
         <div className="flex-1 text-sm text-gray-700">
-          Enable notifications to get alerts when new articles are published, including every live blog updates we publish.
+          {unsupportedMessage || 'Enable notifications to get alerts when new articles are published, including every live blog updates we publish.'}
         </div>
         <div className="flex items-center gap-2 justify-end">
           <button
             type="button"
-            onClick={() => dismiss('dismissed')}
+            onClick={() => dismiss(unsupportedMessage ? 'unsupported' : 'dismissed')}
             className="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50"
             disabled={busy}
           >
-            Not now
+            {unsupportedMessage ? 'OK' : 'Not now'}
           </button>
-          <button
-            type="button"
-            onClick={enable}
-            className="px-4 py-2 rounded-lg text-white font-semibold text-sm disabled:opacity-60"
-            style={{ backgroundColor: 'var(--primary-color)' }}
-            disabled={busy}
-          >
-            {busy ? 'Enabling…' : 'Enable'}
-          </button>
+          {!unsupportedMessage ? (
+            <button
+              type="button"
+              onClick={enable}
+              className="px-4 py-2 rounded-lg text-white font-semibold text-sm disabled:opacity-60"
+              style={{ backgroundColor: 'var(--primary-color)' }}
+              disabled={busy}
+            >
+              {busy ? 'Enabling…' : 'Enable'}
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
