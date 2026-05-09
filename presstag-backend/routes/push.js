@@ -54,18 +54,18 @@ router.post('/subscribe', async (req, res) => {
     const db = getDB(req.tenantId);
     if (!db) return res.status(500).json({ error: 'Database unavailable' });
 
+    const createdAt = new Date();
     const doc = {
       endpoint,
       keys: { p256dh: keys.p256dh, auth: keys.auth },
       allowed: true,
-      createdAt: new Date(),
       updatedAt: new Date(),
       userAgent: String(req.headers['user-agent'] || '').slice(0, 500),
     };
 
     await db.collection('pushSubscriptions').updateOne(
       { endpoint },
-      { $set: doc, $setOnInsert: { createdAt: doc.createdAt } },
+      { $set: doc, $setOnInsert: { createdAt } },
       { upsert: true }
     );
 
