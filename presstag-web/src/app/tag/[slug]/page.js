@@ -165,7 +165,7 @@ export default async function TagPage({ params, searchParams }) {
       baseUrl={`/${preferredPrefix}/${encodeURIComponent(decodedSlug)}`}
       primaryColor={primaryColor}
       urlStructure={urlStructure}
-      sidebar={templateId !== 'classic'}
+      sidebar={true}
     />
   );
 }

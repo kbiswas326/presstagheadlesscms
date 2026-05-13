@@ -30,6 +30,9 @@ const ArticleGridCard = ({ post, urlStructure, variant = 'classic' }) => {
   const postUrl = buildPostUrl(post, urlStructure);
   const tpl = String(variant || '').trim().toLowerCase();
   const isBold = tpl === 'bold';
+  const isModern = tpl === 'modern';
+  const isNews = tpl === 'news';
+  const isMagazine = tpl === 'magazine';
   const cat = (post?.primary_category?.[0] || post?.categories?.[0]) || null;
   const catLabel = typeof cat === 'string' ? cat : (cat?.name || cat?.title || cat?.slug || '');
   const cleanedCat = String(catLabel || '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -42,23 +45,31 @@ const ArticleGridCard = ({ post, urlStructure, variant = 'classic' }) => {
   const authorLabel = authorNames.length ? authorNames.join(', ') : (post?.author?.name || '');
   const readTime = post?.content ? calculateReadTime(post.content) : '';
 
+  const cardShell = (() => {
+    if (isBold) return 'bg-white hover:bg-gray-50 border-gray-200 shadow-sm rounded-xl';
+    if (isModern) return 'bg-white hover:bg-gray-50 border-gray-100 shadow-sm hover:shadow-md rounded-2xl';
+    if (isMagazine) return 'bg-white hover:bg-gray-50 border-gray-100 shadow-sm hover:shadow-md rounded-3xl';
+    if (isNews) return 'bg-white border-b border-gray-100 hover:bg-gray-50 rounded-none';
+    return 'bg-white hover:bg-gray-50 border-gray-200 rounded-lg';
+  })();
+
+  const contentPad = isNews ? 'p-4' : (isModern || isMagazine ? 'p-5' : 'p-4');
+
   return (
     <Link
       href={postUrl}
-      className={`transition-colors border rounded-lg overflow-hidden cursor-pointer flex flex-col block ${
-        isBold ? 'bg-white hover:bg-gray-50 border-gray-200 shadow-sm rounded-xl' : 'bg-white hover:bg-gray-50 border-gray-200'
-      }`}
+      className={`transition-colors border overflow-hidden cursor-pointer flex flex-col block ${cardShell}`}
     >
       {/* Image container with fixed aspect ratio */}
       <div className="relative w-full">
         {finalImageSrc ? (
-          <figure className="relative pb-[56.25%] rounded">
+          <figure className={`relative pb-[56.25%] ${isNews ? '' : 'rounded'} overflow-hidden`}>
             <Image
               src={finalImageSrc}
               alt={post.featuredImage?.altText || post.banner_desc || post.title || ""}
               fill
               sizes="(max-width: 768px) 85vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-              className="object-cover object-center"
+              className={`object-cover object-center ${isNews ? '' : 'transition-transform duration-500 hover:scale-[1.02]'}`}
               
               quality={75}
             />
@@ -70,15 +81,23 @@ const ArticleGridCard = ({ post, urlStructure, variant = 'classic' }) => {
         )}
       </div>
 
-      <div className="p-4 flex flex-col flex-grow">
-        {isBold ? (
+      <div className={`${contentPad} flex flex-col flex-grow`}>
+        {(isBold || isModern || isMagazine) ? (
           <>
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">
               <span className="truncate">{authorLabel || 'SportzPoint'}</span>
               <span className="flex-shrink-0">{formatDate(displayDate)}</span>
             </div>
-            <h3 className="text-sm font-semibold line-clamp-2 mb-3 text-gray-900">
-              {post.isLive && (<span className="inline-flex items-center gap-1 mr-2 align-middle"><span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span></span><span className="text-red-600 text-[9px] font-bold uppercase">LIVE</span></span>)}
+            <h3 className={`${isModern || isMagazine ? 'text-base' : 'text-sm'} font-semibold line-clamp-2 mb-3 text-gray-900`}>
+              {post.isLive ? (
+                <span className="inline-flex items-center gap-1 mr-2 align-middle">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span>
+                  </span>
+                  <span className="text-red-600 text-[9px] font-bold uppercase">LIVE</span>
+                </span>
+              ) : null}
               {post.title}
             </h3>
             <div className="mt-auto flex items-center gap-2">
@@ -95,13 +114,41 @@ const ArticleGridCard = ({ post, urlStructure, variant = 'classic' }) => {
               ) : null}
             </div>
           </>
+        ) : isNews ? (
+          <>
+            <div className="flex items-center justify-between text-[11px] text-gray-500 mb-2">
+              <span className="truncate">{displayCat || 'Latest'}</span>
+              <span className="flex-shrink-0">{formatDate(displayDate)}</span>
+            </div>
+            <h3 className="text-base font-semibold leading-snug line-clamp-2 text-gray-900">
+              {post.isLive ? (
+                <span className="inline-flex items-center gap-1 mr-2 align-middle">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span>
+                  </span>
+                  <span className="text-red-600 text-[9px] font-bold uppercase tracking-wider">LIVE</span>
+                </span>
+              ) : null}
+              {post.title}
+            </h3>
+          </>
         ) : (
           <>
-            <h3 className={`text-sm font-semibold line-clamp-2 mb-2 ${isBold ? 'text-gray-900' : 'text-gray-800'}`}>{post.isLive && (<span className="inline-flex items-center gap-1 mr-2 align-middle"><span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span></span><span className="text-red-600 text-[9px] font-bold uppercase">LIVE</span></span>)}
+            <h3 className="text-sm font-semibold line-clamp-2 mb-2 text-gray-900">
+              {post.isLive ? (
+                <span className="inline-flex items-center gap-1 mr-2 align-middle">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span>
+                  </span>
+                  <span className="text-red-600 text-[9px] font-bold uppercase">LIVE</span>
+                </span>
+              ) : null}
               {post.title}
             </h3>
             <div className="mt-auto flex items-center justify-between">
-              <span className={`text-[10px] ${isBold ? 'text-gray-500' : 'text-gray-500'}`}>
+              <span className="text-[10px] text-gray-500">
                 {formatDate(displayDate)}
               </span>
             </div>

@@ -87,7 +87,7 @@ export default async function PostsArchivePage({ searchParams }) {
       baseUrl={baseUrl}
       primaryColor={primaryColor}
       urlStructure={urlStructure}
-      sidebar={templateId !== 'classic'}
+      sidebar={true}
     />
   );
 }

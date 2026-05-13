@@ -132,7 +132,7 @@ export default async function CategoryPage({ params, searchParams }) {
       baseUrl={`/category/${slug}`}
       primaryColor={primaryColor}
       urlStructure={urlStructure}
-      sidebar={templateId !== 'classic'}
+      sidebar={true}
     />
   );
 }

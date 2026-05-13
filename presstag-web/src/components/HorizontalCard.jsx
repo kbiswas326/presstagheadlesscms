@@ -29,18 +29,26 @@ const HorizontalCard = ({ post, urlStructure, variant = 'classic' }) => {
   const displayDate = post.publishedAt || post.publishDate || post.createdAt || post.updatedAt;
   const tpl = String(variant || '').trim().toLowerCase();
   const isBold = tpl === 'bold';
+  const isModern = tpl === 'modern';
+  const isNews = tpl === 'news';
+  const isMagazine = tpl === 'magazine';
   const cat = (post?.primary_category?.[0] || post?.categories?.[0]) || null;
   const catLabel = typeof cat === 'string' ? cat : (cat?.name || cat?.title || cat?.slug || '');
   const cleanedCat = String(catLabel || '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
   const displayCatCandidate = cleanedCat ? cleanedCat.replace(/\b\w/g, (ch) => ch.toUpperCase()) : '';
   const displayCat = /^[0-9a-f]{24}$/i.test(displayCatCandidate) ? '' : displayCatCandidate;
+  const shell = (() => {
+    if (isBold) return 'rounded-xl p-4 bg-white hover:bg-gray-50 border border-gray-200 shadow-sm';
+    if (isModern) return 'rounded-2xl p-4 bg-white hover:bg-gray-50 border border-gray-100 shadow-sm hover:shadow-md';
+    if (isMagazine) return 'rounded-3xl p-4 bg-white hover:bg-gray-50 border border-gray-100 shadow-sm hover:shadow-md';
+    if (isNews) return 'rounded-none p-0 bg-transparent';
+    return '';
+  })();
 
   return (
     <Link
       href={postUrl}
-      className={`flex flex-row gap-4 group cursor-pointer ${
-        isBold ? 'rounded-xl p-3 bg-white hover:bg-gray-50 border border-gray-200 shadow-sm' : ''
-      }`}
+      className={`flex flex-row gap-4 group cursor-pointer ${shell}`}
     >
       {/* Image */}
       <div className="relative w-1/3 md:w-1/3 lg:w-1/3 flex-shrink-0">
@@ -71,23 +79,25 @@ const HorizontalCard = ({ post, urlStructure, variant = 'classic' }) => {
                         <span className="text-red-600 text-[10px] font-bold uppercase tracking-wider">LIVE</span>
                      </div>
                 )}
-             {isBold && displayCat ? (
-                 <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--primary-color)' }}>
-                     {displayCat}
-                 </span>
+             {(isBold || isModern || isMagazine || isNews) && displayCat ? (
+               <span className={`text-[10px] ${isNews ? 'font-semibold tracking-wider' : 'font-bold uppercase tracking-widest'}`} style={{ color: 'var(--primary-color)' }}>
+                 {displayCat}
+               </span>
              ) : (
                uniqueRenderingCategories.slice(0, 1).map((cat, i) => (
-                   <span 
-                      key={i} 
-                      className="text-[10px] font-bold uppercase tracking-wider"
-                      style={{ color: 'var(--primary-color)' }}
-                   >
-                       {cat.name}
-                   </span>
+                 <span
+                   key={i}
+                   className="text-[10px] font-bold uppercase tracking-wider"
+                   style={{ color: 'var(--primary-color)' }}
+                 >
+                   {cat.name}
+                 </span>
                ))
              )}
         </div>
-        <h3 className={`text-sm md:text-base font-bold leading-snug mb-1 transition-colors line-clamp-2 group-hover:text-[var(--primary-color)] ${isBold ? 'text-gray-900' : 'text-gray-900'}`}>
+        <h3 className={`leading-snug mb-1 transition-colors line-clamp-2 group-hover:text-[var(--primary-color)] text-gray-900 ${
+          isModern || isMagazine ? 'text-base md:text-lg font-semibold' : 'text-sm md:text-base font-bold'
+        }`}>
           {post.title}
         </h3>
         <div className={`flex items-center text-[11px] gap-2 mt-auto ${isBold ? 'text-gray-500' : 'text-gray-500'}`}>

@@ -186,24 +186,35 @@ export default function TemplateListing({
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 min-h-screen">
-      {header}
-      {hasPosts ? (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {posts.map((post, i) => (
-              <ArticleGridCard key={post?._id || i} post={post} urlStructure={urlStructure} variant={tpl} />
-            ))}
+    <div className="bg-white min-h-screen pb-16">
+      <div className="container mx-auto px-4 py-8">
+        {header}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className={sidebar ? 'lg:col-span-8' : 'lg:col-span-12'}>
+            {hasPosts ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {posts.map((post, i) => (
+                    <ArticleGridCard key={post?._id || i} post={post} urlStructure={urlStructure} variant={tpl} />
+                  ))}
+                </div>
+                {totalPages > 1 ? (
+                  <Pagination currentPage={page} totalPages={totalPages} baseUrl={baseUrl} />
+                ) : null}
+              </>
+            ) : (
+              <div className="text-center py-20">
+                <h2 className="text-xl text-gray-500">No posts found.</h2>
+              </div>
+            )}
           </div>
-          {totalPages > 1 ? (
-            <Pagination currentPage={page} totalPages={totalPages} baseUrl={baseUrl} />
+          {sidebar ? (
+            <div className="lg:col-span-4 lg:sticky lg:top-0">
+              <Sidebar variant="post" />
+            </div>
           ) : null}
-        </>
-      ) : (
-        <div className="text-center py-20">
-          <h2 className="text-xl text-gray-500">No posts found.</h2>
         </div>
-      )}
+      </div>
     </div>
   );
 }

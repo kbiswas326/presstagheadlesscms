@@ -74,7 +74,7 @@ export default async function SearchResultsPage({ params, searchParams }) {
       baseUrl={baseUrl}
       primaryColor={primaryColor}
       urlStructure={urlStructure}
-      sidebar={templateId !== 'classic'}
+      sidebar={true}
     />
   );
 }
