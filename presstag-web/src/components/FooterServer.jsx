@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
 import { buildPostUrl } from '@/lib/urlBuilder';
+import { resolveTemplateId } from '@/lib/templates';
 
 const Icon = ({ title, children }) => (
   <svg
@@ -88,7 +89,7 @@ export default async function FooterServer({ config }) {
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
   const primaryColor = branding?.primaryColor || '#006356';
   const siteTitle = branding?.siteTitle || 'PressTag';
-  const templateId = String(branding?.templateId || '').trim().toLowerCase();
+  const templateId = resolveTemplateId(branding?.templateId);
   const isBold = templateId === 'bold';
 
   const sidebarWidgets = sidebarConfig.postWidgets || sidebarConfig.homepageWidgets || sidebarConfig.widgets || [];

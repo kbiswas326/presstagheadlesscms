@@ -2,12 +2,13 @@ import NavigationBar from "./header/Navbar";
 import Footer from "./FooterServer";
 import AdSpot from "./AdSpot";
 import CookieConsentBanner from "./CookieConsentBanner";
+import { resolveTemplateId } from "../lib/templates";
 
 export default function LayoutClient({ children, config }) {
   // Config.navbar can be an array (new) or object (old)
   let navbar = [];
   let branding = config?.branding || {};
-  const templateId = branding?.templateId;
+  const templateId = resolveTemplateId(branding?.templateId);
 
   if (Array.isArray(config?.navbar)) {
       navbar = config.navbar;
