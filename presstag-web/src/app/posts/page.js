@@ -2,6 +2,7 @@ import React from 'react';
 import TemplateListing from '../../components/TemplateListing';
 import { fetchWithTenant } from '../../lib/fetchWithTenant';
 import { resolveTemplateId } from '../../lib/templates';
+import { headers } from 'next/headers';
 
 export const revalidate = 120;
 
@@ -59,7 +60,8 @@ export default async function PostsArchivePage({ searchParams }) {
   ]);
 
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
-  const templateId = resolveTemplateId(config?.branding?.templateId);
+  const templateOverride = headers().get('x-template-id');
+  const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);
   const primaryColor = config?.branding?.primaryColor || '#006356';
 
   const title =

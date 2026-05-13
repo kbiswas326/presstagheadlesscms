@@ -142,7 +142,9 @@ export default async function RootLayout({ children }) {
     ? `${faviconHref}${faviconVersion ? `${faviconHref.includes('?') ? '&' : '?'}v=${faviconVersion}` : ''}`
     : '';
   const primaryColor = config?.branding?.primaryColor || '#006356';
-  const templateId = resolveTemplateId(config?.branding?.templateId);
+  const h = headers();
+  const templateOverride = h.get('x-template-id');
+  const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);
 
   return (
     <html lang="en" data-template={templateId} className={inter.variable} style={{ '--primary-color': primaryColor }}>

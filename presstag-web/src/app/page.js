@@ -4,6 +4,7 @@ import { getFallbackImage, resolvePostImage } from '../lib/imageHelper';
 import { fetchWithTenant, fetchLayoutConfig } from '../lib/fetchWithTenant';
 import { resolveTemplateId } from '../lib/templates';
 import { renderHomeByTemplate } from '../templates/home';
+import { headers } from 'next/headers';
 
 export const revalidate = 60;
 
@@ -69,7 +70,8 @@ export default async function Page() {
   const primaryColor = config?.branding?.primaryColor || '#006356';
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
   const tagPrefix = String(config?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
-  const templateId = resolveTemplateId(config?.branding?.templateId);
+  const templateOverride = headers().get('x-template-id');
+  const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);
 
   // HERO POSTS
   const heroPosts = await getPosts({ limit: 5 });

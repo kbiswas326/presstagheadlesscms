@@ -85,6 +85,7 @@ function shouldSkipLowercase(pathname) {
 
 export async function middleware(request) {
   const tenantId = process.env.NEXT_PUBLIC_TENANT_ID || 'sportzpoint';
+  const templateOverride = request.nextUrl.searchParams.get('tpl');
 
   const pathname = request.nextUrl.pathname;
   if (!shouldSkipLowercase(pathname) && /[A-Z]/.test(pathname)) {
@@ -111,6 +112,7 @@ export async function middleware(request) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-tenant-id', tenantId);
+  if (templateOverride) requestHeaders.set('x-template-id', String(templateOverride));
 
   return NextResponse.next({
     request: { headers: requestHeaders },

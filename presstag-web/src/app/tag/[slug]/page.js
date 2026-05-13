@@ -4,6 +4,7 @@ import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 import { buildOpenGraphImage, fillTemplate, resolveSiteAssetUrl } from '../../../lib/seo';
 import { permanentRedirect } from 'next/navigation';
 import { resolveTemplateId } from '../../../lib/templates';
+import { headers } from 'next/headers';
 
 async function getLayoutConfig() {
   try {
@@ -142,7 +143,8 @@ export default async function TagPage({ params, searchParams }) {
   }
 
   const { articles: posts, totalPages } = await getTagPosts(decodedSlug, page);
-  const templateId = resolveTemplateId(config?.branding?.templateId);
+  const templateOverride = headers().get('x-template-id');
+  const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);
   const primaryColor = config?.branding?.primaryColor || '#006356';
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
   

@@ -4,6 +4,7 @@ import TemplateListing from '../../../components/TemplateListing';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 import { buildOpenGraphImage, fillTemplate, resolveSiteAssetUrl } from '../../../lib/seo';
 import { resolveTemplateId } from '../../../lib/templates';
+import { headers } from 'next/headers';
 
 export const revalidate = 120;
 
@@ -108,7 +109,8 @@ export default async function CategoryPage({ params, searchParams }) {
     getCategoryPosts(slug, page),
   ]);
   const { articles: posts, totalPages } = postsResult;
-  const templateId = resolveTemplateId(config?.branding?.templateId);
+  const templateOverride = headers().get('x-template-id');
+  const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);
   const primaryColor = config?.branding?.primaryColor || '#006356';
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
 
