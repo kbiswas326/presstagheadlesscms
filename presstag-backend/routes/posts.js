@@ -8,54 +8,10 @@ const { getDB } = require('../config/db');
 const { ObjectId } = require('mongodb');
 const { normalizeRole } = require('../middleware/requireRole');
 const { generateKeyTakeaways, generateImageCaption } = require('../utils/ai');
-const webPush = require('web-push');
-const { configureWebPush } = require('./push');
 
 /* =====================================================
    HELPERS
 ===================================================== */
-
-async function sendTenantPush(tenantId, payload) {
-  const cfg = configureWebPush();
-  if (!cfg) return;
-  const candidates = [
-    String(tenantId || '').trim(),
-    String(process.env.DEFAULT_TENANT_ID || '').trim(),
-    'sportzpoint',
-    'presstag',
-  ].filter(Boolean);
-  const orderedTenants = Array.from(new Set(candidates));
-
-  const allSubs = [];
-  const seenEndpoints = new Set();
-  for (const t of orderedTenants) {
-    const db = getDB(t);
-    if (!db) continue;
-    const subs = await db.collection('pushSubscriptions').find({}).toArray();
-    for (const sub of subs) {
-      const endpoint = String(sub?.endpoint || '');
-      if (!endpoint || seenEndpoints.has(endpoint)) continue;
-      if (sub?.allowed === false) continue;
-      seenEndpoints.add(endpoint);
-      allSubs.push({ tenantId: t, sub });
-    }
-  }
-  if (!allSubs.length) return;
-
-  const message = JSON.stringify(payload);
-  await Promise.allSettled(
-    allSubs.map(async ({ tenantId: t, sub }) => {
-      try {
-        await webPush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, message);
-      } catch (err) {
-        const code = err?.statusCode || err?.status;
-        if (code === 404 || code === 410) {
-          try { await getDB(t)?.collection('pushSubscriptions')?.deleteOne?.({ endpoint: sub.endpoint }); } catch {}
-        }
-      }
-    })
-  );
-}
 
 function stripHtmlToText(input) {
   const html = String(input || '');
@@ -80,39 +36,6 @@ function isPostOwnedByUser(post, userId) {
     if (matches(id)) return true;
   }
   return false;
-}
-
-function getNotificationImage(post) {
-  const candidate =
-    post?.featuredImage?.url ||
-    post?.featuredImage ||
-    post?.banner_image?.url ||
-    post?.banner_image ||
-    post?.coverImage?.url ||
-    post?.coverImage ||
-    '';
-  const raw = typeof candidate === 'string' ? candidate : (candidate?.url || '');
-  const value = String(raw || '').trim();
-  if (!value) return '';
-  if (value.startsWith('http://') || value.startsWith('https://')) return value;
-
-  const apiBase = String(process.env.PUBLIC_API_URL || process.env.API_URL || '').trim();
-  let origin = apiBase ? apiBase.replace(/\/api\/?$/, '').replace(/\/+$/, '') : '';
-  if (!origin) origin = 'http://localhost:5001';
-
-  if (value.startsWith('/uploads/')) return `${origin}${value}`;
-  if (value.startsWith('/uploads')) return `${origin}${value.startsWith('/') ? value : `/${value}`}`;
-  if (value.startsWith('/')) return `${origin}${value}`;
-  return `${origin}/uploads/${value}`;
-}
-
-function buildPostSnippet(post) {
-  const summary = String(post?.summary || post?.excerpt || '').trim();
-  if (summary) return summary.length > 160 ? `${summary.slice(0, 157)}...` : summary;
-
-  const text = stripHtmlToText(post?.content || '');
-  if (!text) return '';
-  return text.length > 160 ? `${text.slice(0, 157)}...` : text;
 }
 
 function getIstDateParts(date) {
@@ -879,19 +802,6 @@ router.post('/', authMiddleware, async (req, res) => {
         }
       }
     } catch {}
-    if (status === 'published' && notifySubscribers !== false) {
-      const idOrSlug = String(post.slug || post._id || '');
-      const resolvedUrl = String(notifyUrl || enrichedPost?.originalUrl || (idOrSlug ? `/posts/${encodeURIComponent(idOrSlug)}` : '/')).trim();
-      await sendTenantPush(req.tenantId, {
-        type: notifyType === 'live_update' ? 'live_update' : 'post_published',
-        title: String(notifyTitle || post.title || 'New post published'),
-        body: String(notifyBody || buildPostSnippet(post) || ''),
-        image: String(notifyImage || getNotificationImage(post) || ''),
-        url: resolvedUrl,
-        postId: String(post._id || ''),
-        slug: String(post.slug || ''),
-      });
-    }
     res.status(201).json(enrichedPost || post);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -993,28 +903,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
       nextStatus === 'published' &&
       String(next?.type || '').toLowerCase().includes('live');
 
-    const shouldNotifyPublish = isStatusPublishTransition && notifySubscribers !== false;
-    const shouldNotifyExplicitPublish =
-      (notifySubscribers === true || isExplicitPublishAction) &&
-      (notifyType === 'post_published' || !notifyType) &&
-      desiredStatus === 'published';
-
-    if (shouldNotifyLiveUpdateAny || shouldNotifyPublish || shouldNotifyExplicitPublish) {
-      const idOrSlug = String(next.slug || next._id || '');
-      const lastUpdate = Array.isArray(next.liveUpdates) && next.liveUpdates.length > 0 ? next.liveUpdates[next.liveUpdates.length - 1] : null;
-      const resolvedUrl = String(notifyUrl || next?.originalUrl || (idOrSlug ? `/posts/${encodeURIComponent(idOrSlug)}` : '/')).trim();
-      await sendTenantPush(req.tenantId, {
-        type: shouldNotifyLiveUpdateAny ? 'live_update' : 'post_published',
-        title: String(notifyTitle || next.title || 'New post published'),
-        body: String(notifyBody || (shouldNotifyLiveUpdateAny
-          ? (String(lastUpdate?.title || lastUpdate?.heading || 'New live update').trim())
-          : buildPostSnippet(next)) || ''),
-        image: String(notifyImage || getNotificationImage(next) || ''),
-        url: resolvedUrl,
-        postId: String(next._id || ''),
-        slug: String(next.slug || ''),
-      });
-    }
     res.json(enrichedPost || post);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1041,18 +929,6 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
 
     const updateData = { status: nextStatus, updatedAt: new Date(), publishedAt: nextStatus === 'published' ? new Date() : null };
     const updated = await Post.update(targetId, updateData, req.tenantId);
-    if (isStatusPublishTransition) {
-      const idOrSlug = String(updated.slug || updated._id || '');
-      await sendTenantPush(req.tenantId, {
-        type: 'post_published',
-        title: updated.title || 'New post published',
-        body: buildPostSnippet(updated),
-        image: getNotificationImage(updated),
-        url: idOrSlug ? `/posts/${encodeURIComponent(idOrSlug)}` : '/',
-        postId: String(updated._id || ''),
-        slug: String(updated.slug || ''),
-      });
-    }
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });

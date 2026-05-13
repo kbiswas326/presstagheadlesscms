@@ -1,7 +1,6 @@
 import NavigationBar from "./header/Navbar";
 import Footer from "./FooterServer";
 import AdSpot from "./AdSpot";
-import PushNotificationsPrompt from "./PushNotificationsPrompt";
 import CookieConsentBanner from "./CookieConsentBanner";
 
 export default function LayoutClient({ children, config }) {
@@ -47,7 +46,6 @@ export default function LayoutClient({ children, config }) {
       <Footer config={config} />
       <AdSpot position="footer_bottom" />
       <CookieConsentBanner />
-      <PushNotificationsPrompt />
     </>
   );
 }
