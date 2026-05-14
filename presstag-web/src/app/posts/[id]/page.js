@@ -40,10 +40,33 @@ function normalizePath(input) {
   return raw.startsWith('/') ? raw : `/${raw}`;
 }
 
+async function getPostByIdOrSlug(id, options = {}) {
+  const key = String(id || '').trim();
+  if (!key) return null;
+
+  const byId = await getPostById(key, options);
+  if (byId) return byId;
+
+  try {
+    const cache = options.cache || 'default';
+    const revalidate = options.revalidate ?? 60;
+    const fetchOptions =
+      cache === 'no-store'
+        ? { cache: 'no-store' }
+        : { next: { revalidate } };
+
+    const res = await fetchWithTenant(`/posts/slug/${encodeURIComponent(key)}`, fetchOptions);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const [post, config] = await Promise.all([
-    getPostById(resolvedParams.id),
+    getPostByIdOrSlug(resolvedParams.id),
     (await import('@/lib/fetchWithTenant')).fetchWithTenant('/layout-config', { next: { revalidate: 60 } })
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null),
@@ -147,7 +170,7 @@ export async function generateMetadata({ params }) {
 
 export default async function PostPage({ params }) {
   const resolvedParams = await params;
-  let post = await getPostById(resolvedParams.id, { revalidate: 30 });
+  let post = await getPostByIdOrSlug(resolvedParams.id, { revalidate: 30 });
   if (post) post.gallery = post.gallery || post.images;
 
 
