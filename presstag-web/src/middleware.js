@@ -85,7 +85,10 @@ function shouldSkipLowercase(pathname) {
 
 export async function middleware(request) {
   const tenantId = process.env.NEXT_PUBLIC_TENANT_ID || 'sportzpoint';
-  const templateOverride = request.nextUrl.searchParams.get('tpl');
+  const allowTemplateOverride = process.env.NODE_ENV !== 'production';
+  const templateOverrideParam = allowTemplateOverride ? request.nextUrl.searchParams.get('tpl') : null;
+  const templateOverrideCookie = allowTemplateOverride ? request.cookies.get('presstag_tpl')?.value : null;
+  const templateOverride = templateOverrideParam || templateOverrideCookie;
 
   const pathname = request.nextUrl.pathname;
   if (!shouldSkipLowercase(pathname) && /[A-Z]/.test(pathname)) {
@@ -114,9 +117,16 @@ export async function middleware(request) {
   requestHeaders.set('x-tenant-id', tenantId);
   if (templateOverride) requestHeaders.set('x-template-id', String(templateOverride));
 
-  return NextResponse.next({
+  const response = NextResponse.next({
     request: { headers: requestHeaders },
   });
+  if (templateOverrideParam) {
+    response.cookies.set('presstag_tpl', String(templateOverrideParam), {
+      path: '/',
+      sameSite: 'lax',
+    });
+  }
+  return response;
 }
 
 export const config = {

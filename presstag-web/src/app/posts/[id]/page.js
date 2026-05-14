@@ -65,7 +65,7 @@ export async function generateMetadata({ params }) {
     let base = siteUrlFromConfig || explicit || inferred;
     if (!base) {
       try {
-        const h = headers();
+        const h = await headers();
         const host = String(h.get('x-forwarded-host') || h.get('host') || '').trim();
         const proto = String(h.get('x-forwarded-proto') || 'https').trim() || 'https';
         if (host) base = `${proto}://${host}`;
@@ -154,7 +154,9 @@ export default async function PostPage({ params }) {
   const layoutConfig = await fetchWithTenant('/layout-config', { next: { revalidate: 60 } })
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
-  const templateId = resolveTemplateId(layoutConfig?.branding?.templateId);
+  const h = await headers();
+  const templateOverride = h.get('x-template-id');
+  const templateId = resolveTemplateId(templateOverride || layoutConfig?.branding?.templateId);
   const tagPrefix = String(layoutConfig?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
   const primaryColor = layoutConfig?.branding?.primaryColor || '#006356';
   const urlStructure = layoutConfig?.seo?.postUrlStructure || '/{category}/{slug}';
@@ -180,7 +182,7 @@ export default async function PostPage({ params }) {
   }
 
   // Determine post type
-  const cleanType = post.type?.toLowerCase().trim();
+  const cleanType = String(post?.type || '').toLowerCase().trim();
   const isGallery = cleanType === 'photo gallery' || cleanType === 'photo-gallery';
   const isVideo = cleanType === 'video';
   const isWebStory = cleanType === 'web story' || cleanType === 'web-story' || cleanType === 'story';

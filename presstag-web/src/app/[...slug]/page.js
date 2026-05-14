@@ -153,7 +153,7 @@ export async function generateMetadata({ params }) {
     let base = siteUrlFromConfig || explicit || inferred;
     if (!base) {
       try {
-        const h = headers();
+        const h = await headers();
         const host = String(h.get('x-forwarded-host') || h.get('host') || '').trim();
         const proto = String(h.get('x-forwarded-proto') || 'https').trim() || 'https';
         if (host) base = `${proto}://${host}`;
@@ -365,7 +365,9 @@ if (!post) {
   if (post) post.gallery = post.gallery || post.images;
   post = await ensureCategories(post);
   post = await ensurePeople(post);
-  const templateId = resolveTemplateId(layoutConfig?.branding?.templateId);
+  const h = await headers();
+  const templateOverride = h.get('x-template-id');
+  const templateId = resolveTemplateId(templateOverride || layoutConfig?.branding?.templateId);
   const primaryColor = layoutConfig?.branding?.primaryColor || '#006356';
   const tagPrefix = String(layoutConfig?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
   const urlStructure = layoutConfig?.seo?.postUrlStructure || '/{category}/{slug}';
@@ -441,7 +443,7 @@ if (!post) {
     );
   }
 
-  const cleanType = post.type?.toLowerCase().trim();
+  const cleanType = String(post?.type || '').toLowerCase().trim();
   const isGallery = cleanType === 'photo gallery' || cleanType === 'photo-gallery';
   const isVideo = cleanType === 'video';
   const isWebStory = cleanType === 'web story' || cleanType === 'web-story' || cleanType === 'story';

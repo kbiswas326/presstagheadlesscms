@@ -109,7 +109,8 @@ export default async function CategoryPage({ params, searchParams }) {
     getCategoryPosts(slug, page),
   ]);
   const { articles: posts, totalPages } = postsResult;
-  const templateOverride = headers().get('x-template-id');
+  const h = await headers();
+  const templateOverride = h.get('x-template-id');
   const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);
   const primaryColor = config?.branding?.primaryColor || '#006356';
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';

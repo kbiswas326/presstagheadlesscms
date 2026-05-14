@@ -1,5 +1,5 @@
 export function calculateReadTime(content) {
-    if (!content) return '1 min read'; // Default fallback
+    if (!content || typeof content !== 'string') return '1 min read';
 
     // Remove HTML tags and trim whitespace
     const text = content.replace(/<[^>]*>/g, '').trim();

@@ -9,6 +9,7 @@ import { fetchWithTenant } from '@/lib/fetchWithTenant';
 import { getImageUrl } from '@/lib/imageHelper';
 import { buildOpenGraphImage, fillTemplate, resolveSiteAssetUrl } from '@/lib/seo';
 import { resolveTemplateId } from '@/lib/templates';
+import { headers } from 'next/headers';
 
 async function getAuthor(slug) {
     try {
@@ -119,7 +120,9 @@ export default async function AuthorPage({ params, searchParams }) {
 
     const author = await getAuthor(authorSlug);
     const config = await getLayoutConfig();
-    const templateId = resolveTemplateId(config?.branding?.templateId);
+    const h = await headers();
+    const templateOverride = h.get('x-template-id');
+    const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);
     const primaryColor = config?.branding?.primaryColor || '#006356';
     const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
 

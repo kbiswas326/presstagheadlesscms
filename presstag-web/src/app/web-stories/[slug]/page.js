@@ -60,7 +60,7 @@ export default async function WebStoryPage({ params }) {
     notFound();
   }
 
-  const cleanType = post.type?.toLowerCase().trim();
+  const cleanType = String(post?.type || '').toLowerCase().trim();
   const isWebStory = cleanType === 'web story' || cleanType === 'web-story' || cleanType === 'story';
 
   if (!isWebStory) {

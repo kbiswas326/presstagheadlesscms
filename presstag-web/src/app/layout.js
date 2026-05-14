@@ -34,7 +34,7 @@ export async function generateMetadata() {
     let base = siteUrlFromConfig || explicit || inferred;
     if (!base) {
       try {
-        const h = headers();
+        const h = await headers();
         const host = String(h.get('x-forwarded-host') || h.get('host') || '').trim();
         const proto = String(h.get('x-forwarded-proto') || 'https').trim() || 'https';
         if (host) base = `${proto}://${host}`;
@@ -142,7 +142,7 @@ export default async function RootLayout({ children }) {
     ? `${faviconHref}${faviconVersion ? `${faviconHref.includes('?') ? '&' : '?'}v=${faviconVersion}` : ''}`
     : '';
   const primaryColor = config?.branding?.primaryColor || '#006356';
-  const h = headers();
+  const h = await headers();
   const templateOverride = h.get('x-template-id');
   const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);
 

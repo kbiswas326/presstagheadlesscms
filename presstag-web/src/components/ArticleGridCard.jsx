@@ -23,9 +23,11 @@ const ArticleGridCard = ({ post, urlStructure, variant = 'classic' }) => {
   const imageUrl = post.image || post.featuredImage?.url || post.featuredImage || post.banner_image || post.coverImage?.url || post.coverImage;
   const finalImageSrc = getImageUrl(imageUrl);
 
-  const isWebStory = post.type?.toLowerCase().trim() === 'web story' || 
-                     post.type?.toLowerCase().trim() === 'web-story' || 
-                     post.type?.toLowerCase().trim() === 'story';
+  const cleanType = String(post?.type || '').toLowerCase().trim();
+  const isWebStory =
+    cleanType === 'web story' ||
+    cleanType === 'web-story' ||
+    cleanType === 'story';
   
   const postUrl = buildPostUrl(post, urlStructure);
   const tpl = String(variant || '').trim().toLowerCase();

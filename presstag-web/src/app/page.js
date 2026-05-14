@@ -70,7 +70,8 @@ export default async function Page() {
   const primaryColor = config?.branding?.primaryColor || '#006356';
   const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
   const tagPrefix = String(config?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
-  const templateOverride = headers().get('x-template-id');
+  const h = await headers();
+  const templateOverride = h.get('x-template-id');
   const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);
 
   // HERO POSTS

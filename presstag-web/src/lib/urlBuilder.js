@@ -15,7 +15,7 @@ function normalizePath(input) {
 
 export function buildPostUrlByStructure(post, urlStructure = '/{category}/{slug}') {
   if (!post) return null;
-  const cleanType = post.type?.toLowerCase().trim();
+  const cleanType = String(post.type || '').toLowerCase().trim();
   const isWebStory = cleanType === 'web story' || cleanType === 'web-story' || cleanType === 'story';
   if (isWebStory) return `/web-stories/${post.slug || post._id}`;
 
@@ -40,7 +40,7 @@ export function buildPostUrl(post, urlStructure = '/{category}/{slug}') {
   if (post.originalUrl) return normalizePath(post.originalUrl) || null
 
   // Web stories always use their own route
-  const cleanType = post.type?.toLowerCase().trim();
+  const cleanType = String(post.type || '').toLowerCase().trim();
   const isWebStory = cleanType === 'web story' || cleanType === 'web-story' || cleanType === 'story';
   if (isWebStory) return `/web-stories/${post.slug || post._id}`;
   return buildPostUrlByStructure(post, urlStructure);

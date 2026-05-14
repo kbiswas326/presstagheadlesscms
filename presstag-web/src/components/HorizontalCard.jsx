@@ -11,9 +11,11 @@ const HorizontalCard = ({ post, urlStructure, variant = 'classic' }) => {
 
   if (!post) return null;
 
-  const isWebStory = post.type?.toLowerCase().trim() === 'web story' || 
-                     post.type?.toLowerCase().trim() === 'web-story' || 
-                     post.type?.toLowerCase().trim() === 'story';
+  const cleanType = String(post?.type || '').toLowerCase().trim();
+  const isWebStory =
+    cleanType === 'web story' ||
+    cleanType === 'web-story' ||
+    cleanType === 'story';
   
   const postUrl = buildPostUrl(post, urlStructure);
 

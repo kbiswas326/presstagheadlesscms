@@ -23,7 +23,7 @@ const resolveTenantId = async () => {
   } else {
     try {
       const { headers } = await import('next/headers');
-      const h = headers();
+      const h = await headers();
       const headerTenant = String(h.get('x-tenant-id') || '').trim();
       if (headerTenant) return headerTenant;
       const host = String(h.get('x-forwarded-host') || h.get('host') || '').toLowerCase().trim();
