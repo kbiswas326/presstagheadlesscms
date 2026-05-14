@@ -45,11 +45,78 @@ export const renderHomeClassic = ({
   sidePosts,
   sectionsData,
   excludePostKeys,
-  fallbackImage,
   primaryColor,
   urlStructure,
 }) => {
   const variant = 'classic';
+
+  const ClassicSectionHeading = ({ label, viewAllUrl }) => (
+    <div className="flex items-center justify-between mb-5">
+      <h2 className="text-lg font-bold text-gray-900 border-l-4 pl-3" style={{ borderColor: primaryColor }}>
+        {label}
+      </h2>
+      {viewAllUrl ? (
+        <a href={viewAllUrl} className="text-sm font-medium hover:underline" style={{ color: primaryColor }}>
+          View all
+        </a>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <div className="bg-white min-h-screen pb-16">
+      <div className="container mx-auto px-4 pt-6">
+        {featuredPost ? (
+          <section className="mb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+              <div className="lg:col-span-2">
+                <FeaturedHero post={featuredPost} urlStructure={urlStructure} />
+              </div>
+              <div className="lg:col-span-1 flex flex-col h-full">
+                <ClassicSectionHeading label="Top Stories" />
+                <div className="flex flex-col gap-4 flex-grow">
+                  {(Array.isArray(sidePosts) ? sidePosts : []).map((post, i) => (
+                    <HorizontalCard key={postKey(post, i)} post={post} urlStructure={urlStructure} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-8">
+            {(Array.isArray(sectionsData) ? sectionsData : []).map((section, index) => (
+              <ResponsivePostGrid
+                key={String(section?.name || 'section') + '-' + index}
+                posts={section?.posts || []}
+                sectionName={section?.name}
+                primaryColor={primaryColor}
+                viewAllUrl={section?.viewAllUrl}
+                urlStructure={urlStructure}
+                variant={variant}
+              />
+            ))}
+          </div>
+          <div className="lg:col-span-4 lg:sticky lg:top-0">
+            <Sidebar variant="homepage" excludePostKeys={excludePostKeys} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const renderHomeEditorial = ({
+  featuredPost,
+  sidePosts,
+  sectionsData,
+  excludePostKeys,
+  fallbackImage,
+  primaryColor,
+  urlStructure,
+}) => {
+  const variant = 'editorial';
   const fallback = fallbackImage ? String(fallbackImage).trim() : null;
   const resolveImg = (post) => getImageUrl(post?.image) || resolvePostImage(post, fallback);
 
@@ -1401,9 +1468,8 @@ const renderHomeMagazineClean = ({
 };
 
 export const renderHomeByTemplate = (templateId, props) => {
-  if (templateId === 'bold') return renderHomeBoldClean(props);
+  if (templateId === 'editorial') return renderHomeEditorial(props);
   if (templateId === 'modern') return renderHomeModernClean(props);
   if (templateId === 'news') return renderHomeNewsClean(props);
-  if (templateId === 'magazine') return renderHomeMagazineClean(props);
   return renderHomeClassic(props);
 };
