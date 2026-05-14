@@ -195,12 +195,12 @@ export default async function PostPage({ params }) {
 
   // --- SPECIAL HANDLING FOR PHOTO GALLERIES ---
   if (isGallery) {
-      return <GalleryClient post={post} />;
+      return <GalleryClient post={post} templateId={templateId} tagPrefix={tagPrefix} />;
   }
 
   // --- SPECIAL HANDLING FOR LIVE BLOGS ---
   if (isLiveBlog) {
-      return <LiveBlogViewer post={post} tagPrefix={tagPrefix} />;
+      return <LiveBlogViewer post={post} tagPrefix={tagPrefix} templateId={templateId} />;
   }
 
   // --- STANDARD ARTICLE LAYOUT ---
@@ -288,6 +288,388 @@ export default async function PostPage({ params }) {
   const mainShell = isBoldTemplate
     ? 'bg-white rounded-xl shadow-sm border border-gray-100 border-t-4'
     : 'bg-white rounded-xl shadow-sm border border-gray-100';
+
+  if (templateId === 'modern') {
+    return (
+      <div className={`min-h-screen bg-white ${inter.className}`}>
+        <div className="container mx-auto px-4 pt-8 pb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+            <main className="lg:col-span-8">
+              <header className="mb-8">
+                <nav className="flex items-center text-xs text-gray-500 mb-5 whitespace-nowrap overflow-hidden">
+                  <Link href="/" className="hover:underline flex-shrink-0">
+                    Home
+                  </Link>
+                  {post.categories?.[0] ? (
+                    <>
+                      <span className="mx-2 text-gray-300 flex-shrink-0">/</span>
+                      <Link
+                        href={`/category/${post.categories[0].slug || post.categories[0].name || post.categories[0].title || ''}`}
+                        className="font-medium hover:underline flex-shrink-0"
+                      >
+                        {String(post.categories[0].name || post.categories[0].title || post.categories[0].slug || '').trim()}
+                      </Link>
+                    </>
+                  ) : null}
+                </nav>
+
+                {Array.isArray(post.categories) && post.categories.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {post.categories.slice(0, 3).map((cat, index) => (
+                      <Link
+                        key={String(cat?._id || cat?.slug || index)}
+                        href={`/category/${cat.slug || cat.name || cat.title || ''}`}
+                        className="px-3 py-1 rounded-full text-xs font-semibold"
+                        style={{ backgroundColor: 'color-mix(in srgb, var(--primary-color) 14%, white)', color: 'var(--primary-color)' }}
+                      >
+                        {String(cat.name || cat.title || cat.slug || '').trim()}
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
+
+                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-950 leading-[1.1]">
+                  {post.title}
+                </h1>
+
+                {(post.summary || post.sub_title) ? (
+                  <p className="mt-5 text-lg md:text-xl text-gray-600 leading-relaxed">
+                    {post.summary || post.sub_title}
+                  </p>
+                ) : null}
+
+                <div className="mt-7 flex items-center justify-between gap-4 border-t border-gray-100 pt-6">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden relative shrink-0">
+                      {post.author?.image || post.authorImage ? (
+                        <Image
+                          src={getImageUrl(post.author?.image || post.authorImage)}
+                          alt={post.author?.name || post.authorName || 'Author'}
+                          fill
+                          sizes="40px"
+                          className="object-cover"
+                        />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-gray-900 truncate">
+                        {post.author?.slug ? (
+                          <Link href={`/author/${post.author.slug}`} className="hover:underline">
+                            {post.author?.name || post.authorName || 'SportzPoint Editor'}
+                          </Link>
+                        ) : (
+                          post.author?.name || post.authorName || 'SportzPoint Editor'
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate">
+                        {formattedDate} • {readTime} min read
+                        {showEditor ? (
+                          <>
+                            {' '}• Edited by{' '}
+                            {editorUser?.slug ? (
+                              <Link href={`/author/${editorUser.slug}`} className="hover:underline">
+                                {editorDisplayName}
+                              </Link>
+                            ) : (
+                              <span>{editorDisplayName}</span>
+                            )}
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    <SocialShareButtons title={post.title} />
+                  </div>
+                </div>
+              </header>
+
+              <div className="mb-8">
+                {videoId ? (
+                  <VideoPlayer videoId={videoId} posterUrl={mainImage} title={post.title} />
+                ) : mainImage ? (
+                  <div className="relative w-full overflow-hidden rounded-2xl border border-gray-100 bg-white" style={{ aspectRatio: '16/9' }}>
+                    <Image
+                      src={mainImage}
+                      alt={post.title}
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 66vw"
+                      className="object-cover"
+                      priority
+                    />
+                  </div>
+                ) : null}
+
+                {(post.featuredImageCaption || post.featuredImage?.caption || post.caption) ? (
+                  <div className="mt-3 text-sm text-gray-600">
+                    {post.featuredImageCaption || post.featuredImage?.caption || post.caption}
+                  </div>
+                ) : null}
+              </div>
+
+              <AdSpot position="article_top" />
+
+              <article className="prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-gray-950 prose-p:text-gray-800 prose-p:leading-loose prose-a:underline">
+                <ArticleContent content={post.content} />
+              </article>
+
+              <AdSpot position="article_bottom" />
+
+              {post.tags && post.tags.length > 0 ? (
+                <div className="mt-10 pt-8 border-t border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wider">Tags</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {post.tags.map((tag, idx) => (
+                      <Link
+                        key={idx}
+                        href={`/${tagPrefix}/${typeof tag === 'string' ? tag.toLowerCase().replace(/\s+/g, '-') : tag.slug}`}
+                        className="px-3 py-1.5 rounded-full text-sm border border-gray-200 hover:border-gray-300 transition-colors"
+                      >
+                        {typeof tag === 'string' ? tag : tag.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {post.author ? (
+                <div className="mt-10 p-6 bg-gray-50 rounded-2xl border border-gray-100 flex gap-4">
+                  <div className="w-16 h-16 rounded-full bg-white overflow-hidden shrink-0 border border-gray-200">
+                    {post.author.image ? (
+                      <Image
+                        src={getImageUrl(post.author.image)}
+                        alt={post.author.name}
+                        width={64}
+                        height={64}
+                        className="object-cover w-full h-full"
+                      />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-gray-900 mb-1 truncate">{post.author.name}</h4>
+                    <p className="text-sm text-gray-600 mb-3">{post.author.bio || `Sports journalist and editor at SportzPoint.`}</p>
+                    {post.author.slug ? (
+                      <Link href={`/author/${post.author.slug}`} className="text-xs font-semibold uppercase tracking-wider hover:underline" style={{ color: 'var(--primary-color)' }}>
+                        View Profile
+                      </Link>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {readMorePosts.length > 0 ? (
+                <section className="mt-12 pt-10 border-t border-gray-100">
+                  <div className="flex items-end justify-between gap-4 mb-6">
+                    <h2 className="text-2xl font-bold text-gray-950">Read More</h2>
+                    <div className="h-1 w-14 rounded-full" style={{ backgroundColor: 'var(--primary-color)' }} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {readMorePosts.map((p, i) => (
+                      <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} urlStructure={urlStructure} variant="modern" />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </main>
+
+            <aside className="lg:col-span-4 lg:sticky lg:top-0 space-y-8">
+              <SidebarDeferredClient
+                currentPostId={post?.slug || post?._id}
+                categorySlug={post?.categories?.[0]?.slug}
+                authorId={post?.author?._id || post?.authorId || post?.author}
+                excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)}
+              />
+            </aside>
+          </div>
+          {shouldLoadEmbeds ? <EmbedScripts /> : null}
+        </div>
+      </div>
+    );
+  }
+
+  if (templateId === 'editorial') {
+    return (
+      <div className={`min-h-screen bg-gray-50 ${inter.className}`}>
+        <div className="container mx-auto px-4 pt-8 pb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+            <main className="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 md:p-10">
+              <header className="pb-6 border-b border-gray-100">
+                <nav className="flex items-center text-xs text-gray-500 mb-5 whitespace-nowrap overflow-hidden">
+                  <Link href="/" className="hover:underline flex-shrink-0">
+                    Home
+                  </Link>
+                  {post.categories?.[0] ? (
+                    <>
+                      <span className="mx-2 text-gray-300 flex-shrink-0">/</span>
+                      <Link
+                        href={`/category/${post.categories[0].slug || post.categories[0].name || post.categories[0].title || ''}`}
+                        className="font-medium hover:underline flex-shrink-0"
+                      >
+                        {String(post.categories[0].name || post.categories[0].title || post.categories[0].slug || '').trim()}
+                      </Link>
+                    </>
+                  ) : null}
+                </nav>
+
+                <div className="flex items-start gap-4">
+                  <div className="mt-1 h-10 w-1 rounded-full shrink-0" style={{ backgroundColor: 'var(--primary-color)' }} />
+                  <div className="min-w-0">
+                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-950 leading-[1.1]">
+                      {post.title}
+                    </h1>
+                    {(post.summary || post.sub_title) ? (
+                      <p className="mt-4 text-lg md:text-xl text-gray-600 leading-relaxed">
+                        {post.summary || post.sub_title}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-7 flex items-center justify-between gap-4">
+                  <div className="text-sm text-gray-700">
+                    <span className="font-semibold">
+                      {post.author?.slug ? (
+                        <Link href={`/author/${post.author.slug}`} className="hover:underline">
+                          {post.author?.name || post.authorName || 'SportzPoint Editor'}
+                        </Link>
+                      ) : (
+                        post.author?.name || post.authorName || 'SportzPoint Editor'
+                      )}
+                    </span>
+                    <span className="text-gray-400">{' '}•{' '}</span>
+                    <span className="text-gray-500">
+                      {formattedDate} • {readTime} min read
+                      {showEditor ? (
+                        <>
+                          {' '}• Edited by{' '}
+                          {editorUser?.slug ? (
+                            <Link href={`/author/${editorUser.slug}`} className="hover:underline">
+                              {editorDisplayName}
+                            </Link>
+                          ) : (
+                            <span>{editorDisplayName}</span>
+                          )}
+                        </>
+                      ) : null}
+                    </span>
+                  </div>
+                  <div className="shrink-0">
+                    <SocialShareButtons title={post.title} />
+                  </div>
+                </div>
+              </header>
+
+              <div className="mt-8">
+                {videoId ? (
+                  <VideoPlayer videoId={videoId} posterUrl={mainImage} title={post.title} />
+                ) : mainImage ? (
+                  <figure className="w-full rounded-2xl overflow-hidden border border-gray-100 bg-white">
+                    <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+                      <Image
+                        src={mainImage}
+                        alt={post.title}
+                        fill
+                        sizes="(max-width: 1024px) 100vw, 66vw"
+                        className="object-cover"
+                        priority
+                      />
+                    </div>
+                    {(post.featuredImageCaption || post.featuredImage?.caption || post.caption) ? (
+                      <figcaption className="px-4 py-3 text-sm text-gray-600 border-t border-gray-100">
+                        {post.featuredImageCaption || post.featuredImage?.caption || post.caption}
+                      </figcaption>
+                    ) : null}
+                  </figure>
+                ) : null}
+              </div>
+
+              <div className="mt-8">
+                <AdSpot position="article_top" />
+              </div>
+
+              <article className="mt-8 prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-gray-950 prose-p:text-gray-800 prose-p:leading-loose prose-a:underline">
+                <ArticleContent content={post.content} />
+              </article>
+
+              <div className="mt-8">
+                <AdSpot position="article_bottom" />
+              </div>
+
+              {post.tags && post.tags.length > 0 ? (
+                <div className="mt-10 pt-8 border-t border-gray-100">
+                  <div className="flex items-center justify-between gap-4 mb-4">
+                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">Tags</h3>
+                    <div className="h-px flex-1 bg-gray-100" />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {post.tags.map((tag, idx) => (
+                      <Link
+                        key={idx}
+                        href={`/${tagPrefix}/${typeof tag === 'string' ? tag.toLowerCase().replace(/\s+/g, '-') : tag.slug}`}
+                        className="px-3 py-1.5 rounded-md text-sm bg-white border border-gray-200 hover:border-gray-300 transition-colors"
+                      >
+                        {typeof tag === 'string' ? tag : tag.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {post.author ? (
+                <div className="mt-10 p-6 bg-gray-50 rounded-2xl border border-gray-100 flex gap-4">
+                  <div className="w-16 h-16 rounded-full bg-white overflow-hidden shrink-0 border border-gray-200">
+                    {post.author.image ? (
+                      <Image
+                        src={getImageUrl(post.author.image)}
+                        alt={post.author.name}
+                        width={64}
+                        height={64}
+                        className="object-cover w-full h-full"
+                      />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-gray-900 mb-1 truncate">{post.author.name}</h4>
+                    <p className="text-sm text-gray-600 mb-3">{post.author.bio || `Sports journalist and editor at SportzPoint.`}</p>
+                    {post.author.slug ? (
+                      <Link href={`/author/${post.author.slug}`} className="text-xs font-semibold uppercase tracking-wider hover:underline" style={{ color: 'var(--primary-color)' }}>
+                        View Profile
+                      </Link>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {readMorePosts.length > 0 ? (
+                <section className="mt-12 pt-10 border-t border-gray-100">
+                  <div className="flex items-end justify-between gap-4 mb-6">
+                    <h2 className="text-2xl font-bold text-gray-950">Read More</h2>
+                    <div className="h-10 w-1 rounded-full" style={{ backgroundColor: 'var(--primary-color)' }} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {readMorePosts.map((p, i) => (
+                      <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} urlStructure={urlStructure} variant="editorial" />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
+              {shouldLoadEmbeds ? <EmbedScripts /> : null}
+            </main>
+
+            <aside className="lg:col-span-4 lg:sticky lg:top-0 space-y-8">
+              <SidebarDeferredClient
+                currentPostId={post?.slug || post?._id}
+                categorySlug={post?.categories?.[0]?.slug}
+                authorId={post?.author?._id || post?.authorId || post?.author}
+                excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)}
+              />
+            </aside>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen ${wrapperBg} ${inter.className}`}>

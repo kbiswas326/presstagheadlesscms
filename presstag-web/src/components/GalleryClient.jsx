@@ -11,10 +11,13 @@ import { formatPublishDateTime } from '../util/timeFormat';
 import ArticleGridCard from './ArticleGridCard';
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
 
-const GalleryClient = ({ post }) => {
+const GalleryClient = ({ post, templateId = 'classic' }) => {
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [readMorePosts, setReadMorePosts] = useState([]);
+    const tpl = String(templateId || 'classic').trim().toLowerCase();
+    const isModern = tpl === 'modern';
+    const isEditorial = tpl === 'editorial';
     const isDark = useSyncExternalStore(
         (callback) => {
             if (typeof window === 'undefined' || !window.matchMedia) return () => {};
@@ -106,17 +109,21 @@ const GalleryClient = ({ post }) => {
     const currentHeading = currentImage?.heading || currentImage?.title || currentImage?.caption || `Image ${currentImageIndex + 1}`;
 
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-900">
+        <div className={isModern ? 'min-h-screen bg-white text-gray-900' : 'min-h-screen bg-gray-50 text-gray-900'}>
             
             <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 pt-6 pb-12">
                 
                 <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
-                    <main className="w-full lg:w-[72%] bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-8">
+                    <main className={isModern ? 'w-full lg:w-[72%] bg-white rounded-2xl border border-gray-100 p-4 lg:p-8' : 'w-full lg:w-[72%] bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-8'}>
                         {/* Meta Area - Matching Article Contents */}
                         <header className="w-full pt-4 pb-6">
                             {/* Breadcrumb */}
                             <nav className="flex items-center text-xs text-gray-500 mb-4 whitespace-nowrap overflow-hidden">
-                                <Link href="/" className="transition-colors hover:text-[var(--primary-color)] flex-shrink-0" style={{ '--primary-color': '#e11d48' }}>
+                                <Link
+                                    href="/"
+                                    className="transition-colors hover:text-[var(--primary-color)] flex-shrink-0"
+                                    style={isModern || isEditorial ? undefined : { '--primary-color': '#e11d48' }}
+                                >
                                     Home
                                 </Link>
                                 {post.categories?.[0] && (
@@ -133,7 +140,12 @@ const GalleryClient = ({ post }) => {
 
                             <div className="flex flex-wrap gap-2 mb-4">
                                 {post.categories?.slice(0, 3).map((cat, index) => (
-                                    <Link key={index} href={`/category/${cat.slug || cat.name || cat.title || ''}`} className="px-3 py-1 bg-gray-50 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-100 transition-colors cursor-pointer text-rose-600">
+                                    <Link
+                                        key={index}
+                                        href={`/category/${cat.slug || cat.name || cat.title || ''}`}
+                                        className={`px-3 py-1 bg-gray-50 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-100 transition-colors cursor-pointer${isModern || isEditorial ? '' : ' text-rose-600'}`}
+                                        style={isModern || isEditorial ? { color: 'var(--primary-color)' } : undefined}
+                                    >
                                         {String(cat.name || cat.title || cat.slug || '').replace(/Ã—/g, "").replace(/×/g, "").trim()}
                                     </Link>
                                 ))}
@@ -241,7 +253,7 @@ const GalleryClient = ({ post }) => {
                         <div className="py-8">
                             <div className="flex items-center justify-between mb-6 gap-4">
                                 <h2 className="text-2xl font-bold flex items-center gap-2">
-                                    <FaTh className="text-green-500" />
+                                    <FaTh className={isModern || isEditorial ? '' : 'text-green-500'} style={isModern || isEditorial ? { color: 'var(--primary-color)' } : undefined} />
                                     Gallery Photos <span className="text-gray-500 text-lg font-normal">({images.length})</span>
                                 </h2>
                                 <div className="flex items-center gap-2">
@@ -338,7 +350,7 @@ const GalleryClient = ({ post }) => {
                                     </h2>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {readMorePosts.map((p, i) => (
-                                            <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} />
+                                            <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} variant={isModern || isEditorial ? tpl : undefined} />
                                         ))}
                                     </div>
                                 </section>

@@ -13,10 +13,13 @@ import { fetchWithTenant } from '@/lib/fetchWithTenant';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
-const LiveBlogViewer = ({ post, tagPrefix = 'tag' }) => {
+const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => {
     const [livePost, setLivePost] = useState(post);
     const embedsRootRef = useRef(null);
     const [readMorePosts, setReadMorePosts] = useState([]);
+    const tpl = String(templateId || 'classic').trim().toLowerCase();
+    const isModern = tpl === 'modern';
+    const isEditorial = tpl === 'editorial';
 
     useEffect(() => {
         setLivePost(post);
@@ -239,9 +242,9 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag' }) => {
       : [<span key="desk">{authorName || 'SportzPoint Desk'}</span>];
 
     return (
-        <div className={`min-h-screen bg-gray-50 ${inter.className}`}>
+        <div className={`min-h-screen ${isModern ? 'bg-white' : 'bg-gray-50'} ${inter.className}`}>
             <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
-                    <main className="w-full lg:w-[72%] bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-8" ref={embedsRootRef}>
+                    <main className={`${isModern ? 'bg-white rounded-2xl border border-gray-100' : 'bg-white rounded-xl shadow-sm border border-gray-100'} w-full lg:w-[72%] p-4 lg:p-8`} ref={embedsRootRef}>
                         {hasTwitterEmbeds && (
                             <Script
                                 src="https://platform.twitter.com/widgets.js"
@@ -453,9 +456,12 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag' }) => {
                                                 <React.Fragment key={idx}>
                                                     {idx === 3 && <AdSpot position="article_middle" />}
                                                     <div
-                                                        className={`relative bg-white rounded-lg shadow-sm border-l-4 p-6 hover:shadow-md transition-shadow ${update.pinned ? 'bg-gray-50/60' : ''}`}
-                                                        style={{ borderLeftColor: 'var(--primary-color)' }}
+                                                        className={`relative bg-white p-6 transition-shadow ${update.pinned ? 'bg-gray-50/60' : ''} ${isModern ? 'rounded-2xl border border-gray-100 shadow-sm hover:shadow-md' : isEditorial ? 'rounded-xl border border-gray-100 shadow-sm hover:shadow-md' : 'rounded-lg shadow-sm border-l-4 hover:shadow-md'}`}
+                                                        style={isModern || isEditorial ? undefined : { borderLeftColor: 'var(--primary-color)' }}
                                                     >
+                                                        {isModern || isEditorial ? (
+                                                            <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl" style={{ backgroundColor: 'var(--primary-color)' }} />
+                                                        ) : null}
                                                         
                                                         {/* Pinned Badge */}
                                                         {update.pinned && (
@@ -537,7 +543,7 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag' }) => {
                                         </h2>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                             {readMorePosts.map((p, i) => (
-                                                <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} />
+                                                <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} variant={isModern || isEditorial ? tpl : undefined} />
                                             ))}
                                         </div>
                                     </section>
