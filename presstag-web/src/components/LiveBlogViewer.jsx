@@ -179,6 +179,8 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
         return `${baseUrl}${path}`;
     };
 
+    const heroImage = featuredImage ? resolveImageUrl(featuredImage) : null;
+
     const formatUpdateTimestamp = useMemo(() => {
         const formatInTimeZone = (date, timeZone) => {
             try {
@@ -244,7 +246,7 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
     return (
         <div className={`min-h-screen ${isModern ? 'bg-white' : 'bg-gray-50'} ${inter.className}`}>
             <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
-                    <main className={`${isModern ? 'bg-white rounded-2xl border border-gray-100' : 'bg-white rounded-xl shadow-sm border border-gray-100'} w-full lg:w-[72%] p-4 lg:p-8`} ref={embedsRootRef}>
+                    <main className={`${isModern ? 'bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden' : 'bg-white rounded-xl shadow-sm border border-gray-100'} w-full lg:w-[72%] ${isModern ? '' : 'p-4 lg:p-8'}`} ref={embedsRootRef}>
                         {hasTwitterEmbeds && (
                             <Script
                                 src="https://platform.twitter.com/widgets.js"
@@ -271,6 +273,119 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
                                 }}
                             />
                         )}
+                        {isModern ? (
+                            <header className="w-full">
+                                <div className="relative px-4 lg:px-8 pt-10 pb-12 md:pt-14 md:pb-14 bg-gray-950">
+                                    {heroImage ? (
+                                        <>
+                                            <Image
+                                                src={heroImage}
+                                                alt={title || 'Live Blog'}
+                                                fill
+                                                sizes="(max-width: 1024px) 100vw, 66vw"
+                                                className="object-cover object-center opacity-80"
+                                                priority
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/70 to-gray-950/20" />
+                                        </>
+                                    ) : (
+                                        <div className="absolute inset-0 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800" />
+                                    )}
+
+                                    <div className="relative max-w-3xl">
+                                        <nav className="flex items-center text-xs text-white/70 mb-5 whitespace-nowrap overflow-hidden">
+                                            <Link href="/" className="hover:underline flex-shrink-0 text-white/80">
+                                                Home
+                                            </Link>
+                                            {categories?.[0] ? (
+                                                <>
+                                                    <span className="mx-2 text-white/30 flex-shrink-0">/</span>
+                                                    <Link
+                                                        href={`/category/${typeof categories[0] === 'string' ? categories[0] : (categories[0]?.slug || categories[0]?.name || categories[0]?.title || '')}`}
+                                                        className="font-medium hover:underline flex-shrink-0 text-white/80"
+                                                    >
+                                                        {String(typeof categories[0] === 'string' ? categories[0] : (categories[0]?.name || categories[0]?.title || categories[0]?.slug || '')).trim()}
+                                                    </Link>
+                                                </>
+                                            ) : null}
+                                        </nav>
+
+                                        <div className="flex flex-wrap gap-2 mb-5 items-center">
+                                            {isLive ? (
+                                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/15 text-red-200 text-xs font-semibold uppercase tracking-wider">
+                                                    <span className="relative flex h-2 w-2">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-400"></span>
+                                                    </span>
+                                                    Live Updates
+                                                </div>
+                                            ) : (
+                                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white/80 text-xs font-semibold uppercase tracking-wider">
+                                                    Updates
+                                                </div>
+                                            )}
+
+                                            {categories && categories.length > 0
+                                                ? categories.slice(0, 2).map((cat, index) => (
+                                                    <Link
+                                                        key={index}
+                                                        href={`/category/${typeof cat === 'string' ? cat : (cat?.slug || cat?.name || cat?.title || '')}`}
+                                                        className="px-3 py-1 rounded-full text-xs font-semibold text-white"
+                                                        style={{ backgroundColor: 'color-mix(in srgb, var(--primary-color) 22%, rgba(255,255,255,0.12))' }}
+                                                    >
+                                                        {String(typeof cat === 'string' ? cat : (cat?.name || cat?.title || cat?.slug || '')).trim()}
+                                                    </Link>
+                                                ))
+                                                : null}
+                                        </div>
+
+                                        <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-[1.05]">
+                                            {title}
+                                        </h1>
+
+                                        {summary ? (
+                                            <p className="mt-5 text-base md:text-lg text-white/70 leading-relaxed">
+                                                {summary}
+                                            </p>
+                                        ) : null}
+                                    </div>
+                                </div>
+
+                                <div className="-mt-6 relative z-10 px-4 lg:px-8">
+                                    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm px-4 py-4 md:px-5 md:py-5 flex items-center justify-between gap-4">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="w-11 h-11 bg-gray-200 rounded-full overflow-hidden shrink-0 ring-4 ring-white flex items-center justify-center">
+                                                <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                                                </svg>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="font-semibold text-gray-900 text-sm truncate">
+                                                    {bylineNodes.reduce((acc, node, idx) => {
+                                                        if (idx === 0) return [node];
+                                                        return acc.concat([<span key={`sep-${idx}`}>, </span>, node]);
+                                                    }, [])}
+                                                </div>
+                                                <div className="text-xs text-gray-500 truncate" suppressHydrationWarning>
+                                                    {publishedAt ? new Intl.DateTimeFormat('en-US', {
+                                                        timeZone: 'Asia/Kolkata',
+                                                        year: 'numeric',
+                                                        month: 'long',
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                        hour12: true,
+                                                    }).format(new Date(publishedAt)) : 'Just Now'}{showEditor ? ` • Edited by ${editorDisplayName}` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="shrink-0">
+                                            <SocialShareButtons title={title} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </header>
+                        ) : (
                         <header className="w-full pt-4 pb-6">
                             <nav className="flex items-center text-xs text-gray-500 mb-4 whitespace-nowrap overflow-hidden">
                                 <Link
@@ -332,12 +447,10 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
                                 )}
                             </div>
 
-                            {/* Title */}
                             <h1 className="text-3xl md:text-5xl font-black text-gray-900 leading-tight mb-4">
                                 {title}
                             </h1>
 
-                            {/* Summary */}
                             {summary && (
                                 <p
                                     className="text-lg md:text-xl text-gray-600 mb-6 leading-relaxed border-l-4 pl-4"
@@ -347,11 +460,9 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
                                 </p>
                             )}
 
-                            {/* Author & Meta */}
                             <div className="flex items-center justify-between border-b border-gray-100 pb-6 mb-6">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-gray-200 rounded-full overflow-hidden">
-                                         {/* Placeholder Avatar */}
                                          <svg className="w-full h-full text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                                              <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
                                          </svg>
@@ -377,13 +488,13 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
                                     </div>
                                 </div>
 
-                                {/* Social Share */}
                                 <SocialShareButtons title={title} />
                             </div>
                         </header>
+                        )}
 
                         {/* Featured Image - 16:9 988x556 with Caption Below */}
-                        {featuredImage && resolveImageUrl(featuredImage) && (
+                        {!isModern && featuredImage && resolveImageUrl(featuredImage) && (
                             <figure className="w-full mb-8 rounded-xl overflow-hidden shadow-md bg-white border border-gray-100">
                                 <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
                                     <img
@@ -400,7 +511,7 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
                             </figure>
                         )}
 
-                        <div className="flex flex-col gap-12">
+                        <div className={isModern ? "px-4 lg:px-8 pt-8" : "flex flex-col gap-12"}>
                              {/* Main Body */}
                              <div className="flex-1 min-w-0">
                                 
@@ -448,64 +559,110 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
                                     </div>
 
                                     {/* Updates List */}
-                                    <div className="space-y-8">
-                                        {sortedUpdates.map((update, idx) => {
-                                            const dateTimeString = formatUpdateTimestamp(update?.timestamp);
+                                    {isModern ? (
+                                        <div className="relative pl-8">
+                                            <div className="absolute left-3 top-0 bottom-0 w-px bg-gray-200" />
+                                            <div className="space-y-8">
+                                                {sortedUpdates.map((update, idx) => {
+                                                    const dateTimeString = formatUpdateTimestamp(update?.timestamp);
+                                                    const dotColor = update?.pinned ? 'var(--primary-color)' : '#e5e7eb';
 
-                                            return (
-                                                <React.Fragment key={idx}>
-                                                    {idx === 3 && <AdSpot position="article_middle" />}
-                                                    <div
-                                                        className={`relative bg-white p-6 transition-shadow ${update.pinned ? 'bg-gray-50/60' : ''} ${isModern ? 'rounded-2xl border border-gray-100 shadow-sm hover:shadow-md' : isEditorial ? 'rounded-xl border border-gray-100 shadow-sm hover:shadow-md' : 'rounded-lg shadow-sm border-l-4 hover:shadow-md'}`}
-                                                        style={isModern || isEditorial ? undefined : { borderLeftColor: 'var(--primary-color)' }}
-                                                    >
-                                                        {isModern || isEditorial ? (
-                                                            <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl" style={{ backgroundColor: 'var(--primary-color)' }} />
-                                                        ) : null}
-                                                        
-                                                        {/* Pinned Badge */}
-                                                        {update.pinned && (
-                                                            <div className="absolute top-4 right-4" style={{ color: 'var(--primary-color)' }}>
-                                                                <FaMapPin size={18} />
+                                                    return (
+                                                        <React.Fragment key={idx}>
+                                                            {idx === 3 && <AdSpot position="article_middle" />}
+                                                            <div className="relative">
+                                                                <div className="absolute left-3 top-7 -translate-x-1/2 h-3 w-3 rounded-full" style={{ backgroundColor: dotColor }} />
+                                                                <div className={`ml-4 bg-white border border-gray-100 shadow-sm p-6 rounded-2xl ${update.pinned ? 'ring-1 ring-[var(--primary-color)]/20' : ''}`}>
+                                                                    <div className="flex items-start justify-between gap-4 mb-3">
+                                                                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider" suppressHydrationWarning>
+                                                                            {dateTimeString}
+                                                                        </div>
+                                                                        {update.pinned ? (
+                                                                            <div className="flex items-center gap-2 text-xs font-bold uppercase" style={{ color: 'var(--primary-color)' }}>
+                                                                                <FaMapPin size={14} />
+                                                                                Pinned
+                                                                            </div>
+                                                                        ) : null}
+                                                                    </div>
+
+                                                                    {update.title ? (
+                                                                        <h3 className="text-xl font-bold text-gray-950 mb-3">
+                                                                            {update.title}
+                                                                        </h3>
+                                                                    ) : null}
+
+                                                                    <div
+                                                                        className={`prose max-w-none text-gray-800 leading-relaxed ${inter.className} prose-headings:text-gray-950`}
+                                                                        style={{ '--tw-prose-links': 'var(--primary-color)' }}
+                                                                        dangerouslySetInnerHTML={{ __html: update.content?.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001') || '' }}
+                                                                    />
+                                                                </div>
                                                             </div>
-                                                        )}
+                                                        </React.Fragment>
+                                                    );
+                                                })}
 
-                                                        {/* Timestamp */}
-                                                        <div className="text-sm text-gray-500 italic mb-3 flex items-center gap-2" suppressHydrationWarning>
-                                                            {dateTimeString}
-                                                            {update.pinned && (
-                                                                <span className="text-xs font-bold uppercase bg-gray-100 px-2 py-0.5 rounded" style={{ color: 'var(--primary-color)' }}>
-                                                                    Pinned
-                                                                </span>
-                                                            )}
-                                                        </div>
+                                                <AdSpot position="article_bottom" />
 
-                                                        {/* Update Title */}
-                                                        {update.title && (
-                                                            <h3 className="text-xl font-bold text-gray-900 mb-3">
-                                                                {update.title}
-                                                            </h3>
-                                                        )}
-
-                                                        {/* Update Body */}
-                                                        <div 
-                                                            className={`prose max-w-none text-gray-700 leading-relaxed ${inter.className} prose-headings:text-gray-900`}
-                                                            style={{ '--tw-prose-links': 'var(--primary-color)' }}
-                                                            dangerouslySetInnerHTML={{ __html: update.content?.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001') || '' }}
-                                                        />
+                                                {sortedUpdates.length === 0 && (
+                                                    <div className="text-center text-gray-500 italic py-10 bg-gray-50 rounded-lg">
+                                                        No updates yet. Stay tuned!
                                                     </div>
-                                                </React.Fragment>
-                                            );
-                                        })}
-
-                                        <AdSpot position="article_bottom" />
-
-                                        {sortedUpdates.length === 0 && (
-                                            <div className="text-center text-gray-500 italic py-10 bg-gray-50 rounded-lg">
-                                                No updates yet. Stay tuned!
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-8">
+                                            {sortedUpdates.map((update, idx) => {
+                                                const dateTimeString = formatUpdateTimestamp(update?.timestamp);
+
+                                                return (
+                                                    <React.Fragment key={idx}>
+                                                        {idx === 3 && <AdSpot position="article_middle" />}
+                                                        <div
+                                                            className={`relative bg-white p-6 transition-shadow ${update.pinned ? 'bg-gray-50/60' : ''} ${isEditorial ? 'rounded-xl border border-gray-100 shadow-sm hover:shadow-md' : 'rounded-lg shadow-sm border-l-4 hover:shadow-md'}`}
+                                                            style={isEditorial ? undefined : { borderLeftColor: 'var(--primary-color)' }}
+                                                        >
+                                                            {update.pinned && (
+                                                                <div className="absolute top-4 right-4" style={{ color: 'var(--primary-color)' }}>
+                                                                    <FaMapPin size={18} />
+                                                                </div>
+                                                            )}
+
+                                                            <div className="text-sm text-gray-500 italic mb-3 flex items-center gap-2" suppressHydrationWarning>
+                                                                {dateTimeString}
+                                                                {update.pinned && (
+                                                                    <span className="text-xs font-bold uppercase bg-gray-100 px-2 py-0.5 rounded" style={{ color: 'var(--primary-color)' }}>
+                                                                        Pinned
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            {update.title && (
+                                                                <h3 className="text-xl font-bold text-gray-900 mb-3">
+                                                                    {update.title}
+                                                                </h3>
+                                                            )}
+
+                                                            <div
+                                                                className={`prose max-w-none text-gray-700 leading-relaxed ${inter.className} prose-headings:text-gray-900`}
+                                                                style={{ '--tw-prose-links': 'var(--primary-color)' }}
+                                                                dangerouslySetInnerHTML={{ __html: update.content?.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001') || '' }}
+                                                            />
+                                                        </div>
+                                                    </React.Fragment>
+                                                );
+                                            })}
+
+                                            <AdSpot position="article_bottom" />
+
+                                            {sortedUpdates.length === 0 && (
+                                                <div className="text-center text-gray-500 italic py-10 bg-gray-50 rounded-lg">
+                                                    No updates yet. Stay tuned!
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Tags (Bottom) */}

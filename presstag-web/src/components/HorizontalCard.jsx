@@ -34,15 +34,21 @@ const HorizontalCard = ({ post, urlStructure, variant = 'classic' }) => {
   const isModern = tpl === 'modern';
   const isNews = tpl === 'news';
   const isMagazine = tpl === 'magazine';
+  const isEditorial = tpl === 'editorial';
   const cat = (post?.primary_category?.[0] || post?.categories?.[0]) || null;
   const catLabel = typeof cat === 'string' ? cat : (cat?.name || cat?.title || cat?.slug || '');
   const cleanedCat = String(catLabel || '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
   const displayCatCandidate = cleanedCat ? cleanedCat.replace(/\b\w/g, (ch) => ch.toUpperCase()) : '';
   const displayCat = /^[0-9a-f]{24}$/i.test(displayCatCandidate) ? '' : displayCatCandidate;
+  const authorNames = Array.isArray(post?.authors)
+    ? post.authors.map((a) => a?.name).filter(Boolean)
+    : [];
+  const authorLabel = authorNames.length ? authorNames.join(', ') : (post?.author?.name || '');
   const shell = (() => {
     if (isBold) return 'rounded-xl p-4 bg-white hover:bg-gray-50 border border-gray-200 shadow-sm';
     if (isModern) return 'rounded-2xl p-4 bg-white hover:bg-gray-50 border border-gray-100 shadow-sm hover:shadow-md';
     if (isMagazine) return 'rounded-3xl p-4 bg-white hover:bg-gray-50 border border-gray-100 shadow-sm hover:shadow-md';
+    if (isEditorial) return 'rounded-none p-4 bg-white hover:bg-gray-50 border border-gray-200';
     if (isNews) return 'rounded-none p-0 bg-transparent';
     return '';
   })();
@@ -51,17 +57,18 @@ const HorizontalCard = ({ post, urlStructure, variant = 'classic' }) => {
     <Link
       href={postUrl}
       className={`flex flex-row gap-4 group cursor-pointer ${shell}`}
+      style={isEditorial ? { borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: 'var(--primary-color)' } : undefined}
     >
       {/* Image */}
-      <div className="relative w-1/3 md:w-1/3 lg:w-1/3 flex-shrink-0">
-        <div className={`relative pb-[56.25%] rounded-lg overflow-hidden ${isBold ? 'bg-gray-100' : 'bg-gray-100'}`}>
+      <div className={`relative flex-shrink-0 ${isEditorial ? 'w-2/5 md:w-2/5 lg:w-2/5' : 'w-1/3 md:w-1/3 lg:w-1/3'}`}>
+        <div className={`relative pb-[56.25%] overflow-hidden ${isEditorial ? 'rounded-none border border-gray-200 bg-gray-100' : 'rounded-lg bg-gray-100'}`}>
              {finalImageSrc ? (
                 <Image
                     src={finalImageSrc}
                     alt={post.featuredImage?.altText || post.title || ""}
                     fill
                     sizes="(max-width: 768px) 33vw, (max-width: 1024px) 33vw, 25vw"
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    className={`object-cover transition-transform duration-300 ${isEditorial ? '' : 'group-hover:scale-105'}`}
                 />
              ) : (
                 <div className={`absolute inset-0 ${isBold ? 'bg-gray-200' : 'bg-gray-200'}`} />
@@ -71,18 +78,21 @@ const HorizontalCard = ({ post, urlStructure, variant = 'classic' }) => {
 
       {/* Content */}
       <div className="flex flex-col flex-grow py-1">
-        <div className="flex flex-wrap gap-2 mb-1">
+        <div className={`flex flex-wrap gap-2 mb-1 ${isEditorial ? 'items-center' : ''}`}>
              {post.isLive && (
                      <div className="flex items-center gap-1 mr-2">
                         <span className="relative flex h-1.5 w-1.5">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span>
                         </span>
-                        <span className="text-red-600 text-[10px] font-bold uppercase tracking-wider">LIVE</span>
+                        <span className={`text-red-600 ${isEditorial ? 'text-[11px] tracking-[0.14em]' : 'text-[10px] tracking-wider'} font-bold uppercase`}>LIVE</span>
                      </div>
                 )}
-             {(isBold || isModern || isMagazine || isNews) && displayCat ? (
-               <span className={`text-[10px] ${isNews ? 'font-semibold tracking-wider' : 'font-bold uppercase tracking-widest'}`} style={{ color: 'var(--primary-color)' }}>
+             {(isBold || isModern || isMagazine || isNews || isEditorial) && displayCat ? (
+               <span
+                 className={`${isEditorial ? 'text-[11px] font-bold uppercase tracking-[0.14em]' : `text-[10px] ${isNews ? 'font-semibold tracking-wider' : 'font-bold uppercase tracking-widest'}`}`}
+                 style={{ color: 'var(--primary-color)' }}
+               >
                  {displayCat}
                </span>
              ) : (
@@ -97,19 +107,29 @@ const HorizontalCard = ({ post, urlStructure, variant = 'classic' }) => {
                ))
              )}
         </div>
-        <h3 className={`leading-snug mb-1 transition-colors line-clamp-2 group-hover:text-[var(--primary-color)] text-gray-900 ${
-          isModern || isMagazine ? 'text-base md:text-lg font-semibold' : 'text-sm md:text-base font-bold'
-        }`}>
+        <h3
+          className={`leading-snug mb-2 transition-colors line-clamp-2 text-gray-900 ${
+            isEditorial
+              ? 'text-lg md:text-xl font-extrabold tracking-tight font-[var(--font-pt-serif)] group-hover:underline underline-offset-4'
+              : `group-hover:text-[var(--primary-color)] ${isModern || isMagazine ? 'text-base md:text-lg font-semibold' : 'text-sm md:text-base font-bold'}`
+          }`}
+        >
           {post.title}
         </h3>
-        <div className={`flex items-center text-[11px] gap-2 mt-auto ${isBold ? 'text-gray-500' : 'text-gray-500'}`}>
-            <span>{formatDate(displayDate)}</span>
-            {post.content && (
-                <>
-                    
-                    <span>{calculateReadTime(post.content)}</span>
-                </>
-            )}
+        <div className={`flex items-center gap-2 mt-auto ${isEditorial ? 'text-[10px] uppercase tracking-[0.14em] text-gray-600' : 'text-[11px] text-gray-500'}`}>
+          <span>{formatDate(displayDate)}</span>
+          {isEditorial && authorLabel ? (
+            <>
+              <span className="text-gray-300">•</span>
+              <span className="truncate">{authorLabel}</span>
+            </>
+          ) : null}
+          {post.content ? (
+            <>
+              <span className="text-gray-300">•</span>
+              <span>{calculateReadTime(post.content)}</span>
+            </>
+          ) : null}
         </div>
       </div>
     </Link>

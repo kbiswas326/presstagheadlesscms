@@ -2,7 +2,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getCategories, getPostById } from '../../../lib/api';
+import { getCategories } from '../../../lib/api';
 import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { Inter } from 'next/font/google';
@@ -15,6 +15,7 @@ import AdSpot from '../../../components/AdSpot';
 import ArticleContent from '../../../components/ArticleContent';
 import SocialShareButtons from '../../../components/SocialShareButtons';
 import ArticleGridCard from '../../../components/ArticleGridCard';
+import HorizontalCard from '../../../components/HorizontalCard';
 import { getImageUrl, resolvePostImage } from '@/lib/imageHelper';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
 import { buildPageUrl, buildPageUrlByStructure, buildPostUrl, buildPostUrlByStructure } from '@/lib/urlBuilder';
@@ -44,9 +45,6 @@ async function getPostByIdOrSlug(id, options = {}) {
   const key = String(id || '').trim();
   if (!key) return null;
 
-  const byId = await getPostById(key, options);
-  if (byId) return byId;
-
   try {
     const cache = options.cache || 'default';
     const revalidate = options.revalidate ?? 60;
@@ -55,7 +53,7 @@ async function getPostByIdOrSlug(id, options = {}) {
         ? { cache: 'no-store' }
         : { next: { revalidate } };
 
-    const res = await fetchWithTenant(`/posts/slug/${encodeURIComponent(key)}`, fetchOptions);
+    const res = await fetchWithTenant(`/posts/${encodeURIComponent(key)}`, fetchOptions);
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -172,6 +170,7 @@ export default async function PostPage({ params }) {
   const resolvedParams = await params;
   let post = await getPostByIdOrSlug(resolvedParams.id, { revalidate: 30 });
   if (post) post.gallery = post.gallery || post.images;
+  if (!post) notFound();
 
 
   const layoutConfig = await fetchWithTenant('/layout-config', { next: { revalidate: 60 } })
@@ -201,7 +200,10 @@ export default async function PostPage({ params }) {
     : (preservePostUrls ? buildPostUrl(post, urlStructure) : buildPostUrlByStructure(post, urlStructure));
   const currentPath = `/posts/${encodeURIComponent(String(resolvedParams.id || ''))}`;
   if (canonicalPath && normalizePath(canonicalPath) !== normalizePath(currentPath)) {
-    permanentRedirect(canonicalPath);
+    const redirectTarget = templateOverride
+      ? `${canonicalPath}${canonicalPath.includes('?') ? '&' : '?'}tpl=${encodeURIComponent(String(templateOverride))}`
+      : canonicalPath;
+    permanentRedirect(redirectTarget);
   }
 
   // Determine post type
@@ -315,7 +317,7 @@ export default async function PostPage({ params }) {
   if (templateId === 'modern') {
     return (
       <div className={`min-h-screen bg-white ${inter.className}`}>
-        <div className="container mx-auto px-4 pt-8 pb-16">
+        <div className="w-full pt-6 pb-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             <main className="lg:col-span-8">
               <header className="mb-8">
@@ -336,73 +338,102 @@ export default async function PostPage({ params }) {
                   ) : null}
                 </nav>
 
-                {Array.isArray(post.categories) && post.categories.length > 0 ? (
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {post.categories.slice(0, 3).map((cat, index) => (
-                      <Link
-                        key={String(cat?._id || cat?.slug || index)}
-                        href={`/category/${cat.slug || cat.name || cat.title || ''}`}
-                        className="px-3 py-1 rounded-full text-xs font-semibold"
-                        style={{ backgroundColor: 'color-mix(in srgb, var(--primary-color) 14%, white)', color: 'var(--primary-color)' }}
-                      >
-                        {String(cat.name || cat.title || cat.slug || '').trim()}
-                      </Link>
-                    ))}
-                  </div>
-                ) : null}
-
-                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-950 leading-[1.1]">
-                  {post.title}
-                </h1>
-
-                {(post.summary || post.sub_title) ? (
-                  <p className="mt-5 text-lg md:text-xl text-gray-600 leading-relaxed">
-                    {post.summary || post.sub_title}
-                  </p>
-                ) : null}
-
-                <div className="mt-7 flex items-center justify-between gap-4 border-t border-gray-100 pt-6">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden relative shrink-0">
-                      {post.author?.image || post.authorImage ? (
+                <section className="-mx-4 lg:-mx-8 overflow-hidden rounded-3xl border border-gray-100 bg-gray-950">
+                  <div className="relative px-4 lg:px-8 py-10 md:py-14">
+                    {mainImage ? (
+                      <>
                         <Image
-                          src={getImageUrl(post.author?.image || post.authorImage)}
-                          alt={post.author?.name || post.authorName || 'Author'}
+                          src={mainImage}
+                          alt={post.title}
                           fill
-                          sizes="40px"
-                          className="object-cover"
+                          sizes="(max-width: 1024px) 100vw, 66vw"
+                          className="object-cover object-center opacity-80"
+                          priority
                         />
-                      ) : null}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-gray-900 truncate">
-                        {post.author?.slug ? (
-                          <Link href={`/author/${post.author.slug}`} className="hover:underline">
-                            {post.author?.name || post.authorName || 'SportzPoint Editor'}
-                          </Link>
-                        ) : (
-                          post.author?.name || post.authorName || 'SportzPoint Editor'
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500 truncate">
-                        {formattedDate} • {readTime} min read
-                        {showEditor ? (
-                          <>
-                            {' '}• Edited by{' '}
-                            {editorUser?.slug ? (
-                              <Link href={`/author/${editorUser.slug}`} className="hover:underline">
-                                {editorDisplayName}
+                        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/70 to-gray-950/20" />
+                      </>
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800" />
+                    )}
+
+                    <div className="relative max-w-3xl">
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {Array.isArray(post.categories) && post.categories.length > 0
+                          ? post.categories.slice(0, 2).map((cat, index) => (
+                              <Link
+                                key={String(cat?._id || cat?.slug || index)}
+                                href={`/category/${cat.slug || cat.name || cat.title || ''}`}
+                                className="px-3 py-1 rounded-full text-xs font-semibold"
+                                style={{ backgroundColor: 'color-mix(in srgb, var(--primary-color) 22%, rgba(255,255,255,0.12))', color: 'white' }}
+                              >
+                                {String(cat.name || cat.title || cat.slug || '').trim()}
                               </Link>
-                            ) : (
-                              <span>{editorDisplayName}</span>
-                            )}
-                          </>
+                            ))
+                          : null}
+                        {isVideo ? (
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-white">
+                            Video
+                          </span>
                         ) : null}
                       </div>
+
+                      <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-[1.05]">
+                        {post.title}
+                      </h1>
+
+                      {(post.summary || post.sub_title) ? (
+                        <p className="mt-5 text-base md:text-lg text-white/70 leading-relaxed">
+                          {post.summary || post.sub_title}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
-                  <div className="shrink-0">
-                    <SocialShareButtons title={post.title} />
+                </section>
+
+                <div className="-mt-6 relative z-10 px-0">
+                  <div className="rounded-2xl border border-gray-100 bg-white shadow-sm px-4 py-4 md:px-5 md:py-5 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-11 h-11 rounded-full bg-gray-200 overflow-hidden relative shrink-0 ring-4 ring-white">
+                        {post.author?.image || post.authorImage ? (
+                          <Image
+                            src={getImageUrl(post.author?.image || post.authorImage)}
+                            alt={post.author?.name || post.authorName || 'Author'}
+                            fill
+                            sizes="44px"
+                            className="object-cover"
+                          />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-gray-900 truncate">
+                          {post.author?.slug ? (
+                            <Link href={`/author/${post.author.slug}`} className="hover:underline">
+                              {post.author?.name || post.authorName || 'SportzPoint Editor'}
+                            </Link>
+                          ) : (
+                            post.author?.name || post.authorName || 'SportzPoint Editor'
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">
+                          {formattedDate} • {readTime} min read
+                          {showEditor ? (
+                            <>
+                              {' '}• Edited by{' '}
+                              {editorUser?.slug ? (
+                                <Link href={`/author/${editorUser.slug}`} className="hover:underline">
+                                  {editorDisplayName}
+                                </Link>
+                              ) : (
+                                <span>{editorDisplayName}</span>
+                              )}
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="shrink-0">
+                      <SocialShareButtons title={post.title} />
+                    </div>
                   </div>
                 </div>
               </header>
@@ -411,7 +442,7 @@ export default async function PostPage({ params }) {
                 {videoId ? (
                   <VideoPlayer videoId={videoId} posterUrl={mainImage} title={post.title} />
                 ) : mainImage ? (
-                  <div className="relative w-full overflow-hidden rounded-2xl border border-gray-100 bg-white" style={{ aspectRatio: '16/9' }}>
+                  <div className="relative w-full overflow-hidden rounded-3xl border border-gray-100 bg-white" style={{ aspectRatio: '16/9' }}>
                     <Image
                       src={mainImage}
                       alt={post.title}
@@ -512,11 +543,13 @@ export default async function PostPage({ params }) {
 
   if (templateId === 'editorial') {
     return (
-      <div className={`min-h-screen bg-gray-50 ${inter.className}`}>
-        <div className="container mx-auto px-4 pt-8 pb-16">
+      <div className={`min-h-screen bg-white ${inter.className}`}>
+        <div className="container mx-auto px-4 pt-10 pb-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-            <main className="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 md:p-10">
-              <header className="pb-6 border-b border-gray-100">
+            <main className="lg:col-span-8 bg-white rounded-none shadow-none border border-gray-200">
+              <div className="h-1 w-full" style={{ backgroundColor: 'var(--primary-color)' }} />
+              <div className="p-6 md:p-10">
+              <header className="pb-8 border-b border-gray-200">
                 <nav className="flex items-center text-xs text-gray-500 mb-5 whitespace-nowrap overflow-hidden">
                   <Link href="/" className="hover:underline flex-shrink-0">
                     Home
@@ -534,23 +567,25 @@ export default async function PostPage({ params }) {
                   ) : null}
                 </nav>
 
-                <div className="flex items-start gap-4">
-                  <div className="mt-1 h-10 w-1 rounded-full shrink-0" style={{ backgroundColor: 'var(--primary-color)' }} />
-                  <div className="min-w-0">
-                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-950 leading-[1.1]">
-                      {post.title}
-                    </h1>
-                    {(post.summary || post.sub_title) ? (
-                      <p className="mt-4 text-lg md:text-xl text-gray-600 leading-relaxed">
-                        {post.summary || post.sub_title}
-                      </p>
-                    ) : null}
+                {post.categories?.[0] ? (
+                  <div className="text-[11px] font-bold uppercase tracking-[0.18em] mb-3" style={{ color: 'var(--primary-color)' }}>
+                    {String(post.categories[0].name || post.categories[0].title || post.categories[0].slug || '').trim()}
                   </div>
-                </div>
+                ) : null}
+
+                <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-950 leading-[1.05] font-[var(--font-pt-serif)]">
+                  {post.title}
+                </h1>
+
+                {(post.summary || post.sub_title) ? (
+                  <p className="mt-5 text-lg md:text-xl text-gray-700 leading-relaxed font-[var(--font-pt-serif)]">
+                    {post.summary || post.sub_title}
+                  </p>
+                ) : null}
 
                 <div className="mt-7 flex items-center justify-between gap-4">
-                  <div className="text-sm text-gray-700">
-                    <span className="font-semibold">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-gray-700">
+                    <span className="font-bold">
                       {post.author?.slug ? (
                         <Link href={`/author/${post.author.slug}`} className="hover:underline">
                           {post.author?.name || post.authorName || 'SportzPoint Editor'}
@@ -559,8 +594,8 @@ export default async function PostPage({ params }) {
                         post.author?.name || post.authorName || 'SportzPoint Editor'
                       )}
                     </span>
-                    <span className="text-gray-400">{' '}•{' '}</span>
-                    <span className="text-gray-500">
+                    <span className="text-gray-300">{' '}•{' '}</span>
+                    <span className="text-gray-600">
                       {formattedDate} • {readTime} min read
                       {showEditor ? (
                         <>
@@ -586,7 +621,7 @@ export default async function PostPage({ params }) {
                 {videoId ? (
                   <VideoPlayer videoId={videoId} posterUrl={mainImage} title={post.title} />
                 ) : mainImage ? (
-                  <figure className="w-full rounded-2xl overflow-hidden border border-gray-100 bg-white">
+                  <figure className="w-full overflow-hidden border border-gray-200 bg-white">
                     <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
                       <Image
                         src={mainImage}
@@ -598,7 +633,7 @@ export default async function PostPage({ params }) {
                       />
                     </div>
                     {(post.featuredImageCaption || post.featuredImage?.caption || post.caption) ? (
-                      <figcaption className="px-4 py-3 text-sm text-gray-600 border-t border-gray-100">
+                      <figcaption className="px-4 py-3 text-sm text-gray-700 border-t border-gray-200">
                         {post.featuredImageCaption || post.featuredImage?.caption || post.caption}
                       </figcaption>
                     ) : null}
@@ -610,7 +645,7 @@ export default async function PostPage({ params }) {
                 <AdSpot position="article_top" />
               </div>
 
-              <article className="mt-8 prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-gray-950 prose-p:text-gray-800 prose-p:leading-loose prose-a:underline">
+              <article className="mt-8 prose prose-lg max-w-none prose-headings:font-extrabold prose-headings:text-gray-950 prose-headings:font-[var(--font-pt-serif)] prose-p:text-gray-900 prose-p:leading-relaxed prose-a:underline">
                 <ArticleContent content={post.content} />
               </article>
 
@@ -665,19 +700,20 @@ export default async function PostPage({ params }) {
 
               {readMorePosts.length > 0 ? (
                 <section className="mt-12 pt-10 border-t border-gray-100">
-                  <div className="flex items-end justify-between gap-4 mb-6">
-                    <h2 className="text-2xl font-bold text-gray-950">Read More</h2>
-                    <div className="h-10 w-1 rounded-full" style={{ backgroundColor: 'var(--primary-color)' }} />
+                  <div className="flex items-center justify-between gap-4 mb-6">
+                    <h2 className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-700">Read More</h2>
+                    <div className="h-px flex-1 bg-gray-200" />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="flex flex-col gap-6">
                     {readMorePosts.map((p, i) => (
-                      <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} urlStructure={urlStructure} variant="editorial" />
+                      <HorizontalCard key={String(p?.slug || p?._id || i)} post={p} urlStructure={urlStructure} variant="editorial" />
                     ))}
                   </div>
                 </section>
               ) : null}
 
               {shouldLoadEmbeds ? <EmbedScripts /> : null}
+              </div>
             </main>
 
             <aside className="lg:col-span-4 lg:sticky lg:top-0 space-y-8">

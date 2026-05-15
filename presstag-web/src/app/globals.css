@@ -22,6 +22,14 @@ body {
   color: var(--foreground);
 }
 
+html[data-template="editorial"] body {
+  background: #ffffff;
+}
+
+html[data-template="news"] body {
+  background: #ffffff;
+}
+
 html.presstag-cookie-modal-open body {
   overflow: hidden;
 }

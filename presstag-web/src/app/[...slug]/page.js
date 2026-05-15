@@ -13,6 +13,7 @@ import AdSpot from '../../components/AdSpot';
 import ArticleContent from '../../components/ArticleContent';
 import SocialShareButtons from '../../components/SocialShareButtons';
 import ArticleGridCard from '../../components/ArticleGridCard';
+import HorizontalCard from '../../components/HorizontalCard';
 import { getImageUrl, resolvePostImage } from '@/lib/imageHelper';
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
@@ -376,7 +377,10 @@ if (!post) {
     : (preservePostUrls ? buildPostUrl(post, urlStructure) : buildPostUrlByStructure(post, urlStructure));
   const currentPath = `/${slugParts.join('/')}`;
   if (canonicalPath && normalizePath(canonicalPath) !== normalizePath(currentPath)) {
-    permanentRedirect(canonicalPath);
+    const redirectTarget = templateOverride
+      ? `${canonicalPath}${canonicalPath.includes('?') ? '&' : '?'}tpl=${encodeURIComponent(String(templateOverride))}`
+      : canonicalPath;
+    permanentRedirect(redirectTarget);
   }
 
   const primaryCategorySlug = post.categories?.[0]?.slug || post.categories?.[0]?.name || post.categories?.[0]?.title || '';
@@ -511,7 +515,7 @@ if (!post) {
     const authorAvatar = getImageUrl(primaryAuthor?.image || post.authorImage);
     return (
       <div className={`min-h-screen bg-white ${inter.className}`}>
-        <div className="container mx-auto px-4 pt-8 pb-16">
+        <div className="w-full pt-6 pb-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             <main className="lg:col-span-8">
               <header className="mb-8">
@@ -532,67 +536,96 @@ if (!post) {
                   ) : null}
                 </nav>
 
-                {Array.isArray(post.categories) && post.categories.length > 0 ? (
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {post.categories.slice(0, 3).map((cat, index) => (
-                      <Link
-                        key={String(cat?._id || cat?.slug || index)}
-                        href={`/category/${cat.slug || cat.name || cat.title || ''}`}
-                        className="px-3 py-1 rounded-full text-xs font-semibold"
-                        style={{ backgroundColor: 'color-mix(in srgb, var(--primary-color) 14%, white)', color: 'var(--primary-color)' }}
-                      >
-                        {String(cat.name || cat.title || cat.slug || '').trim()}
-                      </Link>
-                    ))}
-                  </div>
-                ) : null}
+                <section className="-mx-4 lg:-mx-8 overflow-hidden rounded-3xl border border-gray-100 bg-gray-950">
+                  <div className="relative px-4 lg:px-8 py-10 md:py-14">
+                    {mainImage ? (
+                      <>
+                        <Image
+                          src={mainImage}
+                          alt={post.title}
+                          fill
+                          sizes="(max-width: 1024px) 100vw, 66vw"
+                          className="object-cover object-center opacity-80"
+                          priority
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/70 to-gray-950/20" />
+                      </>
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800" />
+                    )}
 
-                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-950 leading-[1.1]">
-                  {post.title}
-                </h1>
-
-                {(post.summary || post.sub_title) ? (
-                  <p className="mt-5 text-lg md:text-xl text-gray-600 leading-relaxed">
-                    {post.summary || post.sub_title}
-                  </p>
-                ) : null}
-
-                <div className="mt-7 flex items-center justify-between gap-4 border-t border-gray-100 pt-6">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden relative shrink-0">
-                      {authorAvatar ? (
-                        <Image src={authorAvatar} alt={authorName} fill sizes="40px" className="object-cover" />
-                      ) : null}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-gray-900 truncate">
-                        {authorSlug ? (
-                          <Link href={`/author/${authorSlug}`} className="hover:underline">
-                            {authorName}
-                          </Link>
-                        ) : (
-                          authorName
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500 truncate">
-                        {formattedDate} • {readTime} min read
-                        {showEditor ? (
-                          <>
-                            {' '}• Edited by{' '}
-                            {editorUser?.slug ? (
-                              <Link href={`/author/${editorUser.slug}`} className="hover:underline">
-                                {editorDisplayName}
+                    <div className="relative max-w-3xl">
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {Array.isArray(post.categories) && post.categories.length > 0
+                          ? post.categories.slice(0, 2).map((cat, index) => (
+                              <Link
+                                key={String(cat?._id || cat?.slug || index)}
+                                href={`/category/${cat.slug || cat.name || cat.title || ''}`}
+                                className="px-3 py-1 rounded-full text-xs font-semibold"
+                                style={{ backgroundColor: 'color-mix(in srgb, var(--primary-color) 22%, rgba(255,255,255,0.12))', color: 'white' }}
+                              >
+                                {String(cat.name || cat.title || cat.slug || '').trim()}
                               </Link>
-                            ) : (
-                              <span>{editorDisplayName}</span>
-                            )}
-                          </>
+                            ))
+                          : null}
+                        {isVideo ? (
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-white">
+                            Video
+                          </span>
                         ) : null}
                       </div>
+
+                      <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-[1.05]">
+                        {post.title}
+                      </h1>
+
+                      {(post.summary || post.sub_title) ? (
+                        <p className="mt-5 text-base md:text-lg text-white/70 leading-relaxed">
+                          {post.summary || post.sub_title}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
-                  <div className="shrink-0">
-                    <SocialShareButtons title={post.title} />
+                </section>
+
+                <div className="-mt-6 relative z-10 px-0">
+                  <div className="rounded-2xl border border-gray-100 bg-white shadow-sm px-4 py-4 md:px-5 md:py-5 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-11 h-11 rounded-full bg-gray-200 overflow-hidden relative shrink-0 ring-4 ring-white">
+                        {authorAvatar ? (
+                          <Image src={authorAvatar} alt={authorName} fill sizes="44px" className="object-cover" />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-gray-900 truncate">
+                          {authorSlug ? (
+                            <Link href={`/author/${authorSlug}`} className="hover:underline">
+                              {authorName}
+                            </Link>
+                          ) : (
+                            authorName
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">
+                          {formattedDate} • {readTime} min read
+                          {showEditor ? (
+                            <>
+                              {' '}• Edited by{' '}
+                              {editorUser?.slug ? (
+                                <Link href={`/author/${editorUser.slug}`} className="hover:underline">
+                                  {editorDisplayName}
+                                </Link>
+                              ) : (
+                                <span>{editorDisplayName}</span>
+                              )}
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="shrink-0">
+                      <SocialShareButtons title={post.title} />
+                    </div>
                   </div>
                 </div>
               </header>
@@ -601,7 +634,7 @@ if (!post) {
                 {videoId ? (
                   <VideoPlayer videoId={videoId} posterUrl={mainImage} title={post.title} />
                 ) : mainImage ? (
-                  <div className="relative w-full overflow-hidden rounded-2xl border border-gray-100 bg-white" style={{ aspectRatio: '16/9' }}>
+                  <div className="relative w-full overflow-hidden rounded-3xl border border-gray-100 bg-white" style={{ aspectRatio: '16/9' }}>
                     <Image
                       src={mainImage}
                       alt={post.title}
@@ -689,11 +722,13 @@ if (!post) {
     const authorSlug = String(primaryAuthor?.slug || '').trim();
     const authorName = String(primaryAuthor?.name || post.authorName || '').trim() || 'SportzPoint Editor';
     return (
-      <div className={`min-h-screen bg-gray-50 ${inter.className}`}>
-        <div className="container mx-auto px-4 pt-8 pb-16">
+      <div className={`min-h-screen bg-white ${inter.className}`}>
+        <div className="container mx-auto px-4 pt-10 pb-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-            <main className="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 md:p-10">
-              <header className="pb-6 border-b border-gray-100">
+            <main className="lg:col-span-8 bg-white rounded-none shadow-none border border-gray-200">
+              <div className="h-1 w-full" style={{ backgroundColor: 'var(--primary-color)' }} />
+              <div className="p-6 md:p-10">
+              <header className="pb-8 border-b border-gray-200">
                 <nav className="flex items-center text-xs text-gray-500 mb-5 whitespace-nowrap overflow-hidden">
                   <Link href="/" className="hover:underline flex-shrink-0">
                     Home
@@ -711,23 +746,25 @@ if (!post) {
                   ) : null}
                 </nav>
 
-                <div className="flex items-start gap-4">
-                  <div className="mt-1 h-10 w-1 rounded-full shrink-0" style={{ backgroundColor: 'var(--primary-color)' }} />
-                  <div className="min-w-0">
-                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-950 leading-[1.1]">
-                      {post.title}
-                    </h1>
-                    {(post.summary || post.sub_title) ? (
-                      <p className="mt-4 text-lg md:text-xl text-gray-600 leading-relaxed">
-                        {post.summary || post.sub_title}
-                      </p>
-                    ) : null}
+                {post.categories?.[0] ? (
+                  <div className="text-[11px] font-bold uppercase tracking-[0.18em] mb-3" style={{ color: 'var(--primary-color)' }}>
+                    {String(post.categories[0].name || post.categories[0].title || post.categories[0].slug || '').trim()}
                   </div>
-                </div>
+                ) : null}
+
+                <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-950 leading-[1.05] font-[var(--font-pt-serif)]">
+                  {post.title}
+                </h1>
+
+                {(post.summary || post.sub_title) ? (
+                  <p className="mt-5 text-lg md:text-xl text-gray-700 leading-relaxed font-[var(--font-pt-serif)]">
+                    {post.summary || post.sub_title}
+                  </p>
+                ) : null}
 
                 <div className="mt-7 flex items-center justify-between gap-4">
-                  <div className="text-sm text-gray-700">
-                    <span className="font-semibold">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-gray-700">
+                    <span className="font-bold">
                       {authorSlug ? (
                         <Link href={`/author/${authorSlug}`} className="hover:underline">
                           {authorName}
@@ -736,8 +773,8 @@ if (!post) {
                         authorName
                       )}
                     </span>
-                    <span className="text-gray-400">{' '}•{' '}</span>
-                    <span className="text-gray-500">
+                    <span className="text-gray-300">{' '}•{' '}</span>
+                    <span className="text-gray-600">
                       {formattedDate} • {readTime} min read
                       {showEditor ? (
                         <>
@@ -763,7 +800,7 @@ if (!post) {
                 {videoId ? (
                   <VideoPlayer videoId={videoId} posterUrl={mainImage} title={post.title} />
                 ) : mainImage ? (
-                  <figure className="w-full rounded-2xl overflow-hidden border border-gray-100 bg-white">
+                  <figure className="w-full overflow-hidden border border-gray-200 bg-white">
                     <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
                       <Image
                         src={mainImage}
@@ -775,7 +812,7 @@ if (!post) {
                       />
                     </div>
                     {(post.featuredImageCaption || post.featuredImage?.caption || post.caption) ? (
-                      <figcaption className="px-4 py-3 text-sm text-gray-600 border-t border-gray-100">
+                      <figcaption className="px-4 py-3 text-sm text-gray-700 border-t border-gray-200">
                         {post.featuredImageCaption || post.featuredImage?.caption || post.caption}
                       </figcaption>
                     ) : null}
@@ -787,7 +824,7 @@ if (!post) {
                 <AdSpot position="article_top" />
               </div>
 
-              <article className="mt-8 prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-gray-950 prose-p:text-gray-800 prose-p:leading-loose prose-a:underline">
+              <article className="mt-8 prose prose-lg max-w-none prose-headings:font-extrabold prose-headings:text-gray-950 prose-headings:font-[var(--font-pt-serif)] prose-p:text-gray-900 prose-p:leading-relaxed prose-a:underline">
                 <ArticleContent content={post.content} />
               </article>
 
@@ -817,19 +854,20 @@ if (!post) {
 
               {readMorePosts.length > 0 ? (
                 <section className="mt-12 pt-10 border-t border-gray-100">
-                  <div className="flex items-end justify-between gap-4 mb-6">
-                    <h2 className="text-2xl font-bold text-gray-950">Read More</h2>
-                    <div className="h-10 w-1 rounded-full" style={{ backgroundColor: 'var(--primary-color)' }} />
+                  <div className="flex items-center justify-between gap-4 mb-6">
+                    <h2 className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-700">Read More</h2>
+                    <div className="h-px flex-1 bg-gray-200" />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="flex flex-col gap-6">
                     {readMorePosts.map((p, i) => (
-                      <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} urlStructure={urlStructure} variant="editorial" />
+                      <HorizontalCard key={String(p?.slug || p?._id || i)} post={p} urlStructure={urlStructure} variant="editorial" />
                     ))}
                   </div>
                 </section>
               ) : null}
 
               {shouldLoadEmbeds ? <EmbedScripts /> : null}
+              </div>
             </main>
 
             <aside className="lg:col-span-4 lg:sticky lg:top-0 space-y-8">
