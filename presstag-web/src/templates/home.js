@@ -196,7 +196,6 @@ export const renderHomeEditorial = ({
     const rest = posts.slice(1);
     const title = section?.name || 'Section';
     const viewAllUrl = section?.viewAllUrl || null;
-    const showList = idx % 2 === 1;
     return (
       <section className="mb-16">
         <SectionHeading label={title} primaryColor={primaryColor} viewAllUrl={viewAllUrl} />
@@ -230,24 +229,16 @@ export const renderHomeEditorial = ({
             ) : null}
           </div>
           <div className="lg:col-span-5">
-            {showList ? (
-              <div className="divide-y divide-gray-100 rounded-2xl border border-gray-100 p-5">
-                {rest.slice(0, 6).map((post, i) => (
-                  <HeadlineItem key={postKey(post, i)} post={post} />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {rest.slice(0, 4).map((post, i) => (
-                  <ArticleGridCard key={postKey(post, i)} post={post} urlStructure={urlStructure} variant={variant} />
-                ))}
-              </div>
-            )}
+            <div className="divide-y divide-gray-100 rounded-2xl border border-gray-100 p-5 bg-white">
+              {rest.slice(0, 6).map((post, i) => (
+                <HeadlineItem key={postKey(post, i)} post={post} />
+              ))}
+            </div>
           </div>
         </div>
-        {rest.length > (showList ? 6 : 4) ? (
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {rest.slice(showList ? 6 : 4, showList ? 14 : 12).map((post, i) => (
+        {rest.length > 6 ? (
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8 auto-rows-fr">
+            {rest.slice(6, 10).map((post, i) => (
               <ArticleGridCard key={postKey(post, i)} post={post} urlStructure={urlStructure} variant={variant} />
             ))}
           </div>
@@ -669,8 +660,8 @@ export const renderHomeBold = ({
               </a>
             ) : null}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-            {fourCol.slice(0, 8).map((post, i) => (
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${variant === 'editorial' ? 'lg:grid-cols-2' : 'lg:grid-cols-4'} gap-10 items-start`}>
+            {fourCol.slice(0, variant === 'editorial' ? 4 : 8).map((post, i) => (
               <ArticleGridCard key={normalizeKey(post) || i} post={post} urlStructure={urlStructure} variant={variant} />
             ))}
           </div>
@@ -785,8 +776,8 @@ export const renderHomeBold = ({
               </a>
             ) : null}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-            {nextFourA.slice(0, 8).map((post, i) => (
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${variant === 'editorial' ? 'lg:grid-cols-2' : 'lg:grid-cols-4'} gap-10 items-start`}>
+            {nextFourA.slice(0, variant === 'editorial' ? 4 : 8).map((post, i) => (
               <ArticleGridCard key={normalizeKey(post) || i} post={post} urlStructure={urlStructure} variant={variant} />
             ))}
           </div>
@@ -802,8 +793,8 @@ export const renderHomeBold = ({
                 </a>
               ) : null}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-              {block.posts.slice(0, 8).map((post, i) => (
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${variant === 'editorial' ? 'lg:grid-cols-2' : 'lg:grid-cols-4'} gap-10 items-start`}>
+              {block.posts.slice(0, variant === 'editorial' ? 4 : 8).map((post, i) => (
                 <ArticleGridCard key={normalizeKey(post) || i} post={post} urlStructure={urlStructure} variant={variant} />
               ))}
             </div>

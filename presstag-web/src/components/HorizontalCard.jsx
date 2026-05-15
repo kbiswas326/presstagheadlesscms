@@ -110,7 +110,7 @@ const HorizontalCard = ({ post, urlStructure, variant = 'classic' }) => {
         <h3
           className={`leading-snug mb-2 transition-colors line-clamp-2 text-gray-900 ${
             isEditorial
-              ? 'text-lg md:text-xl font-extrabold tracking-tight font-[var(--font-pt-serif)] group-hover:underline underline-offset-4'
+              ? 'text-lg md:text-xl tracking-tight group-hover:underline underline-offset-4'
               : `group-hover:text-[var(--primary-color)] ${isModern || isMagazine ? 'text-base md:text-lg font-semibold' : 'text-sm md:text-base font-bold'}`
           }`}
         >

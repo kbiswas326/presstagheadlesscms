@@ -573,12 +573,12 @@ export default async function PostPage({ params }) {
                   </div>
                 ) : null}
 
-                <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-950 leading-[1.05] font-[var(--font-pt-serif)]">
+                <h1 className="editorial-display text-gray-950">
                   {post.title}
                 </h1>
 
                 {(post.summary || post.sub_title) ? (
-                  <p className="mt-5 text-lg md:text-xl text-gray-700 leading-relaxed font-[var(--font-pt-serif)]">
+                  <p className="mt-5 editorial-excerpt text-gray-700">
                     {post.summary || post.sub_title}
                   </p>
                 ) : null}
@@ -645,7 +645,7 @@ export default async function PostPage({ params }) {
                 <AdSpot position="article_top" />
               </div>
 
-              <article className="mt-8 prose prose-lg max-w-none prose-headings:font-extrabold prose-headings:text-gray-950 prose-headings:font-[var(--font-pt-serif)] prose-p:text-gray-900 prose-p:leading-relaxed prose-a:underline">
+              <article className="mt-8">
                 <ArticleContent content={post.content} />
               </article>
 

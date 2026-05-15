@@ -244,7 +244,7 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
       : [<span key="desk">{authorName || 'SportzPoint Desk'}</span>];
 
     return (
-        <div className={`min-h-screen ${isModern ? 'bg-white' : 'bg-gray-50'} ${inter.className}`}>
+        <div className={`min-h-screen ${isModern ? 'bg-white' : 'bg-gray-50'} ${isEditorial ? '' : inter.className}`}>
             <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
                     <main className={`${isModern ? 'bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden' : 'bg-white rounded-xl shadow-sm border border-gray-100'} w-full lg:w-[72%] ${isModern ? '' : 'p-4 lg:p-8'}`} ref={embedsRootRef}>
                         {hasTwitterEmbeds && (
@@ -447,13 +447,13 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
                                 )}
                             </div>
 
-                            <h1 className="text-3xl md:text-5xl font-black text-gray-900 leading-tight mb-4">
+                            <h1 className={isEditorial ? "editorial-display text-gray-900 leading-tight mb-4" : "text-3xl md:text-5xl font-black text-gray-900 leading-tight mb-4"}>
                                 {title}
                             </h1>
 
                             {summary && (
                                 <p
-                                    className="text-lg md:text-xl text-gray-600 mb-6 leading-relaxed border-l-4 pl-4"
+                                    className={isEditorial ? "editorial-excerpt text-gray-600 mb-6 leading-relaxed border-l-4 pl-4" : "text-lg md:text-xl text-gray-600 mb-6 leading-relaxed border-l-4 pl-4"}
                                     style={{ borderLeftColor: 'var(--primary-color)' }}
                                 >
                                     {summary}
@@ -518,7 +518,7 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
                                 {/* 1. Main Content (Before Updates) */}
                                 {content && (
                                     <div 
-                                        className={`prose prose-lg max-w-none ${inter.className} prose-headings:font-sans prose-headings:text-gray-900 prose-img:rounded-xl prose-a:text-[var(--primary-color)] mb-12`}
+                                        className={`prose prose-lg max-w-none ${isEditorial ? '' : inter.className} prose-headings:font-sans prose-headings:text-gray-900 prose-img:rounded-xl prose-a:text-[var(--primary-color)] mb-12`}
                                         style={{ '--tw-prose-links': 'var(--primary-color)' }}
                                         dangerouslySetInnerHTML={{ __html: content.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001') }}
                                     />
@@ -592,7 +592,7 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
                                                                     ) : null}
 
                                                                     <div
-                                                                        className={`prose max-w-none text-gray-800 leading-relaxed ${inter.className} prose-headings:text-gray-950`}
+                                                                        className={`prose max-w-none text-gray-800 leading-relaxed ${isEditorial ? '' : inter.className} prose-headings:text-gray-950`}
                                                                         style={{ '--tw-prose-links': 'var(--primary-color)' }}
                                                                         dangerouslySetInnerHTML={{ __html: update.content?.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001') || '' }}
                                                                     />
@@ -645,7 +645,7 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
                                                             )}
 
                                                             <div
-                                                                className={`prose max-w-none text-gray-700 leading-relaxed ${inter.className} prose-headings:text-gray-900`}
+                                                                className={`prose max-w-none text-gray-700 leading-relaxed ${isEditorial ? '' : inter.className} prose-headings:text-gray-900`}
                                                                 style={{ '--tw-prose-links': 'var(--primary-color)' }}
                                                                 dangerouslySetInnerHTML={{ __html: update.content?.replace(/http:\/\/localhost:5000/g, 'http://localhost:5001') || '' }}
                                                             />

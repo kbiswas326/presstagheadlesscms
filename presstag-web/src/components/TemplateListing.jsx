@@ -77,7 +77,7 @@ export default function TemplateListing({
           <div className="mb-10 pb-6 border-b border-gray-200">
             <div className="flex items-end justify-between gap-6">
               <div className="min-w-0">
-                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900 font-[var(--font-pt-serif)]">
+                <h1 className="editorial-display text-gray-900">
                   {heading}
                 </h1>
                 {meta ? <p className="text-gray-500 mt-2">{meta}</p> : null}

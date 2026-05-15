@@ -151,13 +151,19 @@ const GalleryClient = ({ post, templateId = 'classic' }) => {
                                 ))}
                             </div>
                             
-                            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-4">
+                            <h1 className={isEditorial ? "editorial-display text-gray-900 leading-tight mb-4" : "text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-4"}>
                                 {post.title}
                             </h1>
                             
-                            <h2 className="text-lg md:text-xl text-gray-600 leading-relaxed mb-6 font-light">
-                                {post.summary || post.sub_title}
-                            </h2>
+                            {isEditorial ? (
+                                <p className="editorial-excerpt text-gray-600 mb-6">
+                                    {post.summary || post.sub_title}
+                                </p>
+                            ) : (
+                                <h2 className="text-lg md:text-xl text-gray-600 leading-relaxed mb-6 font-light">
+                                    {post.summary || post.sub_title}
+                                </h2>
+                            )}
 
                             {(() => {
                               const authorsList = Array.isArray(post.authors) && post.authors.length > 0

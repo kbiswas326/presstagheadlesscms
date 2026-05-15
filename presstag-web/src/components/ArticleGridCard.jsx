@@ -57,12 +57,12 @@ const ArticleGridCard = ({ post, urlStructure, variant = 'classic' }) => {
     return 'bg-white hover:bg-gray-50 border-gray-200 rounded-lg';
   })();
 
-  const contentPad = isNews ? 'p-4' : (isModern || isMagazine ? 'p-5' : (isEditorial ? 'p-6' : 'p-4'));
+  const contentPad = isNews ? 'p-4' : (isModern || isMagazine ? 'p-5' : (isEditorial ? 'p-5' : 'p-4'));
 
   return (
     <Link
       href={postUrl}
-      className={`transition-colors border overflow-hidden cursor-pointer flex flex-col block ${cardShell}`}
+      className={`transition-colors border overflow-hidden cursor-pointer flex flex-col block ${cardShell} ${isEditorial ? 'h-full' : ''}`}
     >
       {isEditorial ? (
         <div className="h-1 w-full" style={{ backgroundColor: 'var(--primary-color)' }} />
@@ -101,7 +101,7 @@ const ArticleGridCard = ({ post, urlStructure, variant = 'classic' }) => {
                     {displayCat}
                   </div>
                 ) : null}
-                <h3 className="text-xl md:text-2xl font-extrabold tracking-tight leading-tight line-clamp-2 mb-3 text-gray-950 font-[var(--font-pt-serif)]">
+                <h3 className="text-lg md:text-xl tracking-tight leading-tight line-clamp-3 mb-3 text-gray-950">
                   {post.isLive ? (
                     <span className="inline-flex items-center gap-1 mr-2 align-middle">
                       <span className="relative flex h-1.5 w-1.5">
@@ -113,17 +113,14 @@ const ArticleGridCard = ({ post, urlStructure, variant = 'classic' }) => {
                   ) : null}
                   {post.title}
                 </h3>
-                <div className="mt-auto flex items-center justify-between gap-3 border-t border-gray-200 pt-3 text-[11px] uppercase tracking-[0.14em] text-gray-600">
-                  <span className="truncate">{authorLabel || 'SportzPoint'}</span>
-                  <span className="flex items-center gap-2 flex-shrink-0">
-                    <span>{formatDate(displayDate)}</span>
-                    {readTime ? (
-                      <>
-                        <span className="text-gray-300">•</span>
-                        <span>{readTime}</span>
-                      </>
-                    ) : null}
-                  </span>
+                <div className="mt-auto pt-3 border-t border-gray-200 text-[11px] uppercase tracking-[0.14em] text-gray-600 flex items-center gap-2">
+                  <span>{formatDate(displayDate)}</span>
+                  {readTime ? (
+                    <>
+                      <span className="text-gray-300">•</span>
+                      <span>{readTime}</span>
+                    </>
+                  ) : null}
                 </div>
               </>
             ) : (

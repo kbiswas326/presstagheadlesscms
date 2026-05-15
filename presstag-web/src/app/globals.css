@@ -26,6 +26,83 @@ html[data-template="editorial"] body {
   background: #ffffff;
 }
 
+html[data-template="editorial"] {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html[data-template="editorial"] body {
+  font-family: sofia-pro, sans-serif;
+  font-feature-settings: "lnum";
+  font-variant-numeric: lining-nums;
+  letter-spacing: normal;
+}
+
+html[data-template="editorial"] h1,
+html[data-template="editorial"] h2,
+html[data-template="editorial"] h3,
+html[data-template="editorial"] h4,
+html[data-template="editorial"] h5,
+html[data-template="editorial"] h6 {
+  font-family: ivypresto-headline, serif !important;
+  font-feature-settings: "lnum";
+  font-variant-numeric: lining-nums;
+  font-weight: 700 !important;
+  text-transform: none;
+}
+
+html[data-template="editorial"] .editorial-display {
+  font-size: 44px;
+  line-height: 51.92px;
+  letter-spacing: 0.44px;
+}
+
+html[data-template="editorial"] .editorial-excerpt {
+  font-family: sofia-pro, sans-serif;
+  font-feature-settings: "lnum";
+  font-variant-numeric: lining-nums;
+  font-size: 22px;
+  line-height: 30.8px;
+  letter-spacing: normal;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+html[data-template="editorial"] .prose {
+  font-family: sofia-pro, sans-serif;
+  font-feature-settings: "lnum";
+  font-variant-numeric: lining-nums;
+}
+
+html[data-template="editorial"] .prose p {
+  font-size: 18px;
+  line-height: 29.16px;
+  letter-spacing: normal;
+  margin-top: 32px;
+  margin-bottom: 0;
+  color: #1d1d1d;
+  -webkit-font-smoothing: antialiased;
+}
+
+html[data-template="editorial"] .prose p:first-child {
+  margin-top: 0;
+}
+
+html[data-template="editorial"] .article-content > .prose {
+  margin-top: 22px;
+}
+
+html[data-template="editorial"] .article-content > .prose:first-child {
+  margin-top: 0;
+}
+
+html[data-template="editorial"] .prose a {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  text-decoration-skip-ink: auto;
+}
+
 html[data-template="news"] body {
   background: #ffffff;
 }

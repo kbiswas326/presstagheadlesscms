@@ -125,7 +125,7 @@ export default function ArticleContent({ content }) {
   const rest = paragraphs.slice(earlyParagraphCount);
 
   return (
-    <div style={{ contentVisibility: 'auto', containIntrinsicSize: '1200px' }}>
+    <div className="article-content" style={{ contentVisibility: 'auto', containIntrinsicSize: '1200px' }}>
       {early.map((html, idx) => {
         const paragraphIndex = idx + 1;
         const showParagraphAd = paragraphIndex === 2 || paragraphIndex === 4 || paragraphIndex === 6;
