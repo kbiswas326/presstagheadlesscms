@@ -318,9 +318,10 @@ export default async function PostPage({ params }) {
     return (
       <div className={`min-h-screen bg-white ${inter.className}`}>
         <div className="w-full pt-6 pb-16">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-            <main className="lg:col-span-8">
-              <header className="mb-8">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+              <main className="lg:col-span-8">
+                <header className="mb-8">
                 <nav className="flex items-center text-xs text-gray-500 mb-5 whitespace-nowrap overflow-hidden">
                   <Link href="/" className="hover:underline flex-shrink-0">
                     Home
@@ -377,12 +378,12 @@ export default async function PostPage({ params }) {
                         ) : null}
                       </div>
 
-                      <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-[1.05]">
+                      <h1 className="modern-display text-4xl md:text-6xl tracking-tight text-white">
                         {post.title}
                       </h1>
 
                       {(post.summary || post.sub_title) ? (
-                        <p className="mt-5 text-base md:text-lg text-white/70 leading-relaxed">
+                        <p className="modern-excerpt mt-5 text-base md:text-lg text-white/70">
                           {post.summary || post.sub_title}
                         </p>
                       ) : null}
@@ -463,7 +464,7 @@ export default async function PostPage({ params }) {
 
               <AdSpot position="article_top" />
 
-              <article className="prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-gray-950 prose-p:text-gray-800 prose-p:leading-loose prose-a:underline">
+              <article className="prose prose-lg md:prose-xl max-w-none prose-headings:font-extrabold prose-headings:tracking-tight prose-headings:text-gray-950 prose-p:text-gray-800 prose-a:underline">
                 <ArticleContent content={post.content} />
               </article>
 
@@ -511,29 +512,30 @@ export default async function PostPage({ params }) {
                 </div>
               ) : null}
 
-              {readMorePosts.length > 0 ? (
-                <section className="mt-12 pt-10 border-t border-gray-100">
-                  <div className="flex items-end justify-between gap-4 mb-6">
-                    <h2 className="text-2xl font-bold text-gray-950">Read More</h2>
-                    <div className="h-1 w-14 rounded-full" style={{ backgroundColor: 'var(--primary-color)' }} />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {readMorePosts.map((p, i) => (
-                      <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} urlStructure={urlStructure} variant="modern" />
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-            </main>
+                {readMorePosts.length > 0 ? (
+                  <section className="mt-12 pt-10 border-t border-gray-100">
+                    <div className="flex items-end justify-between gap-4 mb-6">
+                      <h2 className="text-2xl font-bold text-gray-950">Read More</h2>
+                      <div className="h-1 w-14 rounded-full" style={{ backgroundColor: 'var(--primary-color)' }} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {readMorePosts.map((p, i) => (
+                        <ArticleGridCard key={String(p?.slug || p?._id || i)} post={p} urlStructure={urlStructure} variant="modern" />
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+              </main>
 
-            <aside className="lg:col-span-4 lg:sticky lg:top-0 space-y-8">
-              <SidebarDeferredClient
-                currentPostId={post?.slug || post?._id}
-                categorySlug={post?.categories?.[0]?.slug}
-                authorId={post?.author?._id || post?.authorId || post?.author}
-                excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)}
-              />
-            </aside>
+              <aside className="lg:col-span-4 lg:sticky lg:top-0 space-y-8">
+                <SidebarDeferredClient
+                  currentPostId={post?.slug || post?._id}
+                  categorySlug={post?.categories?.[0]?.slug}
+                  authorId={post?.author?._id || post?.authorId || post?.author}
+                  excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)}
+                />
+              </aside>
+            </div>
           </div>
           {shouldLoadEmbeds ? <EmbedScripts /> : null}
         </div>

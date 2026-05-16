@@ -103,6 +103,91 @@ html[data-template="editorial"] .prose a {
   text-decoration-skip-ink: auto;
 }
 
+html[data-template="modern"] {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html[data-template="modern"] body {
+  font-family: "YahooSans VF", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  letter-spacing: normal;
+  color: rgb(35, 42, 49);
+}
+
+html[data-template="modern"] .modern-display {
+  font-family: "YahooSans VF", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: normal;
+  font-size: 38px;
+  line-height: 46px;
+}
+
+html[data-template="modern"] .modern-excerpt {
+  font-family: "YahooSans VF", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  letter-spacing: normal;
+  font-size: 18px;
+  line-height: 30px;
+  max-width: 640px;
+}
+
+html[data-template="modern"] .prose {
+  font-family: "YahooSans VF", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+html[data-template="modern"] .prose h1,
+html[data-template="modern"] .prose h2,
+html[data-template="modern"] .prose h3,
+html[data-template="modern"] .prose h4,
+html[data-template="modern"] .prose h5,
+html[data-template="modern"] .prose h6 {
+  font-family: "YahooSans VF", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: normal;
+  color: rgb(35, 42, 49);
+}
+
+html[data-template="modern"] .prose h2 {
+  font-size: 24px;
+  line-height: 32px;
+}
+
+@media (min-width: 768px) {
+  html[data-template="modern"] .prose h2 {
+    font-size: 26px;
+    line-height: 34px;
+  }
+}
+
+html[data-template="modern"] .prose p,
+html[data-template="modern"] .prose li {
+  font-family: "YahooSans VF", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 18px;
+  line-height: 30px;
+  letter-spacing: normal;
+  color: rgb(35, 42, 49);
+}
+
+html[data-template="modern"] .article-content > .prose {
+  margin-top: 20px;
+}
+
+html[data-template="modern"] .article-content > .prose:first-child {
+  margin-top: 0;
+}
+
+html[data-template="modern"] .prose a {
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+  text-decoration-thickness: 2px;
+  text-decoration-skip-ink: auto;
+}
+
+html[data-template="modern"] .article-content .prose p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 html[data-template="news"] body {
   background: #ffffff;
 }

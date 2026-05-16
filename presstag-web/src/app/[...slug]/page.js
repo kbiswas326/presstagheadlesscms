@@ -516,9 +516,10 @@ if (!post) {
     return (
       <div className={`min-h-screen bg-white ${inter.className}`}>
         <div className="w-full pt-6 pb-16">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-            <main className="lg:col-span-8">
-              <header className="mb-8">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+              <main className="lg:col-span-8">
+                <header className="mb-8">
                 <nav className="flex items-center text-xs text-gray-500 mb-5 whitespace-nowrap overflow-hidden">
                   <Link href="/" className="hover:underline flex-shrink-0">
                     Home
@@ -575,12 +576,12 @@ if (!post) {
                         ) : null}
                       </div>
 
-                      <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-[1.05]">
+                      <h1 className="modern-display text-4xl md:text-6xl tracking-tight text-white">
                         {post.title}
                       </h1>
 
                       {(post.summary || post.sub_title) ? (
-                        <p className="mt-5 text-base md:text-lg text-white/70 leading-relaxed">
+                        <p className="modern-excerpt mt-5 text-base md:text-lg text-white/70">
                           {post.summary || post.sub_title}
                         </p>
                       ) : null}
@@ -655,7 +656,7 @@ if (!post) {
 
               <AdSpot position="article_top" />
 
-              <article className="prose prose-lg max-w-none prose-headings:font-bold prose-headings:text-gray-950 prose-p:text-gray-800 prose-p:leading-loose prose-a:underline">
+              <article className="prose prose-lg md:prose-xl max-w-none prose-headings:font-extrabold prose-headings:tracking-tight prose-headings:text-gray-950 prose-p:text-gray-800 prose-a:underline">
                 <ArticleContent content={post.content} />
               </article>
 
@@ -711,6 +712,7 @@ if (!post) {
                 excludePostKeys={[String(post?.slug || post?._id || '')].filter(Boolean)}
               />
             </aside>
+            </div>
           </div>
           {shouldLoadEmbeds ? <EmbedScripts /> : null}
         </div>
