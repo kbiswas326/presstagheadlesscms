@@ -6,10 +6,11 @@
         "dev": "next dev -p 3001",
         "build": "next build",
         "start": "next start",
-        "lint": "eslint"
+        "lint": "eslint",
+        "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+        "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview"
     },
     "dependencies": {
-        "@opennextjs/cloudflare": "^1.19.11",
         "@tailwindcss/aspect-ratio": "^0.4.2",
         "@tailwindcss/typography": "^0.5.19",
         "framer-motion": "^12.23.26",
@@ -22,6 +23,7 @@
         "zustand": "^5.0.9"
     },
     "devDependencies": {
+        "@opennextjs/cloudflare": "^1.19.11",
         "@tailwindcss/postcss": "^4",
         "autoprefixer": "^10.4.23",
         "eslint": "^9",
