@@ -7,9 +7,7 @@
         "build": "next build",
         "start": "next start",
         "lint": "eslint",
-        "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-        "deploy:presstag": "opennextjs-cloudflare build && wrangler deploy --name presstag-website",
-        "deploy:sportzpoint": "opennextjs-cloudflare build && wrangler deploy --name sportzpoint-website",
+        "deploy": "opennextjs-cloudflare build && wrangler deploy --name $WORKER_NAME",
         "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview"
     },
     "dependencies": {
