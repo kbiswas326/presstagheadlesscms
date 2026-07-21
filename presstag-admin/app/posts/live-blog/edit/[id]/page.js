@@ -1129,6 +1129,7 @@ const sortedUpdates = [...updates].sort(
                           link_rel_list: [
                             { title: 'Do-follow', text: 'Do-follow', value: '' },
                             { title: 'No-follow', text: 'No-follow', value: 'nofollow' },
+                            { title: 'Sponsored', text: 'Sponsored', value: 'sponsored' },
                           ],
                           block_formats: 'Paragraph=p;Heading 1=h1;Heading 2=h2;Heading 3=h3;Heading 4=h4;Heading 5=h5',
                           image_caption: true,
@@ -1469,6 +1470,7 @@ const sortedUpdates = [...updates].sort(
                           link_rel_list: [
                             { title: 'Do-follow', text: 'Do-follow', value: '' },
                             { title: 'No-follow', text: 'No-follow', value: 'nofollow' },
+                            { title: 'Sponsored', text: 'Sponsored', value: 'sponsored' },
                           ],
                           block_formats: 'Paragraph=p;Heading 1=h1;Heading 2=h2;Heading 3=h3;Heading 4=h4;Heading 5=h5',
                           image_caption: true,

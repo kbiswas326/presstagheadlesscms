@@ -752,6 +752,7 @@ export default function VideoEditorPage() {
                     link_rel_list: [
                       { title: 'Do-follow', text: 'Do-follow', value: '' },
                       { title: 'No-follow', text: 'No-follow', value: 'nofollow' },
+                      { title: 'Sponsored', text: 'Sponsored', value: 'sponsored' },
                     ],
                     toolbar:
                       "undo redo | bold italic underline | alignleft aligncenter alignright | bullist numlist | link image media | code",

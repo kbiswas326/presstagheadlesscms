@@ -86,6 +86,7 @@ const RichTextEditor = ({ content, htmlContentGrab }) => {
           link_rel_list: [
             { title: 'Do-follow', text: 'Do-follow', value: '' },
             { title: 'No-follow', text: 'No-follow', value: 'nofollow' },
+            { title: 'Sponsored', text: 'Sponsored', value: 'sponsored' },
           ],
           toolbar: 'styles fontsize | bold italic | image media table link | alignleft aligncenter alignright | bullist numlist | writingcheck',
           browser_spellcheck: true,

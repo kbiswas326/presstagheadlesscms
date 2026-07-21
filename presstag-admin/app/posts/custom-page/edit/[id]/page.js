@@ -254,6 +254,7 @@ export default function CustomPageEditor() {
                     link_rel_list: [
                       { title: 'Do-follow', text: 'Do-follow', value: '' },
                       { title: 'No-follow', text: 'No-follow', value: 'nofollow' },
+                      { title: 'Sponsored', text: 'Sponsored', value: 'sponsored' },
                     ],
                     browser_spellcheck: true,
                     file_picker_callback: function (callback, value, meta) {
