@@ -61,7 +61,7 @@ export default function TopNavbar() {
   ];
 
   return (
-    <header className={`flex justify-between items-center ${theme.bg} pl-6 pr-14 py-3 border-b ${theme.border} transition-colors duration-300`}>
+    <header className={`admin-top-navbar flex justify-between items-center ${theme.bg} pl-6 pr-14 py-3 border-b ${theme.border} transition-colors duration-300`}>
       <div className="flex items-center gap-4 flex-1 max-w-2xl">
         <div className="relative w-full">
           <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${theme.iconColor}`} />

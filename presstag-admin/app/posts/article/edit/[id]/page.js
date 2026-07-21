@@ -4,7 +4,7 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, ChevronDown, CheckCircle2, XCircle, AlertCircle, X, Wand2, Upload } from 'lucide-react';
+import { ArrowLeft, ChevronDown, CheckCircle2, XCircle, AlertCircle, X, Wand2, Upload, Maximize2, Minimize2 } from 'lucide-react';
 import { getTenantId, posts } from '../../../../../lib/api';
 import { useUser } from '../../../../context/UserContext';
 import { useTheme } from '../../../../context/ThemeContext';
@@ -74,6 +74,9 @@ export default function ArticleEditorPage() {
 
   // Preview modal
   const [showPreview, setShowPreview] = useState(false);
+  const [isWritingMode, setIsWritingMode] = useState(false);
+  const [showComposerFields, setShowComposerFields] = useState(true);
+  const [showSeoPanel, setShowSeoPanel] = useState(true);
 
   // Dropdown states for multi-select
   const [showAuthorDropdown, setShowAuthorDropdown] = useState(false);
@@ -103,6 +106,21 @@ export default function ArticleEditorPage() {
   const [availableCategories, setAvailableCategories] = useState([]);
   const [availableTags, setAvailableTags] = useState([]);
   const [authorsLoading, setAuthorsLoading] = useState(true);
+
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    if (isWritingMode) {
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('editor-focus-mode');
+    } else {
+      document.body.style.overflow = originalOverflow;
+      document.body.classList.remove('editor-focus-mode');
+    }
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.classList.remove('editor-focus-mode');
+    };
+  }, [isWritingMode]);
 
   // Auto-set current date and time
   useEffect(() => {
@@ -997,62 +1015,196 @@ export default function ArticleEditorPage() {
     if (!value) setTagSearch('');
   };
 
+  const toggleWritingMode = () => {
+    setIsWritingMode((prev) => {
+      const next = !prev;
+      if (next) {
+        setActiveTab('content');
+        setShowComposerFields(false);
+        setShowSeoPanel(false);
+      } else {
+        setShowComposerFields(true);
+        setShowSeoPanel(true);
+      }
+      return next;
+    });
+  };
+
+  const isExpandedCanvas = isWritingMode || !showComposerFields;
+  const isImmersiveCanvas = isWritingMode;
+  const tinyMceApiKey = process.env.NEXT_PUBLIC_TINYMCE_API_KEY || '8m2pony3qhnn3my1l3lr6czqoxm5uft2e82uymu7851l7sb6';
+  const tinyMceScriptSrc = `https://cdn.tiny.cloud/1/${tinyMceApiKey}/tinymce/7/tinymce.min.js`;
   const panel = `backdrop-blur-sm rounded-2xl shadow-md transition-colors duration-200 ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white/80 ring-1 ring-gray-100'}`;
+  const contentShell = isImmersiveCanvas
+    ? `space-y-4 rounded-[28px] border p-4 md:p-5 ${isDark ? 'border-gray-700 bg-gray-800/85 shadow-none' : 'border-white/80 bg-white/92 shadow-xl shadow-slate-200/60'}`
+    : `${panel} p-6 space-y-6`;
+  const editorFrame = isImmersiveCanvas
+    ? `overflow-hidden rounded-[24px] border ${isDark ? 'border-gray-700 shadow-none' : 'border-slate-200 shadow-lg shadow-slate-200/70'}`
+    : `rounded-lg overflow-hidden border ${isDark ? "border-gray-600" : "border-gray-200"}`;
+  const editorInit = {
+    height: isImmersiveCanvas ? 1120 : isExpandedCanvas ? 880 : 720,
+    min_height: isImmersiveCanvas ? 1120 : isExpandedCanvas ? 880 : 720,
+    resize: isImmersiveCanvas ? false : 'vertical',
+    menubar: !isImmersiveCanvas,
+    toolbar_sticky: true,
+    toolbar_sticky_offset: isImmersiveCanvas ? 72 : 16,
+    skin: isDark ? "oxide-dark" : "oxide",
+    content_css: isDark ? "dark" : "default",
+    plugins: 'link image media table lists code wordcount fullscreen',
+    toolbar: isImmersiveCanvas
+      ? 'blocks fontsize | bold italic | image media table link | alignleft aligncenter alignright | bullist numlist | writingcheck fullscreen'
+      : 'blocks fontsize | bold italic | image media table link | alignleft aligncenter alignright | bullist numlist | writingcheck fullscreen',
+    link_advanced_tab: true,
+    link_rel_list: [
+      { title: 'Do-follow', text: 'Do-follow', value: '' },
+      { title: 'No-follow', text: 'No-follow', value: 'nofollow' },
+    ],
+    block_formats: 'Paragraph=p;Heading 1=h1;Heading 2=h2;Heading 3=h3;Heading 4=h4;Heading 5=h5',
+    content_style: isImmersiveCanvas
+      ? 'body { font-family: Georgia, Cambria, "Times New Roman", Times, serif; font-size: 21px; line-height: 1.9; color: #1f2937; max-width: 860px; margin: 0 auto; padding: 48px 40px 220px; background: #fcfcfb; } p { margin: 0 0 1.1em; } h1, h2, h3, h4, h5 { font-family: Georgia, Cambria, "Times New Roman", Times, serif; line-height: 1.15; margin: 1.5em 0 0.6em; } h1 { font-size: 2.5em; } h2 { font-size: 1.7em; } figure { margin: 1.4em 0; padding: 0; text-align: center; } figure img { max-width: 100%; height: auto; } figure figcaption { font-style: italic; color: #666; margin-top: 0.5em; font-size: 0.9em; }'
+      : 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.6; } h1 { font-size: 2em; }',
+    image_caption: true,
+    image_title: true,
+    browser_spellcheck: true,
+    file_picker_callback: function (callback, value, meta) {
+      if (meta.filetype === 'image') {
+        if (window.tinymce && window.tinymce.activeEditor) {
+          window.tinymce.activeEditor.windowManager.close();
+          editorCallbackRef.current = { editor: window.tinymce.activeEditor };
+        } else {
+          editorCallbackRef.current = callback;
+        }
+        setShowMediaSelector(true);
+      }
+    },
+    setup: (editor) => {
+      editor.ui.registry.addButton('writingcheck', {
+        text: 'Check',
+        onAction: async () => {
+          try {
+            const text = editor.getContent({ format: 'text' }) || '';
+            const endpoint = process.env.NEXT_PUBLIC_LANGUAGETOOL_URL || 'https://api.languagetool.org/v2/check';
+            const body = new URLSearchParams({ text, language: 'en-US' });
+            const res = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: body.toString(),
+            });
+            if (!res.ok) {
+              editor.windowManager.alert('Writing check failed.');
+              return;
+            }
+            const data = await res.json();
+            const matches = Array.isArray(data?.matches) ? data.matches : [];
+            if (matches.length === 0) {
+              editor.windowManager.alert('No issues found.');
+              return;
+            }
+            const lines = matches.slice(0, 10).map((m) => {
+              const msg = String(m?.message || 'Issue');
+              const repl = Array.isArray(m?.replacements) && m.replacements.length > 0 ? ` → ${m.replacements[0].value}` : '';
+              return `- ${msg}${repl}`;
+            });
+            const more = matches.length > 10 ? `\n(+${matches.length - 10} more)` : '';
+            editor.windowManager.alert(`${matches.length} issue(s) found:\n${lines.join('\n')}${more}`);
+          } catch {
+            editor.windowManager.alert('Writing check failed.');
+          }
+        },
+      });
+      editor.on('NodeChange', () => {
+        const node = editor.selection.getNode();
+        const figcaption = editor.dom.getParent(node, 'figcaption');
+        if (figcaption) {
+          const figure = editor.dom.getParent(figcaption, 'figure');
+          if (figure) {
+            const next = figure.nextSibling;
+            if (next && next.nodeName === 'P' && (next.innerHTML === '&nbsp;' || next.innerHTML === '<br data-mce-bogus="1">')) {
+              editor.dom.remove(next);
+            }
+          }
+        }
+      });
+    },
+  };
 
   return (
-    <div className={`min-h-screen transition-colors duration-200 ${isDark ? "bg-gray-900" : "bg-gradient-to-b from-slate-50 to-white"} p-6`}>
+    <div className={`min-h-screen overflow-x-hidden transition-colors duration-200 ${isDark ? "bg-gray-900" : "bg-gradient-to-b from-slate-50 to-white"} ${isImmersiveCanvas ? 'p-3 md:p-4' : 'p-6'}`}>
       
       {/* Top bar */}
-      <div className={`flex items-center justify-between mb-6 p-4 ${panel}`}>
-        <div className="flex items-center gap-4">
+      <div className={`flex flex-wrap items-center justify-between gap-3 ${isImmersiveCanvas ? 'sticky top-3 z-30 mb-4 px-4 py-3 md:px-5' : 'mb-6 p-4'} ${panel}`}>
+        <div className="flex items-center gap-3 md:gap-4">
           <button 
             onClick={() => router.back()}
-            className={`flex items-center gap-2 px-2 py-1 rounded-lg transition-colors ${isDark ? "text-gray-300 hover:text-white hover:bg-gray-700" : "text-gray-700 hover:text-black hover:bg-gray-100"}`}
+            className={`flex items-center gap-2 rounded-lg transition-colors ${isImmersiveCanvas ? 'px-2 py-2' : 'px-2 py-1'} ${isDark ? "text-gray-300 hover:text-white hover:bg-gray-700" : "text-gray-700 hover:text-black hover:bg-gray-100"}`}
           >
             <ArrowLeft size={18} />
-            <span className="font-medium">Back</span>
+            {!isImmersiveCanvas && <span className="font-medium">Back</span>}
           </button>
-          <div className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>{postId ? 'Edit' : 'Create'} Article</div>
+          <div>
+            <div className={`${isImmersiveCanvas ? 'text-xs uppercase tracking-[0.18em]' : 'text-sm'} ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+              {isImmersiveCanvas ? 'Writing Canvas' : `${postId ? 'Edit' : 'Create'} Article`}
+            </div>
+            {isImmersiveCanvas && (
+              <div className={`text-sm font-medium ${isDark ? "text-gray-200" : "text-slate-700"}`}>
+                Fullscreen focus mode
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className={`flex flex-wrap items-center ${isImmersiveCanvas ? 'gap-2' : 'gap-3'}`}>
           {(lastSaved || isAutoSaving) && (
-            <span className={`text-xs mr-2 hidden md:inline-block transition-opacity duration-300 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+            <span className={`mr-2 hidden md:inline-block transition-opacity duration-300 ${isImmersiveCanvas ? 'text-[11px] uppercase tracking-[0.16em]' : 'text-xs'} ${isDark ? "text-gray-400" : "text-gray-500"}`}>
               {isAutoSaving ? 'Saving...' : `Saved ${lastSaved?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`}
             </span>
           )}
 
-          <button
-            onClick={() => setShowPreview(true)}
-            className={`rounded-full border px-4 py-2 text-sm transition-colors ${isDark ? "border-gray-600 text-gray-300 hover:bg-gray-700" : "hover:bg-gray-50 text-gray-700"}`}
-          >
-            Preview
-          </button>
+          {!isImmersiveCanvas && (
+            <>
+              <button
+                onClick={toggleWritingMode}
+                className={`inline-flex items-center gap-2 rounded-full border transition-colors px-4 py-2 text-sm ${isDark ? "border-gray-600 text-gray-200 hover:bg-gray-700" : "border-gray-200 text-gray-700 hover:bg-gray-50"}`}
+              >
+                {isWritingMode ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                {isWritingMode ? 'Exit Focus' : 'Focus Mode'}
+              </button>
 
-          <button
-            onClick={handleSaveDraft}
-            disabled={isLoading}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isDark ? "bg-gray-700 text-gray-200 hover:bg-gray-600" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
-          >
-            {isLoading ? 'Saving...' : 'Save Draft'}
-          </button>
+              <button
+                onClick={() => setShowPreview(true)}
+                className={`rounded-full border transition-colors px-4 py-2 text-sm ${isDark ? "border-gray-600 text-gray-300 hover:bg-gray-700" : "hover:bg-gray-50 text-gray-700"}`}
+              >
+                Preview
+              </button>
 
-          <button
-            onClick={handleSendForApproval}
-            disabled={isLoading}
-            className="px-5 py-2 rounded-full shadow border disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              backgroundColor: isDark ? "#1f2937" : "white",
-              color: isDark ? "#60a5fa" : "rgb(24 94 253)",
-              borderColor: isDark ? "#60a5fa" : "rgb(24 94 253)"
-            }}
-          >
-            {isLoading ? 'Sending...' : 'Send for Approval'}
-          </button>
+              <button
+                onClick={handleSaveDraft}
+                disabled={isLoading}
+                className={`flex items-center gap-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors px-4 py-2 ${isDark ? "bg-gray-700 text-gray-200 hover:bg-gray-600" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+              >
+                {isLoading ? 'Saving...' : 'Save Draft'}
+              </button>
+            </>
+          )}
+
+          {!isImmersiveCanvas && (
+            <button
+              onClick={handleSendForApproval}
+              disabled={isLoading}
+              className="px-5 py-2 rounded-full shadow border disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: isDark ? "#1f2937" : "white",
+                color: isDark ? "#60a5fa" : "rgb(24 94 253)",
+                borderColor: isDark ? "#60a5fa" : "rgb(24 94 253)"
+              }}
+            >
+              {isLoading ? 'Sending...' : 'Send for Approval'}
+            </button>
+          )}
 
           {canPublish ? (
             <>
-              {postId && postId !== 'new' && (
+              {!isImmersiveCanvas && postId && postId !== 'new' && (
                 <button
                   onClick={handleUpdate}
                   disabled={isLoading}
@@ -1067,17 +1219,19 @@ export default function ArticleEditorPage() {
                 </button>
               )}
 
-              <button
-                onClick={handlePublish}
-                disabled={isLoading}
-                className="px-5 py-2 rounded-full shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor: "rgb(24 94 253)",
-                  color: "white"
-                }}
-              >
-                {isLoading ? 'Publishing...' : 'Publish'}
-              </button>
+              {!isImmersiveCanvas && (
+                <button
+                  onClick={handlePublish}
+                  disabled={isLoading}
+                  className="px-5 py-2 rounded-full shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: "rgb(24 94 253)",
+                    color: "white"
+                  }}
+                >
+                  {isLoading ? 'Publishing...' : 'Publish'}
+                </button>
+              )}
             </>
           ) : null}
         </div>
@@ -1101,174 +1255,132 @@ export default function ArticleEditorPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-8">
-          <div className={`${panel} p-6 space-y-6`}> 
-            <div className={`flex items-center gap-6 border-b pb-4 ${isDark ? "border-gray-700" : "border-gray-200"}`}>
-              <button onClick={() => setActiveTab('content')} className={`pb-2 ${activeTab === 'content' ? 'border-b-2 border-emerald-500 font-semibold ' + (isDark ? 'text-white' : 'text-gray-900') : 'text-gray-400'}`}>Content</button>
-              <button onClick={() => setActiveTab('properties')} className={`pb-2 ${activeTab === 'properties' ? 'border-b-2 border-emerald-500 font-semibold ' + (isDark ? 'text-white' : 'text-gray-900') : 'text-gray-400'}`}>Properties</button>
-            </div>
+      <div className={`grid grid-cols-12 ${isImmersiveCanvas ? 'gap-3 md:gap-4' : 'gap-6'} ${isWritingMode ? 'items-start' : ''}`}>
+        <div className={isWritingMode || !showSeoPanel ? "col-span-12" : "col-span-12 xl:col-span-8"}>
+          <div className={contentShell}> 
+            {!isImmersiveCanvas && (
+              <div className={`flex flex-wrap items-center justify-between gap-4 border-b pb-4 ${isDark ? "border-gray-700" : "border-gray-200"}`}>
+                <div className="flex items-center gap-6">
+                  <>
+                    <button onClick={() => setActiveTab('content')} className={`pb-2 ${activeTab === 'content' ? 'border-b-2 border-emerald-500 font-semibold ' + (isDark ? 'text-white' : 'text-gray-900') : 'text-gray-400'}`}>Content</button>
+                    <button onClick={() => setActiveTab('properties')} className={`pb-2 ${activeTab === 'properties' ? 'border-b-2 border-emerald-500 font-semibold ' + (isDark ? 'text-white' : 'text-gray-900') : 'text-gray-400'}`}>Properties</button>
+                  </>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {activeTab === 'content' && (
+                    <button
+                      onClick={() => setShowComposerFields((prev) => !prev)}
+                      className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${isDark ? "border-gray-600 text-gray-300 hover:bg-gray-700" : "border-gray-200 text-gray-700 hover:bg-gray-50"}`}
+                    >
+                      {showComposerFields ? 'Hide Details' : 'Show Details'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowSeoPanel((prev) => !prev)}
+                    className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${isDark ? "border-gray-600 text-gray-300 hover:bg-gray-700" : "border-gray-200 text-gray-700 hover:bg-gray-50"}`}
+                  >
+                    {showSeoPanel ? 'Hide SEO' : 'Show SEO'}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {activeTab === 'content' && (
               <div className="space-y-6">
-                <div>
-                  <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Title</label>
-                  <input
-                    className={`w-full mt-2 p-3 rounded-xl border shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-white border-gray-200 text-gray-900"}`}
-                    placeholder="Write the title..."
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                  <div className={`flex justify-between items-center mt-2 text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                    <div>{title.length}/60 characters</div>
-                    <div className="text-xs">Preview: <span className="font-medium">{slug || 'video-url-slug'}</span></div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>URL Slug</label>
-                  <input
-                    className={`w-full mt-2 p-3 rounded-lg border font-mono text-sm shadow-inner ${isDark ? "bg-gray-700 border-gray-600 text-gray-300" : "bg-white border-gray-100 text-gray-900"}`}
-                    placeholder="video-url-slug"
-                    value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Summary</label>
-                  <textarea
-                    className={`w-full mt-2 p-3 rounded-xl border h-28 resize-none shadow-sm ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-white border-gray-100 text-gray-900"}`}
-                    placeholder="Short summary..."
-                    value={summary}
-                    onChange={(e) => setSummary(e.target.value)}
-                  />
-                </div>
-
-                                {/* Featured Image Section */}
-                <div>
-                  <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"} block mb-2`}>Featured Image</label>
-                  {!featuredImage ? (
-                    <div className={`border-2 border-dashed p-8 rounded-xl text-center hover:border-emerald-300 transition ${isDark ? "border-gray-700" : "border-gray-200"}`}>
-                      <button
-                        onClick={() => setShowMediaSelector(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-md shadow border transition-all"
-                        style={{ backgroundColor: 'rgb(24 94 253)', color: 'white', borderColor: 'rgb(24 94 253)' }}
-                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = 'rgb(24 94 253)'; e.currentTarget.style.borderColor = 'rgb(24 94 253)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgb(24 94 253)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'rgb(24 94 253)'; }}
-                      >
-                        <Upload size={16} /> Upload / Choose from Library
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                    <div className="relative rounded-xl overflow-hidden border mb-4">
-                      <img src={featuredImage.url} alt={featuredImage.altText || 'Featured'} className="w-full h-48 object-cover bg-gray-50" />
-                      <div className="absolute inset-0 flex items-center justify-center gap-3 opacity-0 hover:opacity-100 transition-opacity bg-black/30">
-                        <button onClick={() => setShowMediaSelector(true)} className="bg-white text-gray-800 px-4 py-2 rounded-md">Change</button>
-                        <button onClick={() => setFeaturedImage(null)} className="bg-red-600 text-white px-4 py-2 rounded-md">Remove</button>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent text-white text-sm">
-                        <div className="truncate">{featuredImage.name || featuredImage.fileName || 'Gallery Image'}</div>
+                {showComposerFields && (
+                  <>
+                    <div>
+                      <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Title</label>
+                      <input
+                        className={`w-full mt-2 p-3 rounded-xl border shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-white border-gray-200 text-gray-900"}`}
+                        placeholder="Write the title..."
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                      />
+                      <div className={`flex justify-between items-center mt-2 text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                        <div>{title.length}/60 characters</div>
+                        <div className="text-xs">Preview: <span className="font-medium">{slug || 'video-url-slug'}</span></div>
                       </div>
                     </div>
-                    <div className="mt-3">
-                      <label className={`text-xs font-medium mb-1 block ${isDark ? "text-gray-400" : "text-gray-500"}`}>Image Caption</label>
-                      <input 
-                        type="text" 
-                        className={`w-full p-2 text-sm rounded-lg border focus:outline-none focus:ring-1 focus:ring-blue-500 ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-500" : "bg-gray-50 border-gray-200 text-gray-800 placeholder-gray-400"}`}
-                        placeholder="Add a caption for this image..."
-                        value={featuredImage.caption || ''}
-                        onChange={(e) => setFeaturedImage({ ...featuredImage, caption: e.target.value })}
+
+                    <div>
+                      <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>URL Slug</label>
+                      <input
+                        className={`w-full mt-2 p-3 rounded-lg border font-mono text-sm shadow-inner ${isDark ? "bg-gray-700 border-gray-600 text-gray-300" : "bg-white border-gray-100 text-gray-900"}`}
+                        placeholder="video-url-slug"
+                        value={slug}
+                        onChange={(e) => setSlug(e.target.value)}
                       />
                     </div>
-                    </>
-                  )}
-                </div><div>
-                  <label className={`text-sm font-medium mb-2 block ${isDark ? "text-gray-300" : "text-gray-700"}`}>Content</label>
-                  <div className={`rounded-lg overflow-hidden border ${isDark ? "border-gray-600" : "border-gray-200"}`}>
+
+                    <div>
+                      <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Summary</label>
+                      <textarea
+                        className={`w-full mt-2 p-3 rounded-xl border h-28 resize-none shadow-sm ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-white border-gray-100 text-gray-900"}`}
+                        placeholder="Short summary..."
+                        value={summary}
+                        onChange={(e) => setSummary(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"} block mb-2`}>Featured Image</label>
+                      {!featuredImage ? (
+                        <div className={`border-2 border-dashed p-8 rounded-xl text-center hover:border-emerald-300 transition ${isDark ? "border-gray-700" : "border-gray-200"}`}>
+                          <button
+                            onClick={() => setShowMediaSelector(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-md shadow border transition-all"
+                            style={{ backgroundColor: 'rgb(24 94 253)', color: 'white', borderColor: 'rgb(24 94 253)' }}
+                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = 'rgb(24 94 253)'; e.currentTarget.style.borderColor = 'rgb(24 94 253)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgb(24 94 253)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'rgb(24 94 253)'; }}
+                          >
+                            <Upload size={16} /> Upload / Choose from Library
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="relative rounded-xl overflow-hidden border mb-4">
+                            <img src={featuredImage.url} alt={featuredImage.altText || 'Featured'} className="w-full h-48 object-cover bg-gray-50" />
+                            <div className="absolute inset-0 flex items-center justify-center gap-3 opacity-0 hover:opacity-100 transition-opacity bg-black/30">
+                              <button onClick={() => setShowMediaSelector(true)} className="bg-white text-gray-800 px-4 py-2 rounded-md">Change</button>
+                              <button onClick={() => setFeaturedImage(null)} className="bg-red-600 text-white px-4 py-2 rounded-md">Remove</button>
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent text-white text-sm">
+                              <div className="truncate">{featuredImage.name || featuredImage.fileName || 'Gallery Image'}</div>
+                            </div>
+                          </div>
+                          <div className="mt-3">
+                            <label className={`text-xs font-medium mb-1 block ${isDark ? "text-gray-400" : "text-gray-500"}`}>Image Caption</label>
+                            <input
+                              type="text"
+                              className={`w-full p-2 text-sm rounded-lg border focus:outline-none focus:ring-1 focus:ring-blue-500 ${isDark ? "bg-gray-700 border-gray-600 text-white placeholder-gray-500" : "bg-gray-50 border-gray-200 text-gray-800 placeholder-gray-400"}`}
+                              placeholder="Add a caption for this image..."
+                              value={featuredImage.caption || ''}
+                              onChange={(e) => setFeaturedImage({ ...featuredImage, caption: e.target.value })}
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <label className={`text-sm font-medium block ${isDark ? "text-gray-300" : "text-gray-700"}`}>Content</label>
+                    {isExpandedCanvas && (
+                      <span className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                        {isImmersiveCanvas ? 'Immersive writing canvas' : 'Expanded writing canvas'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={editorFrame}>
                     <Editor
-                      apiKey={process.env.NEXT_PUBLIC_TINYMCE_API_KEY}
+                      apiKey={tinyMceApiKey}
+                      tinymceScriptSrc={tinyMceScriptSrc}
                       value={content}
                       onEditorChange={(newValue) => setContent(newValue)}
-                      init={{
-                        height: 520,
-                        menubar: true,
-                        skin: isDark ? "oxide-dark" : "oxide",
-                        content_css: isDark ? "dark" : "default",
-                        plugins: 'link image media table lists code wordcount',
-                        toolbar: 'blocks fontsize | bold italic | image media table link | alignleft aligncenter alignright | bullist numlist | writingcheck',
-                        link_advanced_tab: true,
-                        link_rel_list: [
-                          { title: 'Do-follow', text: 'Do-follow', value: '' },
-                          { title: 'No-follow', text: 'No-follow', value: 'nofollow' },
-                        ],
-                        block_formats: 'Paragraph=p;Heading 1=h1;Heading 2=h2;Heading 3=h3;Heading 4=h4;Heading 5=h5',
-                        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.6; } h1 { font-size: 2em; }',
-                        image_caption: true,
-                        image_title: true,
-                        browser_spellcheck: true,
-                        file_picker_callback: function (callback, value, meta) {
-                          if (meta.filetype === 'image') {
-                            if (window.tinymce && window.tinymce.activeEditor) {
-                               window.tinymce.activeEditor.windowManager.close();
-                               editorCallbackRef.current = { editor: window.tinymce.activeEditor };
-                            } else {
-                               editorCallbackRef.current = callback;
-                            }
-                            setShowMediaSelector(true);
-                          }
-                        },
-                        setup: (editor) => {
-                          editor.ui.registry.addButton('writingcheck', {
-                            text: 'Check',
-                            onAction: async () => {
-                              try {
-                                const text = editor.getContent({ format: 'text' }) || '';
-                                const endpoint = process.env.NEXT_PUBLIC_LANGUAGETOOL_URL || 'https://api.languagetool.org/v2/check';
-                                const body = new URLSearchParams({ text, language: 'en-US' });
-                                const res = await fetch(endpoint, {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                                  body: body.toString(),
-                                });
-                                if (!res.ok) {
-                                  editor.windowManager.alert('Writing check failed.');
-                                  return;
-                                }
-                                const data = await res.json();
-                                const matches = Array.isArray(data?.matches) ? data.matches : [];
-                                if (matches.length === 0) {
-                                  editor.windowManager.alert('No issues found.');
-                                  return;
-                                }
-                                const lines = matches.slice(0, 10).map((m) => {
-                                  const msg = String(m?.message || 'Issue');
-                                  const repl = Array.isArray(m?.replacements) && m.replacements.length > 0 ? ` → ${m.replacements[0].value}` : '';
-                                  return `- ${msg}${repl}`;
-                                });
-                                const more = matches.length > 10 ? `\n(+${matches.length - 10} more)` : '';
-                                editor.windowManager.alert(`${matches.length} issue(s) found:\n${lines.join('\n')}${more}`);
-                              } catch {
-                                editor.windowManager.alert('Writing check failed.');
-                              }
-                            },
-                          });
-                          editor.on('NodeChange', () => {
-                            const node = editor.selection.getNode();
-                            const figcaption = editor.dom.getParent(node, 'figcaption');
-                            if (figcaption) {
-                              const figure = editor.dom.getParent(figcaption, 'figure');
-                              if (figure) {
-                                const next = figure.nextSibling;
-                                if (next && next.nodeName === 'P' && (next.innerHTML === '&nbsp;' || next.innerHTML === '<br data-mce-bogus="1">')) {
-                                  editor.dom.remove(next);
-                                }
-                              }
-                            }
-                          });
-                        },
-                      }}
+                      init={editorInit}
                     />
                   </div>
                 </div>
@@ -1467,16 +1579,41 @@ export default function ArticleEditorPage() {
         </div>
 
         {/* SEO Score PANEL */}
-        <div className="col-span-4">
-          <div className={`${panel} p-6 sticky top-6`}>
-            <h2 className={`font-semibold text-lg mb-4 ${isDark ? "text-white" : ""}`}>SEO Analysis</h2>
+        {showSeoPanel && (
+        <>
+        {isImmersiveCanvas && (
+          <div
+            className="fixed inset-0 z-20 bg-slate-950/10 backdrop-blur-[1px]"
+            onClick={() => setShowSeoPanel(false)}
+          />
+        )}
+        <div className={isImmersiveCanvas ? "fixed right-3 top-20 bottom-24 z-30 w-[min(400px,calc(100vw-1.5rem))] md:right-4 md:w-[380px]" : "col-span-12 xl:col-span-4"}>
+          <div className={`${panel} ${isImmersiveCanvas ? 'flex h-full flex-col overflow-hidden rounded-[30px] border border-white/10 shadow-[0_24px_80px_rgba(15,23,42,0.28)]' : 'sticky top-6 p-6'}`}>
+            {isImmersiveCanvas ? (
+              <div className={`flex items-center justify-between border-b px-5 py-4 ${isDark ? 'border-gray-700/80 bg-gray-900/90' : 'border-slate-200/80 bg-white/90'}`}>
+                <div>
+                  <div className={`text-[11px] uppercase tracking-[0.18em] ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>SEO Inspector</div>
+                  <h2 className={`mt-1 text-base font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>SEO Analysis</h2>
+                </div>
+                <button
+                  onClick={() => setShowSeoPanel(false)}
+                  className={`rounded-full border p-2 transition-colors ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <h2 className={`font-semibold text-lg mb-4 ${isDark ? "text-white" : ""}`}>SEO Analysis</h2>
+            )}
+
+            <div className={isImmersiveCanvas ? 'flex-1 overflow-y-auto px-5 py-5' : ''}>
 
             <div className="mb-4">
               <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Focus Keyword</label>
               <input className={`w-full mt-2 p-2 rounded-lg border ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-100 text-gray-900"}`} placeholder="Enter keyword" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
             </div>
 
-            <div className={`mb-6 p-4 rounded-lg shadow-inner ${isDark ? "bg-gray-700/50" : "bg-white"}`}>
+            <div className={`mb-6 rounded-2xl p-4 shadow-inner ${isDark ? "bg-gray-700/50" : "bg-white"}`}>
               <h3 className={`font-medium text-sm mb-3 ${isDark ? "text-gray-400" : "text-gray-500"}`}>SEO Score</h3>
               <div className="flex items-center gap-4">
                 <div className={`w-20 h-20 rounded-full flex items-center justify-center ${isDark ? "bg-gray-800" : "bg-gray-100"}`}>
@@ -1501,7 +1638,7 @@ export default function ArticleEditorPage() {
               <h3 className={`font-medium mb-3 ${isDark ? "text-white" : ""}`}>SEO Checklist</h3>
               <div className="space-y-3">
                 {seoChecks.map((check, i) => (
-                  <div key={i} className="flex items-start gap-3">
+                  <div key={i} className={`flex items-start gap-3 rounded-2xl border p-3 ${isDark ? 'border-gray-700/70 bg-gray-800/60' : 'border-slate-200 bg-white/80'}`}>
                     {check.status === 'success' && <CheckCircle2 size={18} className="text-green-600 mt-0.5" />}
                     {check.status === 'warning' && <AlertCircle size={18} className="text-yellow-500 mt-0.5" />}
                     {check.status === 'error' && <XCircle size={18} className="text-red-600 mt-0.5" />}
@@ -1510,9 +1647,51 @@ export default function ArticleEditorPage() {
                 ))}
               </div>
             </div>
+            </div>
           </div>
         </div>
+        </>
+        )}
       </div>
+
+      {isImmersiveCanvas && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-5 z-40 flex justify-center px-4">
+          <div className={`pointer-events-auto flex flex-wrap items-center justify-center gap-2 rounded-full border px-3 py-2 shadow-2xl backdrop-blur-xl ${isDark ? 'border-gray-700 bg-gray-900/90 text-gray-100' : 'border-white/80 bg-white/92 text-slate-800'}`}>
+            <button
+              onClick={toggleWritingMode}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors ${isDark ? 'border-gray-600 hover:bg-gray-800' : 'border-slate-200 hover:bg-slate-50'}`}
+            >
+              <Minimize2 size={14} />
+              Exit Focus
+            </button>
+            <button
+              onClick={() => setShowComposerFields((prev) => !prev)}
+              className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${isDark ? 'border-gray-600 hover:bg-gray-800' : 'border-slate-200 hover:bg-slate-50'}`}
+            >
+              {showComposerFields ? 'Hide Details' : 'Show Details'}
+            </button>
+            <button
+              onClick={() => setShowSeoPanel((prev) => !prev)}
+              className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${showSeoPanel ? (isDark ? 'border-blue-500 bg-blue-500/10 text-blue-300' : 'border-blue-300 bg-blue-50 text-blue-700') : (isDark ? 'border-gray-600 hover:bg-gray-800' : 'border-slate-200 hover:bg-slate-50')}`}
+            >
+              {showSeoPanel ? 'Hide SEO Score' : 'Show SEO Score'}
+            </button>
+            <button
+              onClick={() => setShowPreview(true)}
+              className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${isDark ? 'border-gray-600 hover:bg-gray-800' : 'border-slate-200 hover:bg-slate-50'}`}
+            >
+              Preview
+            </button>
+            <button
+              onClick={handleSaveDraft}
+              disabled={isLoading}
+              className={`rounded-full px-3 py-1.5 text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'bg-gray-100 text-gray-900 hover:bg-white' : 'bg-slate-900 text-white hover:bg-slate-700'}`}
+            >
+              {isLoading ? 'Saving...' : 'Save Draft'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Preview Modal */}
       {showPreview && (
