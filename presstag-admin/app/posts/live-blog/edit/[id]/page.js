@@ -724,7 +724,7 @@ const handleUpdate = async () => {
 
 // multi-select handlers//
   const toggleCategory = (categoryId) => {
-    setCategories(prev => prev.includes(categoryId) ? prev.filter(id => id !== categoryId) : (prev.length >= 3 ? prev : [...prev, categoryId]));
+    setCategories(prev => prev.includes(categoryId) ? prev.filter(id => id !== categoryId) : [...prev, categoryId]);
   };
 
   useEffect(() => {

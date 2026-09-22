@@ -99,7 +99,7 @@ export default function PhotoGalleryEditorPage() {
   const handleTagsDropdownToggle = (value) => { setShowTagsDropdown(value); if (!value) setTagSearch(''); };
   // Multi-select helpers
   const toggleCategory = (id) => {
-    setCategories((prev) => prev.includes(id) ? prev.filter((cid) => cid !== id) : (prev.length >= 3 ? prev : [...prev, id]));
+    setCategories((prev) => prev.includes(id) ? prev.filter((cid) => cid !== id) : [...prev, id]);
   };
 
   useEffect(() => {

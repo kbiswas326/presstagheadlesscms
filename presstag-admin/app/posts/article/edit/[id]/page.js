@@ -922,7 +922,7 @@ export default function ArticleEditorPage() {
     setCategories(prev =>
       prev.includes(categoryId)
         ? prev.filter(id => id !== categoryId)
-        : (prev.length >= 3 ? prev : [...prev, categoryId])
+        : [...prev, categoryId]
     );
   };
 

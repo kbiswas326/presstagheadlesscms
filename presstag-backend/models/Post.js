@@ -37,10 +37,6 @@ class Post {
     const categoryIds = normalizeIdArray(rawCategories);
     const dedupedCategoryIds = Array.from(new Map(categoryIds.map((oid) => [String(oid), oid])).values());
 
-    if (dedupedCategoryIds.length > 3) {
-      return { error: 'You can select up to 3 categories.' };
-    }
-
     const normalizedCategories = primaryCategoryId
       ? [
           primaryCategoryId,
@@ -240,9 +236,6 @@ class Post {
     if (updateData.categories) {
       const normalized = normalizeIdArray(updateData.categories);
       const deduped = Array.from(new Map(normalized.map((oid) => [String(oid), oid])).values());
-      if (deduped.length > 3) {
-        return { error: 'You can select up to 3 categories.' };
-      }
 
       const rawPrimaryCategory = Array.isArray(updateData.primary_category)
         ? updateData.primary_category[0]

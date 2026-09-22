@@ -25,6 +25,18 @@ function ManagePostProperties({ type, id }) {
   const [publishAtTime, setPublishAtTime] = useState("");
   const [quiz_html, setQuiz_html] = useState("");
 
+  const isPublishedPost = (candidate) => {
+    if (!candidate) return false;
+    const status = String(candidate.status || "").toLowerCase();
+    if (status === "published") return true;
+    return Boolean(
+      candidate.published_at_datetime ||
+      candidate.publishedAt ||
+      candidate.published_at ||
+      candidate.isLive
+    );
+  };
+
   const [postedIdDraft, setPostedIdDraft] = useState(() => {
     const pathParts = pathname.split("/");
     return pathParts[3] === "new-post" ? "" : pathParts[3];
@@ -141,10 +153,10 @@ function ManagePostProperties({ type, id }) {
     if (edting === true) {
       // Only auto-save if we're not editing a published article for the first time
       // If post is published and postedIdDraft equals the published post ID, don't auto-save
-      const isEditingPublishedForFirstTime = post && 
-        post.published_at_datetime !== null && 
-        postedIdDraft === post._id &&
-        !post.oldId; // Not already a draft copy
+      const isEditingPublishedForFirstTime =
+        isPublishedPost(post) &&
+        String(postedIdDraft || "") === String(post?._id || "") &&
+        !post?.oldId;
 
       if (!isEditingPublishedForFirstTime) {
         debounceSubmit(() => submitData("draft"));
@@ -236,9 +248,11 @@ function ManagePostProperties({ type, id }) {
 
         // Set fetched or locally available data
         setPublishAtTime(
-          requiredData.published_at_datetime
-            ? requiredData.published_at_datetime
-            : requiredData.temp_published_at_datetime || new Date()
+          requiredData.published_at_datetime ||
+            requiredData.publishedAt ||
+            requiredData.published_at ||
+            requiredData.temp_published_at_datetime ||
+            new Date()
         );
         setPost(requiredData);
         setHtmlContent(requiredData.content || "");
@@ -373,24 +387,28 @@ function ManagePostProperties({ type, id }) {
 
         transformedData.status = "draft";
 
-        // Check if we're editing a published article
-        if (post !== null && post.published_at_datetime !== null) {
-          // We're editing a published article - need to create a draft copy
+        // Check if we're editing a published article using either legacy or current field names.
+        if (isPublishedPost(post)) {
+          // We're editing a published article - need to create a draft copy instead of mutating the live post.
           transformedData.oldId = post._id;
           transformedData.published_at_datetime = null;
+          transformedData.publishedAt = null;
+          transformedData.published_at = null;
           transformedData.status = "draft";
-          
-          // Only set isCreate to true if we haven't already created a draft for this article
-          if (postedIdDraft === "" || postedIdDraft === post._id) {
+
+          // Only set isCreate to true if we haven't already created a draft for this article.
+          if (postedIdDraft === "" || String(postedIdDraft) === String(post._id)) {
             isCreate = true;
-            // Reset postedIdDraft to empty so we create a new draft
+            // Reset postedIdDraft so we create a fresh draft record from the live article.
             setPostedIdDraft("");
-            
-            setPost((pre) => ({
+
+            setPost((pre) => (pre ? {
               ...pre,
               published_at_datetime: null,
+              publishedAt: null,
+              published_at: null,
               status: "draft",
-            }));
+            } : pre));
           }
         }
 

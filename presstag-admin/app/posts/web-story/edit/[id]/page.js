@@ -236,7 +236,7 @@ useEffect(() => {
   const filteredTags = Array.isArray(availableTags) ? availableTags.filter(t => t?.name?.toLowerCase().includes(tagSearch.toLowerCase())) : [];
 
   const toggleCategory = (id) => {
-    setCategories(prev => prev.includes(id) ? prev.filter(x => x !== id) : (prev.length >= 3 ? prev : [...prev, id]));
+    setCategories(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
   useEffect(() => {
