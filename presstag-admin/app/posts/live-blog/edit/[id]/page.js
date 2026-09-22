@@ -615,9 +615,48 @@ const buildPayload = (status) => ({
   // save/publish handlers//
 
   const handleSaveDraft = async () => {
-  isEditMode
-    ? await posts.update(postId, buildPayload("draft"))
-    : await posts.create(buildPayload("draft"));
+  try {
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    const shouldCreateDraftCopy = isEditMode && postStatus === 'published' && postId && postId !== 'new';
+    const payload = {
+      ...buildPayload("draft"),
+      ...(shouldCreateDraftCopy ? { oldId: postId } : {}),
+    };
+
+    let response;
+    if (shouldCreateDraftCopy) {
+      response = await posts.create(payload);
+    } else if (isEditMode) {
+      response = await posts.update(postId, payload);
+    } else {
+      response = await posts.create(payload);
+    }
+
+    if (response && response.error) {
+      setError(response.error);
+      return;
+    }
+
+    if (shouldCreateDraftCopy && response?._id) {
+      setPostStatus('draft');
+      const nextUrl = `/posts/live-blog/edit/${response._id}`;
+      window.history.replaceState(null, '', nextUrl);
+    }
+
+    setSuccess(
+      shouldCreateDraftCopy
+        ? 'Published live blog copied to a draft. The live version remains visible.'
+        : (isEditMode ? 'Draft updated successfully!' : 'Draft saved successfully!')
+    );
+  } catch (err) {
+    console.error('Save draft failed:', err);
+    setError('Failed to save draft: ' + err.message);
+  } finally {
+    setIsLoading(false);
+  }
 };
 
 const handleSendForApproval = async () => {

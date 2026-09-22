@@ -90,6 +90,7 @@ export default function CustomPageEditor() {
 
     const now = new Date();
     const shouldPublish = nextStatus === 'published';
+    const shouldCreateDraftCopy = !isNew && status === 'published' && nextStatus === 'draft';
     const resolvedPublishedAt = shouldPublish
       ? (publishedAt ? publishedAt : now.toISOString())
       : null;
@@ -120,17 +121,22 @@ export default function CustomPageEditor() {
         schema: parsedSchema,
       },
       ...(shouldPublish ? { publishedAt: resolvedPublishedAt } : {}),
+      ...(shouldCreateDraftCopy ? { oldId: postId } : {}),
     };
 
     try {
-      const res = isNew ? await postsApi.create(payload) : await postsApi.update(postId, payload);
+      const res = isNew
+        ? await postsApi.create(payload)
+        : shouldCreateDraftCopy
+          ? await postsApi.create(payload)
+          : await postsApi.update(postId, payload);
       if (res?.error) {
         setError(String(res.error));
         return;
       }
-      setSuccess(nextStatus === 'published' ? 'Page published.' : 'Draft saved.');
+      setSuccess(nextStatus === 'published' ? 'Page published.' : (shouldCreateDraftCopy ? 'Published page copied to a draft. The live page remains visible.' : 'Draft saved.'));
       const nextId = String(res?._id || postId);
-      if (isNew && nextId && nextId !== 'new') {
+      if ((isNew || shouldCreateDraftCopy) && nextId && nextId !== 'new') {
         router.replace(`/posts/custom-page/edit/${nextId}`);
       }
       if (nextStatus === 'published') {

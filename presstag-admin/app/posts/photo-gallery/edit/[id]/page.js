@@ -576,9 +576,17 @@ const getSelectedTagsText = () =>
       setIsLoadingAction(true);
       setError(null);
       setSuccess(null);
-      const payload = buildGalleryPayload('draft');
+
+      const shouldCreateDraftCopy = postStatus === 'published' && postId && postId !== 'new';
+      const payload = {
+        ...buildGalleryPayload('draft'),
+        ...(shouldCreateDraftCopy ? { oldId: postId } : {}),
+      };
+
       let response;
-      if (postId && postId !== 'new') {
+      if (shouldCreateDraftCopy) {
+        response = await posts.create(payload);
+      } else if (postId && postId !== 'new') {
         response = await posts.update(postId, payload);
       } else {
         response = await posts.create(payload);
@@ -587,7 +595,16 @@ const getSelectedTagsText = () =>
         setError(response.error);
         return;
       }
-      setSuccess(postId && postId !== 'new' ? 'Draft updated successfully!' : 'Draft saved successfully!');
+      if (shouldCreateDraftCopy && response?._id) {
+        setPostStatus('draft');
+        const nextUrl = `/posts/photo-gallery/edit/${response._id}`;
+        window.history.replaceState(null, '', nextUrl);
+      }
+      setSuccess(
+        shouldCreateDraftCopy
+          ? 'Published gallery copied to a draft. The live gallery remains visible.'
+          : (postId && postId !== 'new' ? 'Draft updated successfully!' : 'Draft saved successfully!')
+      );
       setTimeout(() => router.push('/posts'), 2000);
     } catch (err) {
       setError('Failed to save draft: ' + err.message);

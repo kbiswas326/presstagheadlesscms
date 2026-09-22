@@ -916,18 +916,36 @@ const handleSaveDraft = async () => {
     setIsLoadingAction(true);
     setError(null);
     setSuccess(null);
-    const payload = buildPayload('draft');
+
+    const shouldCreateDraftCopy = postStatus === 'published' && postId && postId !== 'new';
+    const payload = {
+      ...buildPayload('draft'),
+      ...(shouldCreateDraftCopy ? { oldId: postId } : {}),
+    };
+
     let response;
-    if (postId && postId !== 'new') {
+    if (shouldCreateDraftCopy) {
+      response = await posts.create(payload);
+    } else if (postId && postId !== 'new') {
       response = await posts.update(postId, payload);
     } else {
       response = await posts.create(payload);
     }
+
     if (response && response.error) {
       setError(response.error);
       return;
     }
-    setSuccess(postId && postId !== 'new' ? 'Draft updated successfully!' : 'Draft saved successfully!');
+    if (shouldCreateDraftCopy && response?._id) {
+      setPostStatus('draft');
+      const nextUrl = `/posts/web-story/edit/${response._id}`;
+      window.history.replaceState(null, '', nextUrl);
+    }
+    setSuccess(
+      shouldCreateDraftCopy
+        ? 'Published web story copied to a draft. The live story remains visible.'
+        : (postId && postId !== 'new' ? 'Draft updated successfully!' : 'Draft saved successfully!')
+    );
   } catch (err) {
     console.error('Save draft failed:', err);
     setError('Failed to save draft: ' + err.message);
