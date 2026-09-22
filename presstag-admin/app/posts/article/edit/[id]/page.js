@@ -675,6 +675,8 @@ export default function ArticleEditorPage() {
       setError(null);
       setSuccess(null);
 
+      const shouldCreateDraftCopy = postStatus === 'published' && postId && postId !== 'new';
+
       const postData = {
         title,
         slug,
@@ -692,6 +694,7 @@ export default function ArticleEditorPage() {
         featuredImage,
         publishDate,
         publishTime,
+        ...(shouldCreateDraftCopy ? { oldId: postId } : {}),
         seo: {
           metaTitle: metaTitle || title,
           metaDescription,
@@ -701,7 +704,9 @@ export default function ArticleEditorPage() {
       };
 
       let response;
-      if (postId && postId !== 'new') {
+      if (shouldCreateDraftCopy) {
+        response = await posts.create(postData);
+      } else if (postId && postId !== 'new') {
         response = await posts.update(postId, postData);
       } else {
         response = await posts.create(postData);
@@ -712,9 +717,19 @@ export default function ArticleEditorPage() {
       } else {
         setLastSaved(new Date());
         setHasUnsavedChanges(false);
+
+        if (shouldCreateDraftCopy && response?._id) {
+          setPostStatus('draft');
+          setPostId(response._id);
+          window.history.replaceState(null, '', `/posts/article/edit/${response._id}`);
+        }
         
         if (!isAutoSave) {
-          setSuccess(postId && postId !== 'new' ? 'Draft updated successfully!' : 'Draft saved successfully!');
+          setSuccess(
+            shouldCreateDraftCopy
+              ? 'Published article copied to a draft. The live post remains live.'
+              : (postId && postId !== 'new' ? 'Draft updated successfully!' : 'Draft saved successfully!')
+          );
           setTimeout(() => router.push('/posts/drafts'), 2000);
         } else {
           if ((!postId || postId === 'new') && response._id) {

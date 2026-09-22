@@ -652,6 +652,8 @@ export default function VideoEditorPage() {
       setError(null);
       setSuccess(null);
 
+      const shouldCreateDraftCopy = postStatus === 'published' && postId && postId !== 'new';
+
       const postData = {
         title,
         slug,
@@ -675,6 +677,7 @@ export default function VideoEditorPage() {
         },
         publishDate,
         publishTime,
+        ...(shouldCreateDraftCopy ? { oldId: postId } : {}),
         seo: {
           metaTitle: metaTitle || title,
           metaDescription,
@@ -684,7 +687,9 @@ export default function VideoEditorPage() {
       };
 
       let response;
-      if (postId && postId !== 'new') {
+      if (shouldCreateDraftCopy) {
+        response = await posts.create(postData);
+      } else if (postId && postId !== 'new') {
         response = await posts.update(postId, postData);
       } else {
         response = await posts.create(postData);
@@ -695,9 +700,19 @@ export default function VideoEditorPage() {
       } else {
         setLastSaved(new Date());
         setHasUnsavedChanges(false);
+
+        if (shouldCreateDraftCopy && response?._id) {
+          setPostStatus('draft');
+          setPostId(response._id);
+          window.history.replaceState(null, '', `/posts/video/edit/${response._id}`);
+        }
         
         if (!isAutoSave) {
-          setSuccess(postId ? 'Draft updated successfully!' : 'Draft saved successfully!');
+          setSuccess(
+            shouldCreateDraftCopy
+              ? 'Published video copied to a draft. The live post remains live.'
+              : (postId ? 'Draft updated successfully!' : 'Draft saved successfully!')
+          );
           setTimeout(() => router.push('/posts/drafts'), 2000);
         } else {
           if (!postId && response._id) {

@@ -95,6 +95,7 @@ class Post {
       type: postData.type || 'article',
       title: postData.title,
       slug: postData.slug,
+      oldId: postData.oldId ? toObjectId(postData.oldId) : null,
       summary: postData.summary || '',
       excerpt: postData.excerpt || '',
       content: postData.content || '',
@@ -252,6 +253,10 @@ class Post {
       if (primaryCategoryId) updateData.primary_category = [primaryCategoryId];
       else if (updateData.primary_category !== undefined) updateData.primary_category = [];
       delete updateData.primaryCategory;
+    }
+
+    if (updateData.oldId !== undefined) {
+      updateData.oldId = toObjectId(updateData.oldId);
     }
 
     if (updateData.tags) {
