@@ -168,6 +168,33 @@ class Post {
       return { error: 'Invalid post ID' };
     }
 
+    const currentDoc = await db.collection('posts').findOne({ _id: new ObjectId(id) });
+    const isPublishingDraftCopy = currentDoc && currentDoc.oldId && String(updateData.status || currentDoc.status || '').toLowerCase() === 'published';
+
+    if (isPublishingDraftCopy) {
+      const canonicalId = currentDoc.oldId;
+      const canonicalDoc = await db.collection('posts').findOne({ _id: canonicalId });
+      const canonicalUpdate = { ...updateData };
+      delete canonicalUpdate.oldId;
+      canonicalUpdate.updatedAt = new Date();
+
+      if (canonicalDoc && canonicalDoc.slug && canonicalUpdate.slug && canonicalDoc.slug !== canonicalUpdate.slug) {
+        const previousSlugs = Array.isArray(canonicalDoc.previousSlugs) ? canonicalDoc.previousSlugs : [];
+        if (!previousSlugs.includes(canonicalDoc.slug)) previousSlugs.push(canonicalDoc.slug);
+        canonicalUpdate.previousSlugs = previousSlugs;
+      }
+
+      const result = await db.collection('posts').findOneAndUpdate(
+        { _id: canonicalId },
+        { $set: canonicalUpdate },
+        { returnDocument: 'after' }
+      );
+
+      const normalizedResult = result && result.value ? result.value : result;
+      await db.collection('posts').deleteOne({ _id: new ObjectId(id) });
+      return normalizedResult || { _id: canonicalId, ...canonicalUpdate };
+    }
+
     updateData.updatedAt = new Date();
 
     const toObjectId = (value) => {

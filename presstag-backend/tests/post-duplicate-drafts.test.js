@@ -122,3 +122,68 @@ test('create reuses an existing draft copy for a published article instead of in
   assert.equal(result._id.toString(), existingDraft._id.toString());
   assert.equal(result.oldId.toString(), liveId.toString());
 });
+
+test('publishing a draft copy updates the original live article instead of creating a new published copy', async () => {
+  const draftId = new ObjectId();
+  const publishedId = liveId;
+
+  mockDb.collection = (name) => {
+    if (name === 'users') {
+      return {
+        findOne: async () => null,
+        find: async () => ({ toArray: async () => [] }),
+      };
+    }
+
+    if (name !== 'posts') {
+      return {
+        findOne: async () => null,
+        find: async () => ({ toArray: async () => [] }),
+      };
+    }
+
+    return {
+      findOne: async (query) => {
+        if (query && query._id && String(query._id) === String(draftId)) {
+          return {
+            _id: draftId,
+            title: 'Draft copy',
+            slug: 'draft-copy',
+            status: 'draft',
+            oldId: publishedId,
+          };
+        }
+        if (query && query._id && String(query._id) === String(publishedId)) {
+          return {
+            _id: publishedId,
+            title: 'Original live article',
+            slug: 'original-live-article',
+            status: 'published',
+            oldId: null,
+          };
+        }
+        return null;
+      },
+      findOneAndUpdate: async (filter, update) => ({
+        value: { ...filter, ...update.$set, _id: publishedId, status: 'published' },
+      }),
+      deleteOne: async (filter) => {
+        assert.equal(String(filter._id), String(draftId));
+        return { deletedCount: 1 };
+      },
+      find: async () => ({ toArray: async () => [] }),
+      updateOne: async () => ({ matchedCount: 1 }),
+      insertOne: async () => ({ insertedId: new ObjectId() }),
+    };
+  };
+
+  const result = await Post.update(draftId.toString(), {
+    title: 'Updated published article',
+    slug: 'updated-published-article',
+    status: 'published',
+    oldId: publishedId,
+  });
+
+  assert.equal(String(result._id), String(publishedId));
+  assert.equal(result.status, 'published');
+});
