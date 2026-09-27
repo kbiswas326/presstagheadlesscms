@@ -314,6 +314,9 @@ router.get('/slug/:slug', async (req, res) => {
     const post = await db.collection('posts').findOne({
       slug: req.params.slug,
       status: 'published',
+      $or: [{ oldId: null }, { oldId: { $exists: false } }],
+    }, {
+      sort: { publishedAt: -1, createdAt: -1 },
     });
     if (!post) return res.status(404).json({ message: 'Post not found' });
     const populated = await populatePost(post, db);
@@ -339,7 +342,12 @@ router.get('/', async (req, res) => {
 
     const query = {};
     const and = [];
-    if (status && status !== 'All') query.status = status;
+    if (status && status !== 'All') {
+      query.status = status;
+      if (status === 'published') {
+        and.push({ $or: [{ oldId: null }, { oldId: { $exists: false } }] });
+      }
+    }
     if (type && type !== 'All') {
       const rawType = String(type || '');
       const normalizedType = rawType.toLowerCase().trim();
@@ -573,9 +581,14 @@ router.get('/', async (req, res) => {
 router.get('/stats', async (req, res) => {
   try {
     const db = getDB(req.tenantId);
+    const publishedFilter = {
+      status: 'published',
+      $or: [{ oldId: null }, { oldId: { $exists: false } }],
+    };
+
     const [total, published, pending, drafts, archived] = await Promise.all([
       db.collection('posts').countDocuments({}),
-      db.collection('posts').countDocuments({ status: 'published' }),
+      db.collection('posts').countDocuments(publishedFilter),
       db.collection('posts').countDocuments({ status: 'pending' }),
       db.collection('posts').countDocuments({ status: 'draft' }),
       db.collection('posts').countDocuments({ status: 'archived' })
@@ -606,7 +619,12 @@ router.get('/insights', authMiddleware, async (req, res) => {
     prevStart.setDate(prevStart.getDate() - days * 2);
 
     const pipelineBase = [
-      { $match: { status: 'published' } },
+      {
+        $match: {
+          status: 'published',
+          $or: [{ oldId: null }, { oldId: { $exists: false } }],
+        },
+      },
       {
         $addFields: {
           publishedAtEffective: {

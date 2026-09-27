@@ -82,6 +82,19 @@ class Post {
     if (postData.slug === 'new') postData.slug = `untitled-${Date.now()}`;
     if (postData.title === 'new') postData.title = 'Untitled Post';
 
+    const draftCopyOldId = postData.oldId ? toObjectId(postData.oldId) : null;
+    if (draftCopyOldId && postData.status === 'draft') {
+      const existingDraftCopy = await db.collection('posts').findOne({ oldId: draftCopyOldId, status: 'draft' });
+      if (existingDraftCopy) {
+        const updated = await Post.update(existingDraftCopy._id.toString(), {
+          ...postData,
+          oldId: draftCopyOldId,
+          updatedAt: new Date(),
+        }, tenantId);
+        return { _id: existingDraftCopy._id, ...updated, oldId: draftCopyOldId };
+      }
+    }
+
     if (postData.status === 'published') {
       if (postData.publishDate && postData.publishTime) {
         const dateTimeString = `${postData.publishDate}T${postData.publishTime}:00+05:30`;
