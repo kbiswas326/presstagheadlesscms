@@ -255,7 +255,7 @@ export default function CustomPageEditor() {
                     verify_html: false,
                     plugins: 'link image media table lists code wordcount',
                     toolbar:
-                      'blocks fontsize | bold italic | image media table link | alignleft aligncenter alignright | bullist numlist | writingcheck',
+                      'blocks fontsize | bold italic | image media table link | alignleft aligncenter alignright | bullist numlist',
                     link_advanced_tab: true,
                     link_rel_list: [
                       { title: 'Do-follow', text: 'Do-follow', value: '' },
@@ -272,42 +272,6 @@ export default function CustomPageEditor() {
                         }
                         setShowMediaSelector(true);
                       }
-                    },
-                    setup: (editor) => {
-                      editor.ui.registry.addButton('writingcheck', {
-                        text: 'Check',
-                        onAction: async () => {
-                          try {
-                            const text = editor.getContent({ format: 'text' }) || '';
-                            const endpoint = process.env.NEXT_PUBLIC_LANGUAGETOOL_URL || 'https://api.languagetool.org/v2/check';
-                            const body = new URLSearchParams({ text, language: 'en-US' });
-                            const res = await fetch(endpoint, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                              body: body.toString(),
-                            });
-                            if (!res.ok) {
-                              editor.windowManager.alert('Writing check failed.');
-                              return;
-                            }
-                            const data = await res.json();
-                            const matches = Array.isArray(data?.matches) ? data.matches : [];
-                            if (matches.length === 0) {
-                              editor.windowManager.alert('No issues found.');
-                              return;
-                            }
-                            const lines = matches.slice(0, 10).map((m) => {
-                              const msg = String(m?.message || 'Issue');
-                              const repl = Array.isArray(m?.replacements) && m.replacements.length > 0 ? ` → ${m.replacements[0].value}` : '';
-                              return `- ${msg}${repl}`;
-                            });
-                            const more = matches.length > 10 ? `\n(+${matches.length - 10} more)` : '';
-                            editor.windowManager.alert(`${matches.length} issue(s) found:\n${lines.join('\n')}${more}`);
-                          } catch {
-                            editor.windowManager.alert('Writing check failed.');
-                          }
-                        },
-                      });
                     },
                   }}
                 />
