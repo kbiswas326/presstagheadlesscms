@@ -2,7 +2,7 @@ import React from 'react';
 import TemplateListing from '../../../components/TemplateListing';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 import { buildOpenGraphImage, fillTemplate, resolveSiteAssetUrl } from '../../../lib/seo';
-import { permanentRedirect } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { resolveTemplateId } from '../../../lib/templates';
 import { headers } from 'next/headers';
 
@@ -15,27 +15,16 @@ async function getLayoutConfig() {
 }
 
 async function getTag(slug) {
-  try {
-    const res = await fetchWithTenant(`/tags/by-slug/${encodeURIComponent(String(slug || ''))}`, { cache: 'no-store' });
-    if (res.ok) return res.json();
-  } catch {}
-  return null;
+  const res = await fetchWithTenant(`/tags/by-slug/${encodeURIComponent(String(slug || ''))}`, { cache: 'no-store' });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Failed to fetch tag (${res.status})`);
+  return res.json();
 }
 
-async function getTagPosts(slug, page = 1) {
-  if (!slug) return { articles: [], totalPages: 0 };
+async function getTagPosts(tagKey, page = 1) {
+  if (!tagKey) return { articles: [], totalPages: 0 };
   const limit = 20;
   try {
-    const decoded = (() => {
-      const s = String(slug || '').replace(/\+/g, ' ');
-      try {
-        return decodeURIComponent(s);
-      } catch {
-        return s;
-      }
-    })();
-    const tag = await getTag(decoded);
-    const tagKey = tag?._id ? String(tag._id) : decoded;
     const res = await fetchWithTenant(
         `/posts?status=published&excludeType=custompage&tag=${encodeURIComponent(tagKey)}&page=${page}&limit=${limit}&lite=1`,
       { cache: 'no-store' }
@@ -132,17 +121,23 @@ export default async function TagPage({ params, searchParams }) {
   const page = Number(resolvedSearchParams?.page) || 1;
   
   if (!decodedSlug) {
-    return <div className="container mx-auto px-4 py-8">Invalid tag</div>;
+    notFound();
   }
 
-  const config = await getLayoutConfig();
+  const [config, tag] = await Promise.all([
+    getLayoutConfig(),
+    getTag(decodedSlug),
+  ]);
+  if (!tag) notFound();
+
   const preferredPrefix = String(config?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
   if (preferredPrefix !== 'tag') {
     const qs = page && page > 1 ? `?page=${page}` : '';
     permanentRedirect(`/${preferredPrefix}/${encodeURIComponent(decodedSlug)}${qs}`);
   }
 
-  const { articles: posts, totalPages } = await getTagPosts(decodedSlug, page);
+  const tagKey = tag._id ? String(tag._id) : decodedSlug;
+  const { articles: posts, totalPages } = await getTagPosts(tagKey, page);
   const h = await headers();
   const templateOverride = h.get('x-template-id');
   const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);
