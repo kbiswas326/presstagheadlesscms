@@ -432,7 +432,20 @@ router.get('/', async (req, res) => {
           await db.collection('tags').findOne({ name: { $regex: `^${escaped}$`, $options: 'i' } }, { projection: { _id: 1 } });
         if (tagObj?._id) tagId = tagObj._id;
       }
-      if (tagId) and.push({ tags: tagId });
+      if (!tagId) {
+        return res.json({
+          posts: [],
+          pagination: {
+            total: 0,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: 0,
+            hasNext: false,
+            hasPrev: pageNum > 1
+          }
+        });
+      }
+      and.push({ tags: tagId });
     }
 
     if (and.length > 0) query.$and = and;
