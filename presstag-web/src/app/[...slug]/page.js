@@ -143,9 +143,12 @@ export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const slugParts = resolvedParams.slug;
   const lastSegment = slugParts[slugParts.length - 1];
-  const config = await fetchWithTenant('/layout-config', { next: { revalidate: 60 } })
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null);
+  const [config, post] = await Promise.all([
+    fetchWithTenant('/layout-config', { next: { revalidate: 60 } })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null),
+    getPostBySlug(lastSegment),
+  ]);
   let metadataBase;
   try {
     const siteUrlFromConfig = String(config?.branding?.siteUrl || '').trim();
@@ -174,7 +177,7 @@ export async function generateMetadata({ params }) {
   const pageUrlStructure = config?.seo?.pageUrlStructure || '/{slug}';
   const pageSlug = extractSlugFromUrl(slugParts, pageUrlStructure);
   if (pageSlug) {
-    const maybePage = await getPostBySlug(pageSlug);
+    const maybePage = pageSlug === lastSegment ? post : await getPostBySlug(pageSlug);
     if (isCustomPageType(maybePage?.type) && maybePage) {
       const siteTitle = config?.branding?.siteTitle || 'PressTag';
       const canonicalPath = preservePostUrls
@@ -233,7 +236,6 @@ export async function generateMetadata({ params }) {
     }
   }
 
-  const post = await getPostBySlug(lastSegment);
   if (!post) return { title: 'Post Not Found' };
 
   const siteTitle = config?.branding?.siteTitle || 'PressTag';
@@ -308,19 +310,23 @@ export async function generateMetadata({ params }) {
 export default async function CatchAllPostPage({ params }) {
   const resolvedParams = await params;
   const slugParts = resolvedParams.slug;
+  const lastSegment = slugParts[slugParts.length - 1];
 
   // Don't handle web-story URLs — they have their own route
   if (slugParts[0] === 'web-stories') notFound();
 
-  const layoutConfig = await fetchWithTenant('/layout-config', { next: { revalidate: 60 } })
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null);
+  const [layoutConfig, initialPost] = await Promise.all([
+    fetchWithTenant('/layout-config', { next: { revalidate: 60 } })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null),
+    getPostBySlug(lastSegment),
+  ]);
 
   const preservePostUrls = Boolean(layoutConfig?.seo?.preservePostUrls);
   const pageUrlStructure = layoutConfig?.seo?.pageUrlStructure || '/{slug}';
   const pageSlug = extractSlugFromUrl(slugParts, pageUrlStructure);
   if (pageSlug) {
-    const maybePage = await getPostBySlug(pageSlug);
+    const maybePage = pageSlug === lastSegment ? initialPost : await getPostBySlug(pageSlug);
     if (isCustomPageType(maybePage?.type) && maybePage) {
       const canonicalPath = preservePostUrls
         ? buildPageUrl(maybePage, pageUrlStructure)
@@ -347,8 +353,7 @@ export default async function CatchAllPostPage({ params }) {
     }
   }
 
-  const lastSegment = slugParts[slugParts.length - 1];
-  let post = await getPostBySlug(lastSegment);
+  let post = initialPost;
 
 if (!post) {
   // Check if this was an old slug that changed — 301 redirect to new URL

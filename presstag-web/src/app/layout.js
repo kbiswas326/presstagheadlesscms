@@ -133,9 +133,11 @@ async function getHtmlInjections() {
 }
 
 export default async function RootLayout({ children }) {
-  const config = await getLayoutConfig();
-  const ads = await getAds();
-  const htmlInjections = await getHtmlInjections();
+  const [config, ads, htmlInjections] = await Promise.all([
+    getLayoutConfig(),
+    getAds(),
+    getHtmlInjections(),
+  ]);
   const faviconHref = resolveSiteAssetUrl(config?.branding?.favicon || config?.branding?.logo || '/favicon.ico');
   const faviconVersion = config?.updatedAt ? new Date(config.updatedAt).getTime() : '';
   const faviconUrl = faviconHref

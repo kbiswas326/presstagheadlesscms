@@ -9,7 +9,10 @@ export function fillTemplate(template, vars = {}) {
 }
 
 export function resolveSiteAssetUrl(value) {
-  const raw = String(value || '').trim();
+  const imageValue = value && typeof value === 'object'
+    ? value.url || value.src || ''
+    : value;
+  const raw = String(imageValue || '').trim();
   if (!raw) return '';
   if (raw.startsWith('http://') || raw.startsWith('https://')) {
     if (raw.startsWith('http://') && !/^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(raw)) {
@@ -52,4 +55,3 @@ export function buildOpenGraphImage(url) {
     type,
   }];
 }
-
