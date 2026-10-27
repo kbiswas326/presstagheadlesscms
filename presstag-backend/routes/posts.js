@@ -372,7 +372,10 @@ router.get('/', async (req, res) => {
         query.type = { $nin: variants };
       }
     }
-    if (search) query.title = { $regex: search, $options: 'i' };
+    if (search) {
+      const escapedSearch = String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      query.title = { $regex: escapedSearch, $options: 'i' };
+    }
     if (previousSlug && typeof previousSlug === 'string' && previousSlug.trim()) {
       query.previousSlugs = previousSlug.trim();
     }

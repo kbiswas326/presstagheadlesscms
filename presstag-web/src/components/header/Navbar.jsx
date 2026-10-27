@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import usePostStore from "../../store/postStore";
 import { usePathname } from 'next/navigation';
 import AdSpot from "../AdSpot";
+import { searchQueryToSlug } from "../../lib/search";
 
 const Icon = ({ title, children, className }) => (
   <svg
@@ -78,7 +79,7 @@ const NavigationBar = ({navigationItems, top_nav, after_nav, branding, templateI
     if (!searchQuery.trim()) return;
     
     setSearch("remove");
-    router.push(`/search/${encodeURIComponent(searchQuery)}`);
+    router.push(`/search/${searchQueryToSlug(searchQuery)}`);
     setSearchQuery("");
   };
 

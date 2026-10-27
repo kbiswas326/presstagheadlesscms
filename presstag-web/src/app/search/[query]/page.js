@@ -2,6 +2,7 @@ import React from 'react';
 import TemplateListing from '../../../components/TemplateListing';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 import { resolveTemplateId } from '../../../lib/templates';
+import { searchQueryToSlug, searchSlugToQuery } from '../../../lib/search';
 import { headers } from 'next/headers';
 
 export const revalidate = 60;
@@ -38,15 +39,7 @@ async function searchPosts(query, page = 1) {
 export default async function SearchResultsPage({ params, searchParams }) {
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
-  const rawQuery = resolvedParams?.query ? String(resolvedParams.query) : '';
-  const query = (() => {
-    const q = rawQuery.replace(/\+/g, ' ');
-    try {
-      return decodeURIComponent(q);
-    } catch {
-      return q;
-    }
-  })();
+  const query = searchSlugToQuery(resolvedParams?.query);
   const page = Number(resolvedSearchParams?.page) || 1;
 
   const [config, result] = await Promise.all([
@@ -59,7 +52,7 @@ export default async function SearchResultsPage({ params, searchParams }) {
   const templateOverride = h.get('x-template-id');
   const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);
   const primaryColor = config?.branding?.primaryColor || '#006356';
-  const baseUrl = `/search/${encodeURIComponent(query)}`;
+  const baseUrl = `/search/${searchQueryToSlug(query)}`;
 
   return (
     <TemplateListing
@@ -81,4 +74,3 @@ export default async function SearchResultsPage({ params, searchParams }) {
     />
   );
 }
-
