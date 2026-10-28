@@ -7,6 +7,25 @@ import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-hot-toast';
 import { getTenantId } from '../../../lib/api';
 
+const createEmptyFormData = () => ({
+  name: '',
+  code: '',
+  position: 'article_middle',
+  isActive: true,
+  priority: 10,
+  displayConditions: {
+    devices: ['desktop', 'tablet', 'mobile'],
+    pageTypes: ['home', 'post', 'page', 'category', 'tag', 'author', 'search'],
+    insertionParameter: 1,
+    countries: [],
+    countryMode: 'include',
+    minimumAge: '',
+    maximumAge: '',
+    startDate: '',
+    endDate: '',
+  },
+});
+
 export default function AdInserterPage() {
   const { isDark } = useTheme();
   const BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
@@ -22,18 +41,8 @@ export default function AdInserterPage() {
   const [editingAd, setEditingAd] = useState(null);
 
   // Form state
-  const [formData, setFormData] = useState({
-    name: '',
-    code: '',
-    position: 'article_middle',
-    isActive: true,
-    priority: 10,
-    displayConditions: {
-        devices: ['desktop', 'tablet', 'mobile'],
-        pageTypes: ['home', 'post', 'page', 'category', 'tag', 'author', 'search'],
-        insertionParameter: 1
-    }
-  });
+  const [formData, setFormData] = useState(createEmptyFormData);
+  const [countryCodes, setCountryCodes] = useState('');
 
   const positions = [
     { value: 'header_top', label: 'Before Header' },
@@ -190,6 +199,25 @@ export default function AdInserterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const countries = countryCodes.split(',').map(country => country.trim().toUpperCase()).filter(Boolean);
+    if (countries.some(country => !/^[A-Z]{2}$/.test(country))) {
+      toast.error('Enter country codes as two-letter ISO codes, separated by commas');
+      return;
+    }
+    const { minimumAge, maximumAge, startDate, endDate } = formData.displayConditions;
+    if ((minimumAge !== '' && (!Number.isInteger(Number(minimumAge)) || Number(minimumAge) < 0 || Number(minimumAge) > 120)) ||
+        (maximumAge !== '' && (!Number.isInteger(Number(maximumAge)) || Number(maximumAge) < 0 || Number(maximumAge) > 120))) {
+      toast.error('Age limits must be whole numbers from 0 to 120');
+      return;
+    }
+    if (minimumAge !== '' && maximumAge !== '' && Number(minimumAge) > Number(maximumAge)) {
+      toast.error('Minimum age cannot be greater than maximum age');
+      return;
+    }
+    if (startDate && endDate && startDate > endDate) {
+      toast.error('The end date must be on or after the start date');
+      return;
+    }
     try {
       const token = localStorage.getItem('token');
       const url = editingAd 
@@ -205,25 +233,23 @@ export default function AdInserterPage() {
           'Authorization': `Bearer ${token}`,
           'x-tenant-id': getTenantId(),
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          displayConditions: {
+            ...formData.displayConditions,
+            countries: [...new Set(countries)],
+            minimumAge: minimumAge === '' ? undefined : Number(minimumAge),
+            maximumAge: maximumAge === '' ? undefined : Number(maximumAge),
+          },
+        })
       });
 
       if (res.ok) {
         toast.success(`Ad block ${editingAd ? 'updated' : 'created'} successfully`);
         setIsModalOpen(false);
         setEditingAd(null);
-        setFormData({
-            name: '',
-            code: '',
-            position: 'article_middle',
-            isActive: true,
-            priority: 10,
-            displayConditions: {
-                devices: ['desktop', 'tablet', 'mobile'],
-                pageTypes: ['home', 'post', 'page', 'category', 'tag', 'author', 'search'],
-                insertionParameter: 1
-            }
-        });
+        setFormData(createEmptyFormData());
+        setCountryCodes('');
         fetchAds();
       } else {
         const err = await res.json();
@@ -245,9 +271,15 @@ export default function AdInserterPage() {
       displayConditions: {
           devices: ad.displayConditions?.devices || ['desktop', 'tablet', 'mobile'],
           pageTypes: ad.displayConditions?.pageTypes || ['home', 'post', 'page', 'category', 'tag', 'author', 'search'],
-          insertionParameter: ad.displayConditions?.insertionParameter || 1
+          insertionParameter: ad.displayConditions?.insertionParameter || 1,
+          countryMode: ad.displayConditions?.countryMode || 'include',
+          minimumAge: ad.displayConditions?.minimumAge ?? '',
+          maximumAge: ad.displayConditions?.maximumAge ?? '',
+          startDate: ad.displayConditions?.startDate || '',
+          endDate: ad.displayConditions?.endDate || '',
       }
     });
+    setCountryCodes((ad.displayConditions?.countries || []).join(', '));
     setIsModalOpen(true);
   };
 
@@ -426,18 +458,8 @@ export default function AdInserterPage() {
           <button 
             onClick={() => {
                 setEditingAd(null);
-                setFormData({
-                    name: '',
-                    code: '',
-                    position: 'article_middle',
-                    isActive: true,
-                    priority: 10,
-                    displayConditions: {
-                        devices: ['desktop', 'tablet', 'mobile'],
-                        pageTypes: ['home', 'post', 'page', 'category', 'tag', 'author', 'search'],
-                        insertionParameter: 1
-                    }
-                });
+                setFormData(createEmptyFormData());
+                setCountryCodes('');
                 setIsModalOpen(true);
             }}
             className={`${btnClass} bg-blue-600 text-white hover:bg-blue-700`}
@@ -594,6 +616,91 @@ export default function AdInserterPage() {
                                             </button>
                                         ))}
                                     </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className={labelClass}>Country targeting</label>
+                                        <select
+                                            value={formData.displayConditions.countryMode || 'include'}
+                                            onChange={e => setFormData(prev => ({
+                                                ...prev,
+                                                displayConditions: { ...prev.displayConditions, countryMode: e.target.value }
+                                            }))}
+                                            className={inputClass}
+                                        >
+                                            <option value="include">Show only in these countries</option>
+                                            <option value="exclude">Hide in these countries</option>
+                                        </select>
+                                        <input
+                                            type="text"
+                                            value={countryCodes}
+                                            onChange={e => setCountryCodes(e.target.value)}
+                                            className={`${inputClass} mt-2`}
+                                            placeholder="US, GB, IN"
+                                            aria-label="Two-letter country codes"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">Comma-separated ISO country codes. Uses the edge location; unknown locations do not match an allow-list.</p>
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>Age range</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="120"
+                                                value={formData.displayConditions.minimumAge}
+                                                onChange={e => setFormData(prev => ({
+                                                    ...prev,
+                                                    displayConditions: { ...prev.displayConditions, minimumAge: e.target.value }
+                                                }))}
+                                                className={inputClass}
+                                                placeholder="Min age"
+                                                aria-label="Minimum age"
+                                            />
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="120"
+                                                value={formData.displayConditions.maximumAge}
+                                                onChange={e => setFormData(prev => ({
+                                                    ...prev,
+                                                    displayConditions: { ...prev.displayConditions, maximumAge: e.target.value }
+                                                }))}
+                                                className={inputClass}
+                                                placeholder="Max age"
+                                                aria-label="Maximum age"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">Requires your age-verification provider to set the first-party <code>pt-verified-age</code> cookie. Missing age hides this ad; this is not legal age verification.</p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className={labelClass}>Schedule (UTC)</label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <input
+                                            type="date"
+                                            value={formData.displayConditions.startDate}
+                                            onChange={e => setFormData(prev => ({
+                                                ...prev,
+                                                displayConditions: { ...prev.displayConditions, startDate: e.target.value }
+                                            }))}
+                                            className={inputClass}
+                                            aria-label="Ad start date in UTC"
+                                        />
+                                        <input
+                                            type="date"
+                                            value={formData.displayConditions.endDate}
+                                            onChange={e => setFormData(prev => ({
+                                                ...prev,
+                                                displayConditions: { ...prev.displayConditions, endDate: e.target.value }
+                                            }))}
+                                            className={inputClass}
+                                            aria-label="Ad end date in UTC"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">Start and end dates are inclusive. Leave blank for no schedule limit.</p>
                                 </div>
 
                                 {(formData.position === 'article_paragraph' || formData.position === 'article_image') && (

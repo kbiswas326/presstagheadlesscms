@@ -3,7 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import "../styles/scrollbar-hide.css";
 import { Inter } from 'next/font/google';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import LayoutClient from "../components/LayoutClient";
 import GoogleAnalytics from "../components/GoogleAnalytics";
 import ScrollToTop from "../components/ScrollToTop";
@@ -121,6 +121,37 @@ async function getAds() {
   return [];
 }
 
+function filterAdsForAudience(ads, { country, age, today }) {
+  return ads.filter(ad => {
+    const conditions = ad.displayConditions || {};
+    const countries = Array.isArray(conditions.countries)
+      ? conditions.countries.map(value => String(value).toUpperCase())
+      : [];
+    if (countries.length > 0) {
+      const countryMatches = countries.includes(country);
+      if (conditions.countryMode === 'exclude' ? countryMatches : !country || !countryMatches) return false;
+    }
+
+    const hasMinimumAge = conditions.minimumAge !== undefined && conditions.minimumAge !== '';
+    const hasMaximumAge = conditions.maximumAge !== undefined && conditions.maximumAge !== '';
+    if (hasMinimumAge || hasMaximumAge) {
+      if (!Number.isInteger(age) || age < 0 || age > 120) return false;
+      const minimumAge = Number(conditions.minimumAge);
+      const maximumAge = Number(conditions.maximumAge);
+      if (hasMinimumAge && (!Number.isInteger(minimumAge) || minimumAge < 0 || minimumAge > 120 || age < minimumAge)) return false;
+      if (hasMaximumAge && (!Number.isInteger(maximumAge) || maximumAge < 0 || maximumAge > 120 || age > maximumAge)) return false;
+      if (hasMinimumAge && hasMaximumAge && minimumAge > maximumAge) return false;
+    }
+
+    const hasValidDate = value =>
+      /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+      new Date(`${value}T00:00:00.000Z`).toISOString().slice(0, 10) === value;
+    if (conditions.startDate && (!hasValidDate(conditions.startDate) || today < conditions.startDate)) return false;
+    if (conditions.endDate && (!hasValidDate(conditions.endDate) || today > conditions.endDate)) return false;
+    return true;
+  });
+}
+
 async function getHtmlInjections() {
   try {
     const res = await fetchWithTenant('/html-injections', { next: { revalidate: 60 } });
@@ -147,6 +178,18 @@ export default async function RootLayout({ children }) {
   const h = await headers();
   const templateOverride = h.get('x-template-id');
   const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);
+  const countryHeader = h.get('cf-ipcountry') || h.get('x-vercel-ip-country') || '';
+  const visitorCountry = /^[A-Za-z]{2}$/.test(countryHeader) &&
+    !['XX', 'T1'].includes(countryHeader.toUpperCase())
+    ? countryHeader.toUpperCase()
+    : '';
+  const ageCookie = (await cookies()).get('pt-verified-age')?.value || '';
+  const visitorAge = ageCookie ? Number(ageCookie) : NaN;
+  const audienceAds = filterAdsForAudience(ads, {
+    country: visitorCountry,
+    age: visitorAge,
+    today: new Date().toISOString().slice(0, 10),
+  });
 
   return (
     <html lang="en" data-template={templateId} className={inter.variable} style={{ '--primary-color': primaryColor }}>
@@ -167,7 +210,7 @@ export default async function RootLayout({ children }) {
       <body className="flex flex-col min-h-screen">
         {renderHtmlInjection(htmlInjections?.bodyStart)}
         <ScrollToTop />
-        <AdProvider ads={ads}>
+        <AdProvider ads={audienceAds}>
             <LayoutClient config={config}>
               {children}
             </LayoutClient>

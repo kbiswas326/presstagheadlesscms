@@ -12,8 +12,20 @@ export default function AdForm({ initialData = {}, isEdit = false }) {
     isActive: true,
     insertionParameter: '',
     ...initialData,
+    displayConditions: {
+      devices: ['desktop', 'tablet', 'mobile'],
+      pageTypes: ['home', 'post', 'page', 'category', 'tag', 'author', 'search'],
+      countryMode: 'include',
+      countries: [],
+      minimumAge: '',
+      maximumAge: '',
+      startDate: '',
+      endDate: '',
+      ...(initialData.displayConditions || {})
+    },
     insertionParameter: initialData.displayConditions?.insertionParameter || ''
   });
+  const [countryCodes, setCountryCodes] = useState((initialData.displayConditions?.countries || []).join(', '));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -36,10 +48,41 @@ export default function AdForm({ initialData = {}, isEdit = false }) {
     }));
   };
 
+  const handleDisplayConditionChange = (name, value) => {
+    setFormData(prev => ({
+      ...prev,
+      displayConditions: { ...prev.displayConditions, [name]: value }
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    const countries = countryCodes.split(',').map(country => country.trim().toUpperCase()).filter(Boolean);
+    if (countries.some(country => !/^[A-Z]{2}$/.test(country))) {
+      setError('Enter country codes as two-letter ISO codes, separated by commas.');
+      setLoading(false);
+      return;
+    }
+    const { minimumAge, maximumAge, startDate, endDate } = formData.displayConditions;
+    if ((minimumAge !== '' && (!Number.isInteger(Number(minimumAge)) || Number(minimumAge) < 0 || Number(minimumAge) > 120)) ||
+        (maximumAge !== '' && (!Number.isInteger(Number(maximumAge)) || Number(maximumAge) < 0 || Number(maximumAge) > 120))) {
+      setError('Age limits must be whole numbers from 0 to 120.');
+      setLoading(false);
+      return;
+    }
+    if (minimumAge !== '' && maximumAge !== '' && Number(minimumAge) > Number(maximumAge)) {
+      setError('Minimum age cannot be greater than maximum age.');
+      setLoading(false);
+      return;
+    }
+    if (startDate && endDate && startDate > endDate) {
+      setError('The end date must be on or after the start date.');
+      setLoading(false);
+      return;
+    }
 
     const token = localStorage.getItem('token');
     if (!token) {
@@ -55,7 +98,10 @@ export default function AdForm({ initialData = {}, isEdit = false }) {
       priority: parseInt(formData.priority),
       isActive: formData.isActive,
       displayConditions: {
-        ...(initialData.displayConditions || {}),
+        ...formData.displayConditions,
+        countries: [...new Set(countries)],
+        minimumAge: minimumAge === '' ? undefined : Number(minimumAge),
+        maximumAge: maximumAge === '' ? undefined : Number(maximumAge),
         insertionParameter: formData.insertionParameter ? parseInt(formData.insertionParameter) : undefined
       }
     };
@@ -145,6 +191,79 @@ export default function AdForm({ initialData = {}, isEdit = false }) {
           </p>
         </div>
       )}
+
+      <section className="mb-4 p-4 bg-gray-50 border rounded">
+        <h2 className="text-sm font-bold text-gray-700 mb-3">Audience targeting</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="countryMode">Countries</label>
+            <select
+              id="countryMode"
+              className="border rounded w-full py-2 px-3 text-gray-700"
+              value={formData.displayConditions.countryMode || 'include'}
+              onChange={e => handleDisplayConditionChange('countryMode', e.target.value)}
+            >
+              <option value="include">Show only in these countries</option>
+              <option value="exclude">Hide in these countries</option>
+            </select>
+            <input
+              className="border rounded w-full py-2 px-3 mt-2 text-gray-700"
+              type="text"
+              value={countryCodes}
+              onChange={e => setCountryCodes(e.target.value)}
+              placeholder="US, GB, IN"
+              aria-label="Two-letter country codes"
+            />
+            <p className="text-xs text-gray-500 mt-1">Comma-separated ISO country codes; targeting uses the edge location.</p>
+          </div>
+          <div>
+            <label className="block text-gray-700 text-sm font-bold mb-2">Age range</label>
+            <div className="flex gap-2">
+              <input
+                className="border rounded w-full py-2 px-3 text-gray-700"
+                type="number"
+                min="0"
+                max="120"
+                value={formData.displayConditions.minimumAge}
+                onChange={e => handleDisplayConditionChange('minimumAge', e.target.value)}
+                placeholder="Min age"
+                aria-label="Minimum age"
+              />
+              <input
+                className="border rounded w-full py-2 px-3 text-gray-700"
+                type="number"
+                min="0"
+                max="120"
+                value={formData.displayConditions.maximumAge}
+                onChange={e => handleDisplayConditionChange('maximumAge', e.target.value)}
+                placeholder="Max age"
+                aria-label="Maximum age"
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Requires a first-party <code>pt-verified-age</code> cookie from your age-verification provider. Missing age hides this ad; this is not legal age verification.</p>
+          </div>
+        </div>
+        <div className="mt-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2">Schedule (UTC)</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              className="border rounded w-full py-2 px-3 text-gray-700"
+              type="date"
+              value={formData.displayConditions.startDate || ''}
+              onChange={e => handleDisplayConditionChange('startDate', e.target.value)}
+              aria-label="Ad start date in UTC"
+            />
+            <input
+              className="border rounded w-full py-2 px-3 text-gray-700"
+              type="date"
+              value={formData.displayConditions.endDate || ''}
+              onChange={e => handleDisplayConditionChange('endDate', e.target.value)}
+              aria-label="Ad end date in UTC"
+            />
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Start and end dates are inclusive. Leave blank for no schedule limit.</p>
+        </div>
+      </section>
 
       <div className="mb-4">
         <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="code">
