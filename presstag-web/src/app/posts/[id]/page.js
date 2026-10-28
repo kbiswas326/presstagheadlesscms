@@ -18,6 +18,7 @@ import ArticleGridCard from '../../../components/ArticleGridCard';
 import HorizontalCard from '../../../components/HorizontalCard';
 import { getImageUrl, resolvePostImage } from '@/lib/imageHelper';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
+import ArticleStructuredData from '../../../components/ArticleStructuredData';
 import { buildPageUrl, buildPageUrlByStructure, buildPostUrl, buildPostUrlByStructure } from '@/lib/urlBuilder';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 import SidebarDeferredClient from '../../../components/SidebarDeferredClient';
@@ -212,6 +213,24 @@ export default async function PostPage({ params }) {
   const isVideo = cleanType === 'video';
   const isWebStory = cleanType === 'web story' || cleanType === 'web-story' || cleanType === 'story';
   const isLiveBlog = cleanType === 'live blog' || cleanType === 'live-blog';
+  const siteUrl = layoutConfig?.branding?.siteUrl
+    || process.env.NEXT_PUBLIC_SITE_URL
+    || process.env.SITE_URL
+    || (() => {
+      const host = String(h.get('x-forwarded-host') || h.get('host') || '').trim();
+      return host ? `${String(h.get('x-forwarded-proto') || 'https').trim()}://${host}` : '';
+    })();
+  const articleStructuredData = !isCustomPage && !isVideo
+    ? (
+      <ArticleStructuredData
+        post={post}
+        canonicalPath={canonicalPath}
+        siteName={layoutConfig?.branding?.siteTitle || 'PressTag'}
+        siteUrl={siteUrl}
+        publisherLogo={layoutConfig?.branding?.logo || layoutConfig?.branding?.favicon}
+      />
+    )
+    : null;
 
   // --- SPECIAL HANDLING FOR WEB STORIES ---
   if (isWebStory) {
@@ -317,6 +336,7 @@ export default async function PostPage({ params }) {
   if (templateId === 'modern') {
     return (
       <div className={`min-h-screen bg-white ${inter.className}`}>
+        {articleStructuredData}
         <div className="w-full pt-6 pb-16">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
@@ -546,6 +566,7 @@ export default async function PostPage({ params }) {
   if (templateId === 'editorial') {
     return (
       <div className={`min-h-screen bg-white ${inter.className}`}>
+        {articleStructuredData}
         <div className="container mx-auto px-4 pt-10 pb-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             <main className="lg:col-span-8 bg-white rounded-none shadow-none border border-gray-200">
@@ -734,6 +755,7 @@ export default async function PostPage({ params }) {
 
   return (
     <div className={`min-h-screen ${wrapperBg} ${inter.className}`}>
+      {articleStructuredData}
       {/* Article Header */}
       
 

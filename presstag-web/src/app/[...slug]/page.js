@@ -17,6 +17,7 @@ import HorizontalCard from '../../components/HorizontalCard';
 import { getImageUrl, resolvePostImage } from '@/lib/imageHelper';
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
 import { buildOpenGraphImage, resolveSiteAssetUrl } from '@/lib/seo';
+import ArticleStructuredData from '../../components/ArticleStructuredData';
 import SidebarDeferredClient from '../../components/SidebarDeferredClient';
 import { formatPublishDateTime } from '../../util/timeFormat';
 import { resolveTemplateId } from '@/lib/templates';
@@ -457,6 +458,24 @@ if (!post) {
   const isVideo = cleanType === 'video';
   const isWebStory = cleanType === 'web story' || cleanType === 'web-story' || cleanType === 'story';
   const isLiveBlog = cleanType === 'live blog' || cleanType === 'live-blog';
+  const siteUrl = layoutConfig?.branding?.siteUrl
+    || process.env.NEXT_PUBLIC_SITE_URL
+    || process.env.SITE_URL
+    || (() => {
+      const host = String(h.get('x-forwarded-host') || h.get('host') || '').trim();
+      return host ? `${String(h.get('x-forwarded-proto') || 'https').trim()}://${host}` : '';
+    })();
+  const articleStructuredData = !isVideo
+    ? (
+      <ArticleStructuredData
+        post={post}
+        canonicalPath={canonicalPath}
+        siteName={layoutConfig?.branding?.siteTitle || 'PressTag'}
+        siteUrl={siteUrl}
+        publisherLogo={layoutConfig?.branding?.logo || layoutConfig?.branding?.favicon}
+      />
+    )
+    : null;
 
   if (isWebStory) redirect(`/web-stories/${post.slug || post._id}`);
   if (isGallery) return <GalleryClient post={post} templateId={templateId} tagPrefix={tagPrefix} />;
@@ -520,6 +539,7 @@ if (!post) {
     const authorAvatar = getImageUrl(primaryAuthor?.image || post.authorImage);
     return (
       <div className={`min-h-screen bg-white ${inter.className}`}>
+        {articleStructuredData}
         <div className="w-full pt-6 pb-16">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
@@ -730,6 +750,7 @@ if (!post) {
     const authorName = String(primaryAuthor?.name || post.authorName || '').trim() || 'SportzPoint Editor';
     return (
       <div className={`min-h-screen bg-white ${inter.className}`}>
+        {articleStructuredData}
         <div className="container mx-auto px-4 pt-10 pb-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             <main className="lg:col-span-8 bg-white rounded-none shadow-none border border-gray-200">
@@ -903,6 +924,7 @@ if (!post) {
 
   return (
     <div className={`min-h-screen ${wrapperBg} ${inter.className}`}>
+      {articleStructuredData}
       <div className="w-full pb-16 flex flex-col lg:flex-row gap-5 items-start">
         <main className={`w-full lg:w-[72%] ${mainShell} p-4 lg:p-8`} style={isBoldTemplate ? { borderTopColor: primaryColor } : undefined}>
           <header className="w-full pt-4 pb-6">
