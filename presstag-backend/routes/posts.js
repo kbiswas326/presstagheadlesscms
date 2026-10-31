@@ -862,9 +862,27 @@ router.put('/:id', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Writers cannot publish posts' });
     }
     const isStatusPublishTransition = prevStatus !== 'published' && desiredStatus === 'published';
-    const isExplicitPublishAction = desiredStatus === 'published' && restBody.publishedAt != null;
+    const isExplicitPublishAction =
+      desiredStatus === 'published' &&
+      notifySubscribers === true &&
+      (notifyType === 'post_published' || notifyType === 'live_update');
 
     const updateBody = { ...restBody };
+    const previousPublishParts = previous?.publishedAt
+      ? getIstDateParts(previous.publishedAt)
+      : { publishDate: previous?.publishDate || null, publishTime: previous?.publishTime || null };
+    const publishDateChanged =
+      typeof restBody.publishDate === 'string' &&
+      restBody.publishDate !== previousPublishParts.publishDate;
+    const publishTimeChanged =
+      typeof restBody.publishTime === 'string' &&
+      restBody.publishTime !== previousPublishParts.publishTime;
+    if (publishDateChanged || publishTimeChanged) {
+      updateBody.publishDate = restBody.publishDate || previousPublishParts.publishDate;
+      updateBody.publishTime = restBody.publishTime || previousPublishParts.publishTime;
+      delete updateBody.publishedAt;
+    }
+
     if (role === 'writer') {
       updateBody.status = desiredStatus === 'pending' ? 'pending' : 'draft';
       updateBody.author = req.user._id;
@@ -876,7 +894,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (isStatusPublishTransition && !updateBody.publishedAt) updateBody.publishedAt = new Date();
     const shouldBumpPublishedAt =
       desiredStatus === 'published' &&
-      ((notifySubscribers === true && (notifyType === 'post_published' || notifyType === 'live_update')) || isExplicitPublishAction);
+      isExplicitPublishAction;
     if (shouldBumpPublishedAt) {
       const now = new Date();
       const ist = getIstDateParts(now);

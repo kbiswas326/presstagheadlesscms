@@ -216,21 +216,11 @@ class Post {
         .filter(Boolean);
     };
 
-    if (updateData.status === 'published' || (updateData.publishDate && updateData.publishTime)) {
-      if (updateData.publishedAt) {
-        updateData.publishedAt = new Date(updateData.publishedAt);
-        console.log('✅ Using publishedAt from frontend:', updateData.publishedAt);
-      } else if (updateData.publishDate && updateData.publishTime) {
-        const dateTimeString = `${updateData.publishDate}T${updateData.publishTime}:00+05:30`;
-        updateData.publishedAt = new Date(dateTimeString);
-        console.log('✅ Constructed publishedAt from date/time:', updateData.publishedAt);
-      } else if (updateData.status === 'published' && !updateData.publishedAt) {
-        updateData.publishedAt = new Date();
-        console.log('✅ Set publishedAt to NOW:', updateData.publishedAt);
-      }
-    } else if (updateData.publishedAt) {
+    if (updateData.publishedAt) {
       updateData.publishedAt = new Date(updateData.publishedAt);
-      console.log('✅ Set publishedAt:', updateData.publishedAt);
+    } else if (updateData.publishDate && updateData.publishTime) {
+      const dateTimeString = `${updateData.publishDate}T${updateData.publishTime}:00+05:30`;
+      updateData.publishedAt = new Date(dateTimeString);
     }
 
     if (updateData.authors !== undefined || updateData.author !== undefined || updateData.primaryAuthor !== undefined) {
