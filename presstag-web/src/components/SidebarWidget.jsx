@@ -52,6 +52,7 @@ const TrendingWidget = ({ widget, currentPostId, excludePostKeys, urlStructure, 
             if (!p) continue;
             const title = String(p.title || '').trim();
             if (!title) continue;
+            if (isHomepage && p.excludeFromHomepage === true) continue;
             const key = String(p.slug || p._id || '');
             if (!key) continue;
             if (excluded.has(key)) continue;
@@ -193,7 +194,7 @@ const RecentPostsWidget = ({ widget, urlStructure, fallbackImage, isHomepage }) 
         if (!response.ok) throw new Error('Failed to fetch homepage recent posts');
         const data = await response.json();
         const stories = Array.isArray(data) ? data : (data.posts || []);
-        setHomepageStories(stories);
+        setHomepageStories(stories.filter((story) => story?.excludeFromHomepage !== true));
       } catch (error) {
         console.error('Homepage recent posts fetch error:', error);
       }
@@ -274,7 +275,7 @@ const RelatedPostsWidget = ({ widget, categorySlug, currentPostId, urlStructure,
         if (res.ok) {
           const data = await res.json();
           const p = Array.isArray(data) ? data : (data.posts || []);
-          setPosts(p.filter(item => item._id !== currentPostId && item.slug !== currentPostId).slice(0, widget.limit || 4));
+          setPosts(p.filter(item => (!isHomepage || item.excludeFromHomepage !== true) && item._id !== currentPostId && item.slug !== currentPostId).slice(0, widget.limit || 4));
         }
       } catch (e) { console.error(e); }
     };
@@ -343,7 +344,7 @@ const AuthorPostsWidget = ({ widget, authorId, currentPostId, urlStructure, fall
         if (res.ok) {
           const data = await res.json();
           const p = Array.isArray(data) ? data : (data.posts || []);
-          setPosts(p.filter(item => item._id !== currentPostId && item.slug !== currentPostId).slice(0, widget.limit || 4));
+          setPosts(p.filter(item => (!isHomepage || item.excludeFromHomepage !== true) && item._id !== currentPostId && item.slug !== currentPostId).slice(0, widget.limit || 4));
         }
       } catch (e) { console.error(e); }
     };

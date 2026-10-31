@@ -6,7 +6,7 @@ import { resolveTemplateId } from '../lib/templates';
 import { renderHomeByTemplate } from '../templates/home';
 import { headers } from 'next/headers';
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 const isObjectId = (v) => /^[a-f0-9]{24}$/i.test(String(v || '').trim());
 
@@ -53,13 +53,14 @@ async function getPosts(params = {}) {
   else if ((type === 'content_type' || type === 'type') && cleanedValue) path += '&type=' + encodeURIComponent(normalizedSlug.replace(/\s+/g, '-'));
   if (sort) path += '&sort=' + encodeURIComponent(String(sort));
   try {
-    const res = await fetchWithTenant(path, { next: { revalidate: 60 } });
+    const res = await fetchWithTenant(path, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
     const posts = Array.isArray(data) ? data : (data.posts || []);
-    if (!excludeKeys || excludeKeys.length === 0) return posts;
+    const homepagePosts = posts.filter((post) => post?.excludeFromHomepage !== true);
+    if (!excludeKeys || excludeKeys.length === 0) return homepagePosts;
     const exclude = new Set(excludeKeys.map((k) => String(k || '')).filter(Boolean));
-    return posts.filter((p) => !exclude.has(String(p?.slug || p?._id || '')));
+    return homepagePosts.filter((p) => !exclude.has(String(p?.slug || p?._id || '')));
   } catch (e) { return []; }
 }
 

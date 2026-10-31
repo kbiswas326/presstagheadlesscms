@@ -73,10 +73,11 @@ const SocialIcon = ({ platform }) => {
 
 async function getLatestStories(limit = 10) {
   try {
-    const res = await fetchWithTenant(`/posts?status=published&excludeType=custompage&limit=${limit}&lite=1&homepage=1`, { next: { revalidate: 60 } });
+    const res = await fetchWithTenant(`/posts?status=published&excludeType=custompage&limit=${limit}&lite=1&homepage=1`, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
-    return Array.isArray(data) ? data : (data.posts || []);
+    const posts = Array.isArray(data) ? data : (data.posts || []);
+    return posts.filter((post) => post?.excludeFromHomepage !== true);
   } catch {
     return [];
   }
