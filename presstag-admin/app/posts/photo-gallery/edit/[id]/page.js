@@ -11,6 +11,7 @@ import { getUsers, getCategories, getTags } from '../../../../../lib/api';
 import { useUser } from '../../../../context/UserContext';
 import { canPublishPost, normalizeRole } from '../../../../../utils/permissions';
 import { includesNormalized, keywordDensity, slugifyForMatch } from '../../../../../utils/seoMatch';
+import ExcludeFromHomepageToggle from '../../../../../components/ExcludeFromHomepageToggle';
 
 
 export default function PhotoGalleryEditorPage() {
@@ -168,6 +169,7 @@ const getSelectedTagsText = () =>
   const [showPreview, setShowPreview] = useState(false);
   const [publishDate, setPublishDate] = useState('');
   const [publishTime, setPublishTime] = useState('');
+  const [excludeFromHomepage, setExcludeFromHomepage] = useState(false);
   const [featuredImage, setFeaturedImage] = useState(null);
   const [showMediaSelector, setShowMediaSelector] = useState(false);
   const [showGalleryMediaSelector, setShowGalleryMediaSelector] = useState(false);
@@ -367,6 +369,7 @@ const getSelectedTagsText = () =>
         const response = await posts.getById(postId);
         if (!response || response.error) return;
         setTitle(response.title || '');
+        setExcludeFromHomepage(response.excludeFromHomepage === true);
         setSlug(response.slug || '');
         setPostStatus(response.status || 'draft');
         setSummary(response.summary || response.excerpt || '');
@@ -489,6 +492,7 @@ const getSelectedTagsText = () =>
 
     publishDate,
     publishTime,
+    excludeFromHomepage,
     
     status, // 'draft' | 'pending' | 'published'
   };
@@ -923,6 +927,7 @@ const getSelectedTagsText = () =>
             )}
             {activeTab === 'properties' && (
               <div className="space-y-6">
+                <ExcludeFromHomepageToggle checked={excludeFromHomepage} onChange={setExcludeFromHomepage} isDark={isDark} />
                 <div>
                   <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Publish Date</label>
                   <input type="date" className={`w-full mt-2 p-2 rounded-lg border ${isDark ? "bg-gray-700 border-gray-600 text-white" : "border-gray-100"}`} value={publishDate} onChange={e => setPublishDate(e.target.value)} />

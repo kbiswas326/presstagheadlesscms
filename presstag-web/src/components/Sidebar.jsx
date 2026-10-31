@@ -89,6 +89,7 @@ const Sidebar = ({ variant = 'post', currentPostId, categorySlug, authorId, excl
                 primaryColor={primaryColor}
                 fallbackImage={fallbackImage}
                 excludePostKeys={excludePostKeys}
+                isHomepage={variant === 'homepage'}
                 urlStructure={urlStructure}
             />
         ))}

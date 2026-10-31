@@ -135,6 +135,7 @@ class Post {
         focusKeyword: '',
       },
       status: postData.status || 'draft',
+      excludeFromHomepage: postData.excludeFromHomepage === true,
       publishedAt: publishedAt,
       publishDate: postData.publishDate || null,
       publishTime: postData.publishTime || null,

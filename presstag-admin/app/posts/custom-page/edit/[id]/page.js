@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { getLayoutConfig, posts as postsApi } from '../../../../../lib/api';
 import { useTheme } from '../../../../context/ThemeContext';
 import MediaImagesSelector from '../../../../media/MediaImagesSelector';
+import ExcludeFromHomepageToggle from '../../../../../components/ExcludeFromHomepageToggle';
 
 const Editor = dynamic(() => import('@tinymce/tinymce-react').then((mod) => mod.Editor), { ssr: false });
 
@@ -29,6 +30,7 @@ export default function CustomPageEditor() {
 
   const [status, setStatus] = useState('draft');
   const [publishedAt, setPublishedAt] = useState('');
+  const [excludeFromHomepage, setExcludeFromHomepage] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -65,6 +67,7 @@ export default function CustomPageEditor() {
         setSchema(res?.seo?.schema ? JSON.stringify(res.seo.schema, null, 2) : '');
         setStatus(String(res?.status || 'draft'));
         setPublishedAt(String(res?.publishedAt || ''));
+        setExcludeFromHomepage(res?.excludeFromHomepage === true);
       } finally {
         setIsLoading(false);
       }
@@ -114,6 +117,7 @@ export default function CustomPageEditor() {
       content: String(content || ''),
       type: 'CustomPage',
       status: nextStatus,
+      excludeFromHomepage,
       notifySubscribers: false,
       seo: {
         metaTitle: String(metaTitle || '').trim(),
@@ -205,6 +209,7 @@ export default function CustomPageEditor() {
           </div>
 
           <div className="p-5 space-y-4">
+            <ExcludeFromHomepageToggle checked={excludeFromHomepage} onChange={setExcludeFromHomepage} isDark={isDark} />
             {error ? (
               <div className={isDark ? 'text-red-300' : 'text-red-600'}>{error}</div>
             ) : null}

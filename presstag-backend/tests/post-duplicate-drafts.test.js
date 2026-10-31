@@ -233,3 +233,24 @@ test('updating a published post with an edited date and time updates publishedAt
 
   assert.equal(savedPost.publishedAt.toISOString(), '2024-06-15T10:30:00.000Z');
 });
+
+test('create stores homepage exclusion and defaults it to false', async () => {
+  const savedPosts = [];
+
+  mockDb.collection = (name) => {
+    if (name !== 'posts') return { findOne: async () => null };
+    return {
+      findOne: async () => null,
+      insertOne: async (post) => {
+        savedPosts.push(post);
+        return { insertedId: new ObjectId() };
+      },
+    };
+  };
+
+  await Post.create({ title: 'Excluded', slug: 'excluded', status: 'draft', excludeFromHomepage: true });
+  await Post.create({ title: 'Default', slug: 'default', status: 'draft' });
+
+  assert.equal(savedPosts[0].excludeFromHomepage, true);
+  assert.equal(savedPosts[1].excludeFromHomepage, false);
+});

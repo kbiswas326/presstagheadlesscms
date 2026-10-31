@@ -14,6 +14,7 @@ import { getTenantId, posts } from '../../../../../lib/api';
 import { getImageUrl } from '@/lib/imageHelper';
 import { canPublishPost, normalizeRole } from '../../../../../utils/permissions';
 import { includesNormalized, keywordDensity, slugifyForMatch } from '../../../../../utils/seoMatch';
+import ExcludeFromHomepageToggle from '../../../../../components/ExcludeFromHomepageToggle';
 
 
 /**
@@ -75,6 +76,7 @@ const [mediaSelectorMode, setMediaSelectorMode] = useState('slide'); // 'slide' 
   const [featuredImage, setFeaturedImage] = useState(null);
   const [publishDate, setPublishDate] = useState('');
   const [publishTime, setPublishTime] = useState('');
+  const [excludeFromHomepage, setExcludeFromHomepage] = useState(false);
   const [isLoadingAction, setIsLoadingAction] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -145,6 +147,7 @@ useEffect(() => {
       const response = await posts.getById(postId);
       if (!response || response.error) return;
       setStoryTitle(response.title || '');
+      setExcludeFromHomepage(response.excludeFromHomepage === true);
       setStorySlug(response.slug || '');
       setPostStatus(response.status || 'draft');
       setFeaturedImage(response.featuredImage || null);
@@ -909,6 +912,7 @@ const buildPayload = (status) => ({
   },
   publishDate,
   publishTime,
+  excludeFromHomepage,
 });
 
 const handleSaveDraft = async () => {
@@ -1571,6 +1575,10 @@ const handleUpdate = async () => {
                   <div className="mt-6">
                     <label className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>Meta Description</label>
                     <textarea value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} className={`w-full mt-2 p-2 rounded-lg border h-28 ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-200 text-gray-900"}`} />
+                  </div>
+
+                  <div className="mt-6">
+                    <ExcludeFromHomepageToggle checked={excludeFromHomepage} onChange={setExcludeFromHomepage} isDark={isDark} />
                   </div>
 
                   <div className="mt-6 grid grid-cols-2 gap-4">

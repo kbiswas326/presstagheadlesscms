@@ -328,7 +328,7 @@ router.get('/', async (req, res) => {
   try {
     const { 
       status, type, author, category, tag, 
-      page = 1, limit = 20, sort, search, previousSlug, lite, excludeType
+      page = 1, limit = 20, sort, search, previousSlug, lite, excludeType, homepage
     } = req.query;
 
     const db = getDB(req.tenantId);
@@ -339,6 +339,9 @@ router.get('/', async (req, res) => {
 
     const query = {};
     const and = [];
+    if (['1', 'true', 'yes'].includes(String(homepage || '').toLowerCase().trim())) {
+      query.excludeFromHomepage = { $ne: true };
+    }
     if (status && status !== 'All') query.status = status;
     if (type && type !== 'All') {
       const rawType = String(type || '');

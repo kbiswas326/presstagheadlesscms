@@ -34,7 +34,7 @@ const formatWidgetDate = (dateString, timeString) => {
   return `${new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(dateString))} IST`;
 };
 
-const TrendingWidget = ({ widget, currentPostId, excludePostKeys, urlStructure, fallbackImage }) => {
+const TrendingWidget = ({ widget, currentPostId, excludePostKeys, urlStructure, fallbackImage, isHomepage }) => {
   const [trendingPosts, setTrendingPosts] = useState([]);
 
   useEffect(() => {
@@ -65,12 +65,13 @@ const TrendingWidget = ({ widget, currentPostId, excludePostKeys, urlStructure, 
         const { fetchWithTenant } = await import('../lib/fetchWithTenant');
 
         const isHomeSidebar = !currentPostId && excluded.size > 0;
+        const homepageQuery = isHomepage ? '&homepage=1' : '';
         const out = [];
         const seen = new Set();
 
         if (isHomeSidebar) {
           const recentRes = await fetchWithTenant(
-            `/posts?status=published&excludeType=custompage&limit=${desiredCount * 10}`,
+            `/posts?status=published&excludeType=custompage&limit=${desiredCount * 10}${homepageQuery}`,
             { cache: 'no-store' }
           );
           if (recentRes.ok) {
@@ -85,7 +86,7 @@ const TrendingWidget = ({ widget, currentPostId, excludePostKeys, urlStructure, 
         }
 
         const res = await fetchWithTenant(
-          `/posts?sort=trending&status=published&excludeType=custompage&limit=${desiredCount * 3}`,
+          `/posts?sort=trending&status=published&excludeType=custompage&limit=${desiredCount * 3}${homepageQuery}`,
           { cache: 'no-store' }
         );
         if (res.ok) {
@@ -99,7 +100,7 @@ const TrendingWidget = ({ widget, currentPostId, excludePostKeys, urlStructure, 
         }
 
         const fallbackRes = await fetchWithTenant(
-          `/posts?status=published&excludeType=custompage&limit=${desiredCount * 10}`,
+          `/posts?status=published&excludeType=custompage&limit=${desiredCount * 10}${homepageQuery}`,
           { cache: 'no-store' }
         );
         if (fallbackRes.ok) {
@@ -111,7 +112,7 @@ const TrendingWidget = ({ widget, currentPostId, excludePostKeys, urlStructure, 
       } catch (e) { console.error(e); }
     };
     fetchTrending();
-  }, [widget.limit, currentPostId, excludePostKeys]);
+  }, [widget.limit, currentPostId, excludePostKeys, isHomepage]);
 
   const title = widget.title || "Trending Now";
 
@@ -172,14 +173,37 @@ const TrendingWidget = ({ widget, currentPostId, excludePostKeys, urlStructure, 
   );
 };
 
-const RecentPostsWidget = ({ widget, urlStructure, fallbackImage }) => {
+const RecentPostsWidget = ({ widget, urlStructure, fallbackImage, isHomepage }) => {
   const { latestStory, fetchLatestStory } = usePostStore();
+  const [homepageStories, setHomepageStories] = useState([]);
 
   useEffect(() => {
-    if (latestStory.length === 0) fetchLatestStory();
-  }, [latestStory.length, fetchLatestStory]);
+    if (!isHomepage) {
+      if (latestStory.length === 0) fetchLatestStory();
+      return;
+    }
+
+    const fetchHomepageStories = async () => {
+      try {
+        const { fetchWithTenant } = await import('../lib/fetchWithTenant');
+        const response = await fetchWithTenant(
+          '/posts?limit=10&status=published&excludeType=custompage&homepage=1',
+          { cache: 'no-store' }
+        );
+        if (!response.ok) throw new Error('Failed to fetch homepage recent posts');
+        const data = await response.json();
+        const stories = Array.isArray(data) ? data : (data.posts || []);
+        setHomepageStories(stories);
+      } catch (error) {
+        console.error('Homepage recent posts fetch error:', error);
+      }
+    };
+
+    fetchHomepageStories();
+  }, [isHomepage, latestStory.length, fetchLatestStory]);
 
   const title = widget.title || "Recent Posts";
+  const stories = isHomepage ? homepageStories : latestStory;
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
@@ -187,7 +211,7 @@ const RecentPostsWidget = ({ widget, urlStructure, fallbackImage }) => {
         {title}
       </h3>
       <div className="space-y-4">
-        {latestStory.slice(0, widget.limit || 5).map((story, i) => {
+        {stories.slice(0, widget.limit || 5).map((story, i) => {
           const linkUrl = buildPostUrl(story, urlStructure);
           const category = story.categories && story.categories.length > 0 ? story.categories[0] : null;
           const categoryName = category ? (category.name || category.title) : '';
@@ -235,7 +259,7 @@ const RecentPostsWidget = ({ widget, urlStructure, fallbackImage }) => {
   );
 };
 
-const RelatedPostsWidget = ({ widget, categorySlug, currentPostId, urlStructure, fallbackImage }) => {
+const RelatedPostsWidget = ({ widget, categorySlug, currentPostId, urlStructure, fallbackImage, isHomepage }) => {
   const [posts, setPosts] = useState([]);
 
   useEffect(() => {
@@ -244,7 +268,7 @@ const RelatedPostsWidget = ({ widget, categorySlug, currentPostId, urlStructure,
       try {
         const { fetchWithTenant } = await import('../lib/fetchWithTenant');
         const res = await fetchWithTenant(
-          `/posts?status=published&excludeType=custompage&category=${encodeURIComponent(String(categorySlug))}&limit=${widget.limit || 5}&lite=1`,
+          `/posts?status=published&excludeType=custompage&category=${encodeURIComponent(String(categorySlug))}&limit=${widget.limit || 5}&lite=1${isHomepage ? '&homepage=1' : ''}`,
           { next: { revalidate: 60 } }
         );
         if (res.ok) {
@@ -255,7 +279,7 @@ const RelatedPostsWidget = ({ widget, categorySlug, currentPostId, urlStructure,
       } catch (e) { console.error(e); }
     };
     fetchRelated();
-  }, [categorySlug, currentPostId, widget.limit]);
+  }, [categorySlug, currentPostId, widget.limit, isHomepage]);
 
   if (posts.length === 0) return null;
 
@@ -304,7 +328,7 @@ const RelatedPostsWidget = ({ widget, categorySlug, currentPostId, urlStructure,
   );
 };
 
-const AuthorPostsWidget = ({ widget, authorId, currentPostId, urlStructure, fallbackImage }) => {
+const AuthorPostsWidget = ({ widget, authorId, currentPostId, urlStructure, fallbackImage, isHomepage }) => {
   const [posts, setPosts] = useState([]);
 
   useEffect(() => {
@@ -313,7 +337,7 @@ const AuthorPostsWidget = ({ widget, authorId, currentPostId, urlStructure, fall
       try {
         const { fetchWithTenant } = await import('../lib/fetchWithTenant');
         const res = await fetchWithTenant(
-          `/posts?status=published&excludeType=custompage&author=${encodeURIComponent(String(authorId))}&limit=${widget.limit || 5}&lite=1`,
+          `/posts?status=published&excludeType=custompage&author=${encodeURIComponent(String(authorId))}&limit=${widget.limit || 5}&lite=1${isHomepage ? '&homepage=1' : ''}`,
           { next: { revalidate: 60 } }
         );
         if (res.ok) {
@@ -324,7 +348,7 @@ const AuthorPostsWidget = ({ widget, authorId, currentPostId, urlStructure, fall
       } catch (e) { console.error(e); }
     };
     fetchByAuthor();
-  }, [authorId, currentPostId, widget.limit]);
+  }, [authorId, currentPostId, widget.limit, isHomepage]);
 
   if (posts.length === 0) return null;
 
@@ -517,20 +541,20 @@ const CategoriesWidget = ({ widget, fallbackImage }) => {
   );
 };
 
-const SidebarWidget = ({ widget, currentPostId, categorySlug, authorId, primaryColor = '#ef4444', fallbackImage = null, excludePostKeys = [], urlStructure }) => {
+const SidebarWidget = ({ widget, currentPostId, categorySlug, authorId, primaryColor = '#ef4444', fallbackImage = null, excludePostKeys = [], isHomepage = false, urlStructure }) => {
   if (!widget?.type) return null;
 
   if (widget.type === 'trending') {
-    return <TrendingWidget widget={widget} currentPostId={currentPostId} excludePostKeys={excludePostKeys} urlStructure={urlStructure} fallbackImage={fallbackImage} />;
+    return <TrendingWidget widget={widget} currentPostId={currentPostId} excludePostKeys={excludePostKeys} urlStructure={urlStructure} fallbackImage={fallbackImage} isHomepage={isHomepage} />;
   }
   if (widget.type === 'recent_posts' || widget.type === 'latest_posts' || widget.type === 'latest') {
-    return <RecentPostsWidget widget={widget} urlStructure={urlStructure} fallbackImage={fallbackImage} />;
+    return <RecentPostsWidget widget={widget} urlStructure={urlStructure} fallbackImage={fallbackImage} isHomepage={isHomepage} />;
   }
   if (widget.type === 'related_posts' || widget.type === 'related') {
-    return <RelatedPostsWidget widget={widget} categorySlug={categorySlug} currentPostId={currentPostId} urlStructure={urlStructure} fallbackImage={fallbackImage} />;
+    return <RelatedPostsWidget widget={widget} categorySlug={categorySlug} currentPostId={currentPostId} urlStructure={urlStructure} fallbackImage={fallbackImage} isHomepage={isHomepage} />;
   }
   if (widget.type === 'author_posts' || widget.type === 'more_from_author') {
-    return <AuthorPostsWidget widget={widget} authorId={authorId} currentPostId={currentPostId} urlStructure={urlStructure} fallbackImage={fallbackImage} />;
+    return <AuthorPostsWidget widget={widget} authorId={authorId} currentPostId={currentPostId} urlStructure={urlStructure} fallbackImage={fallbackImage} isHomepage={isHomepage} />;
   }
   if (widget.type === 'newsletter') {
     return <NewsletterWidget widget={widget} primaryColor={primaryColor} />;

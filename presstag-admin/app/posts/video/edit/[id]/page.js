@@ -12,6 +12,7 @@ import { useTheme } from '../../../../context/ThemeContext';
 import { canPublishPost, normalizeRole } from '../../../../../utils/permissions';
 import { countInternalExternalLinks } from '../../../../../utils/linkAnalysis';
 import { includesNormalized, keywordDensity, slugifyForMatch } from '../../../../../utils/seoMatch';
+import ExcludeFromHomepageToggle from '../../../../../components/ExcludeFromHomepageToggle';
 
 // Load TinyMCE dynamically
 const Editor = dynamic(() => import('@tinymce/tinymce-react').then(mod => mod.Editor), {
@@ -74,6 +75,7 @@ export default function VideoEditorPage() {
   // properties fields
   const [publishDate, setPublishDate] = useState('');
   const [publishTime, setPublishTime] = useState('');
+  const [excludeFromHomepage, setExcludeFromHomepage] = useState(false);
 
   // Preview modal
   const [showPreview, setShowPreview] = useState(false);
@@ -182,6 +184,7 @@ export default function VideoEditorPage() {
           const response = await posts.getById(postId);
           if (response && !response.error) {
             setTitle(response.title || '');
+            setExcludeFromHomepage(response.excludeFromHomepage === true);
             setSummary(response.summary || response.excerpt || '');
             setContent(response.content || '');
             setSlug(response.slug || '');
@@ -332,7 +335,7 @@ export default function VideoEditorPage() {
       }
     }
     setHasUnsavedChanges(true);
-  }, [title, summary, content, slug, youtubeUrl, publishDate, publishTime, author, categories, tags, metaTitle, metaDescription, keyword, schema]);
+  }, [title, summary, content, slug, youtubeUrl, publishDate, publishTime, excludeFromHomepage, author, categories, tags, metaTitle, metaDescription, keyword, schema]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -677,6 +680,7 @@ export default function VideoEditorPage() {
         },
         publishDate,
         publishTime,
+        excludeFromHomepage,
         ...(shouldCreateDraftCopy ? { oldId: postId } : {}),
         seo: {
           metaTitle: metaTitle || title,
@@ -759,6 +763,7 @@ export default function VideoEditorPage() {
         },
         publishDate,
         publishTime,
+        excludeFromHomepage,
         seo: {
           metaTitle: metaTitle || title,
           metaDescription,
@@ -821,6 +826,7 @@ export default function VideoEditorPage() {
             url: youtubeUrl,
             videoId: videoId
         },
+        excludeFromHomepage,
         publishDate: currentDate,
         publishTime: currentTime,
         publishedAt: now.toISOString(),
@@ -896,6 +902,7 @@ export default function VideoEditorPage() {
         },
         publishDate,
         publishTime,
+        excludeFromHomepage,
         // IMPORTANT: Preserve original publishedAt if it exists (don't change publish date on update)
         ...(preservedPublishedAt && { publishedAt: preservedPublishedAt }),
         seo: {
@@ -1240,6 +1247,7 @@ export default function VideoEditorPage() {
 
             {activeTab === 'properties' && (
               <div className="space-y-6">
+                <ExcludeFromHomepageToggle checked={excludeFromHomepage} onChange={setExcludeFromHomepage} isDark={isDark} />
                 <div>
                   <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Publish Date</label>
                   <input type="date" className={`w-full mt-2 p-2 rounded-lg border ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-100 text-gray-900"}`} value={publishDate} onChange={(e) => setPublishDate(e.target.value)} />
@@ -1563,7 +1571,6 @@ export default function VideoEditorPage() {
     </div>
   );
 }
-
 
 
 

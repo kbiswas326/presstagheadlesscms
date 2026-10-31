@@ -26,6 +26,7 @@ import { getUsers, getCategories, getTags } from '../../../../../lib/api';
 import { useTheme } from '../../../../context/ThemeContext';
 import { countInternalExternalLinks } from '../../../../../utils/linkAnalysis';
 import { includesNormalized, keywordDensity, slugifyForMatch } from '../../../../../utils/seoMatch';
+import ExcludeFromHomepageToggle from '../../../../../components/ExcludeFromHomepageToggle';
 
 
 // Load TinyMCE dynamically
@@ -112,6 +113,7 @@ export default function LiveBlogEditorPage() {
   // properties
   const [publishDate, setPublishDate] = useState('');
   const [publishTime, setPublishTime] = useState('');
+  const [excludeFromHomepage, setExcludeFromHomepage] = useState(false);
   const [author, setAuthor] = useState('');
   const [authors, setAuthors] = useState([]);
   const [editor, setEditor] = useState('');
@@ -177,6 +179,7 @@ useEffect(() => {
       const post = await posts.getById(postId);
 
       setTitle(post.title || "");
+      setExcludeFromHomepage(post.excludeFromHomepage === true);
       setSlug(post.slug || "");
       setSummary(post.summary || "");
       setContent(post.content || "");
@@ -448,6 +451,7 @@ const buildPayload = (status) => ({
   status,
   publishDate,
   publishTime,
+  excludeFromHomepage,
 });
 
 
@@ -1196,6 +1200,7 @@ const sortedUpdates = [...updates].sort(
 
             {activeTab === 'properties' && (
               <div className="space-y-6">
+                <ExcludeFromHomepageToggle checked={excludeFromHomepage} onChange={setExcludeFromHomepage} isDark={isDark} />
                 <div>
                   <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Publish Date</label>
                   <input type="date" className={`w-full mt-2 p-2 rounded-lg border ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-100 text-gray-900"}`} value={publishDate} onChange={(e) => setPublishDate(e.target.value)} />
@@ -1760,6 +1765,5 @@ const sortedUpdates = [...updates].sort(
     </div>
   );
 }
-
 
 

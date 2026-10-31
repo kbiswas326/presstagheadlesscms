@@ -12,6 +12,7 @@ import { canPublishPost, normalizeRole } from '../../../../../utils/permissions'
 import MediaImagesSelector from '../../../../media/MediaImagesSelector'; // Ensure this is imported if not already
 import { countInternalExternalLinks } from '../../../../../utils/linkAnalysis';
 import { includesNormalized, keywordDensity, slugifyForMatch } from '../../../../../utils/seoMatch';
+import ExcludeFromHomepageToggle from '../../../../../components/ExcludeFromHomepageToggle';
 
 // Load TinyMCE dynamically
 const Editor = dynamic(() => import('@tinymce/tinymce-react').then(mod => mod.Editor), {
@@ -71,6 +72,7 @@ export default function ArticleEditorPage() {
   // properties fields
   const [publishDate, setPublishDate] = useState('');
   const [publishTime, setPublishTime] = useState('');
+  const [excludeFromHomepage, setExcludeFromHomepage] = useState(false);
 
   // Preview modal
   const [showPreview, setShowPreview] = useState(false);
@@ -217,6 +219,7 @@ export default function ArticleEditorPage() {
           const response = await posts.getById(postId);
           if (response && !response.error) {
             setTitle(response.title || '');
+            setExcludeFromHomepage(response.excludeFromHomepage === true);
             setSummary(response.summary || response.excerpt || '');
             setContent(response.content || '');
             setSlug(response.slug || '');
@@ -355,7 +358,7 @@ export default function ArticleEditorPage() {
       }
     }
     setHasUnsavedChanges(true);
-  }, [title, summary, content, slug, featuredImage, publishDate, publishTime, author, categories, tags, metaTitle, metaDescription, keyword, schema]);
+  }, [title, summary, content, slug, featuredImage, publishDate, publishTime, excludeFromHomepage, author, categories, tags, metaTitle, metaDescription, keyword, schema]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -694,6 +697,7 @@ export default function ArticleEditorPage() {
         featuredImage,
         publishDate,
         publishTime,
+        excludeFromHomepage,
         ...(shouldCreateDraftCopy ? { oldId: postId } : {}),
         seo: {
           metaTitle: metaTitle || title,
@@ -780,6 +784,7 @@ export default function ArticleEditorPage() {
         featuredImage,
         publishDate,
         publishTime,
+        excludeFromHomepage,
         seo: {
           metaTitle: metaTitle || title,
           metaDescription,
@@ -836,6 +841,7 @@ export default function ArticleEditorPage() {
         tags,
         seoScore,
         featuredImage,
+        excludeFromHomepage,
         publishDate: currentDate,
         publishTime: currentTime,
         publishedAt: now.toISOString(),
@@ -906,6 +912,7 @@ export default function ArticleEditorPage() {
         featuredImage,
         publishDate,
         publishTime,
+        excludeFromHomepage,
         // IMPORTANT: Only include publishedAt if it existed before (preserve original publish date)
         ...(preservedPublishedAt && { publishedAt: preservedPublishedAt }),
         seo: {
@@ -1371,6 +1378,7 @@ export default function ArticleEditorPage() {
 
             {activeTab === 'properties' && (
               <div className="space-y-6">
+                <ExcludeFromHomepageToggle checked={excludeFromHomepage} onChange={setExcludeFromHomepage} isDark={isDark} />
                 <div>
                   <label className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Publish Date</label>
                   <input type="date" className={`w-full mt-2 p-2 rounded-lg border ${isDark ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-100 text-gray-900"}`} value={publishDate} onChange={(e) => setPublishDate(e.target.value)} />
@@ -1762,7 +1770,6 @@ export default function ArticleEditorPage() {
     </div>
   );
 }
-
 
 
 
