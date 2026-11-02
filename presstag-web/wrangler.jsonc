@@ -1,6 +1,6 @@
 {
     "$schema": "node_modules/wrangler/config-schema.json",
-    "main": ".open-next/worker.js",
+    "main": "worker.js",
     "name": "sportzpoint-frontend",
     "compatibility_date": "2026-06-10",
     "compatibility_flags": [
