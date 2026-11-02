@@ -5,24 +5,49 @@ const STALE = 86400;   // seconds a stale copy may be served while refreshing
 
 const SKIP = /^\/(api|admin|preview|_next\/data)(\/|$)/;
 
+// Headers copied onto the stored page so cached responses match live ones
+const KEEP = [
+  "link",
+  "x-frame-options",
+  "x-content-type-options",
+  "referrer-policy",
+  "permissions-policy",
+  "cross-origin-opener-policy",
+  "content-language",
+];
+
+// Query parameters that never change the page, so they are ignored in the cache key
+const TRACKING = /^(utm_|fbclid$|gclid$|msclkid$|yclid$|twclid$|igshid$|mc_|_ga|ref$|ref_src$)/i;
+
+function cacheKeyFor(url) {
+  const u = new URL(url.href);
+  for (const k of Array.from(u.searchParams.keys())) {
+    if (TRACKING.test(k)) u.searchParams.delete(k);
+  }
+  u.searchParams.sort();
+  u.hash = "";
+  return new Request(u.toString(), { method: "GET" });
+}
+
 async function fetchAndStore(request, env, ctx, cache, key) {
   const res = await openNext.fetch(request, env, ctx);
   if (res.status !== 200 || res.headers.has("set-cookie")) return res;
 
   const body = await res.arrayBuffer();
-  const contentType = res.headers.get("content-type") || "text/html; charset=utf-8";
+
+  const storedHeaders = new Headers({
+    "content-type": res.headers.get("content-type") || "text/html; charset=utf-8",
+    "cache-control": `public, s-maxage=${FRESH + STALE}`,
+    "x-edge-cached-at": String(Date.now()),
+  });
+  for (const name of KEEP) {
+    const v = res.headers.get(name);
+    if (v) storedHeaders.set(name, v);
+  }
 
   let err = "";
   try {
-    const stored = new Response(body, {
-      status: 200,
-      headers: {
-        "content-type": contentType,
-        "cache-control": `public, s-maxage=${FRESH + STALE}`,
-        "x-edge-cached-at": String(Date.now()),
-      },
-    });
-    await cache.put(key, stored);
+    await cache.put(key, new Response(body, { status: 200, headers: storedHeaders }));
   } catch (e) {
     err = String(e && e.message ? e.message : e).slice(0, 120);
   }
@@ -47,7 +72,7 @@ export default {
     if (!cacheable) return openNext.fetch(request, env, ctx);
 
     const cache = caches.default;
-    const key = new Request(url.origin + url.pathname + url.search, { method: "GET" });
+    const key = cacheKeyFor(url);
 
     const hit = await cache.match(key);
     if (hit) {
