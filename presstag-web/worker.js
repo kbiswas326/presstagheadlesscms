@@ -1,7 +1,7 @@
 import openNext from "./.open-next/worker.js";
 
-const FRESH = 300;     // seconds a cached page is served as-is (5 min)
-const STALE = 86400;   // seconds a stale page may still be served while refreshing
+const FRESH = 300;     // seconds served as-is (5 min)
+const STALE = 86400;   // seconds a stale copy may be served while refreshing
 
 const SKIP = /^\/(api|admin|preview|_next\/data)(\/|$)/;
 
@@ -9,16 +9,29 @@ async function fetchAndStore(request, env, ctx, cache, key) {
   const res = await openNext.fetch(request, env, ctx);
   if (res.status !== 200 || res.headers.has("set-cookie")) return res;
 
-  const copy = res.clone();
-  const headers = new Headers(copy.headers);
-  headers.delete("vary");
-  headers.set("Cache-Control", `public, s-maxage=${FRESH + STALE}`);
-  headers.set("x-edge-cached-at", String(Date.now()));
-  ctx.waitUntil(cache.put(key, new Response(copy.body, { status: 200, headers })));
+  const body = await res.arrayBuffer();
+  const contentType = res.headers.get("content-type") || "text/html; charset=utf-8";
 
-  const out = new Response(res.body, res);
+  let err = "";
+  try {
+    const stored = new Response(body, {
+      status: 200,
+      headers: {
+        "content-type": contentType,
+        "cache-control": `public, s-maxage=${FRESH + STALE}`,
+        "x-edge-cached-at": String(Date.now()),
+      },
+    });
+    await cache.put(key, stored);
+  } catch (e) {
+    err = String(e && e.message ? e.message : e).slice(0, 120);
+  }
+
+  const out = new Response(body, res);
+  out.headers.delete("content-length");
   out.headers.set("Cache-Control", "public, max-age=60");
   out.headers.set("x-edge-cache", "MISS");
+  if (err) out.headers.set("x-edge-cache-err", err);
   return out;
 }
 
@@ -44,7 +57,7 @@ export default {
       if (age > FRESH) {
         out.headers.set("x-edge-cache", "STALE");
         ctx.waitUntil(
-          fetchAndStore(new Request(request), env, ctx, cache, key).then((r) => r.body && r.body.cancel())
+          fetchAndStore(new Request(request), env, ctx, cache, key).catch(() => {})
         );
       } else {
         out.headers.set("x-edge-cache", "HIT");
