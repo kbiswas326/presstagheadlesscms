@@ -20,6 +20,8 @@ const KEEP = [
 ];
 
 const TRACKING = /^(utm_|fbclid$|gclid$|msclkid$|yclid$|twclid$|igshid$|mc_|_ga|ref$|ref_src$)/i;
+// Junk crawlers that bring nothing (Semrush and Ahrefs are deliberately NOT here)
+const BAD_UA = /(MJ12bot|DotBot|PetalBot|Bytespider|BLEXBot)/i;
 
 function freshFor(pathname) {
   if (
@@ -87,6 +89,17 @@ async function fetchAndStore(request, env, ctx, cache, key, pathname) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+        // Port-scanner probes (hosts like sportzpoint.com:8080)
+    const hostHeader = request.headers.get("host") || url.host;
+    if (hostHeader.includes(":")) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    // Junk crawlers
+    const ua = request.headers.get("user-agent") || "";
+    if (BAD_UA.test(ua)) {
+      return new Response("Forbidden", { status: 403 });
+    }
     const cacheable =
       request.method === "GET" &&
       !request.headers.get("rsc") &&
