@@ -26,35 +26,68 @@ const LIVE_ORIGIN = "https://laudable-integrity-production-2328.up.railway.app/a
 const LIVE_API = /^\/_live\/posts\/slug\/([A-Za-z0-9._%-]+)$/;
 
 async function liveApi(slug, ctx) {
+const LIVE_FRESH = 5;    // seconds a live API answer is shared
+const LIVE_GRACE = 60;   // if Railway fails, an answer this young may still be served
+
+async function liveApi(slug, ctx) {
   const cache = caches.default;
   const key = new Request("https://sportzpoint.com/_live-cache/" + slug);
 
   const hit = await cache.match(key);
+  let old = null;
   if (hit) {
-    const r = new Response(hit.body, hit);
-    r.headers.set("x-live-cache", "HIT");
-    return r;
+    const age = (Date.now() - Number(hit.headers.get("x-cached-at") || 0)) / 1000;
+    if (age <= LIVE_FRESH) {
+      const r = new Response(hit.body, hit);
+      r.headers.set("cache-control", "public, max-age=0, must-revalidate");
+      r.headers.set("x-live-cache", "HIT");
+      return r;
+    }
+    if (age <= LIVE_GRACE) old = hit;
   }
 
-  let res;
+  let res = null;
   try {
     res = await fetch(`${LIVE_ORIGIN}/posts/slug/${slug}`, {
       headers: { "x-tenant-id": "sportzpoint", accept: "application/json" },
     });
-  } catch {
+  } catch {}
+
+  if (!res || res.status !== 200) {
+    if (old) {
+      const r = new Response(old.body, old);
+      r.headers.set("cache-control", "public, max-age=0, must-revalidate");
+      r.headers.set("x-live-cache", "STALE");
+      return r;
+    }
+    if (res) return new Response(res.body, { status: res.status, headers: { "cache-control": "no-store" } });
     return new Response("Bad gateway", { status: 502, headers: { "cache-control": "no-store" } });
-  }
-  if (res.status !== 200) {
-    return new Response(res.body, { status: res.status, headers: { "cache-control": "no-store" } });
   }
 
   const body = await res.arrayBuffer();
-  const headers = {
-    "content-type": res.headers.get("content-type") || "application/json",
-    "cache-control": "public, max-age=0, s-maxage=5",
-  };
-  ctx.waitUntil(cache.put(key, new Response(body, { status: 200, headers })));
-  return new Response(body, { status: 200, headers: { ...headers, "x-live-cache": "MISS" } });
+  const type = res.headers.get("content-type") || "application/json";
+  ctx.waitUntil(
+    cache.put(
+      key,
+      new Response(body, {
+        status: 200,
+        headers: {
+          "content-type": type,
+          "cache-control": `public, s-maxage=${LIVE_GRACE + 30}`,
+          "x-cached-at": String(Date.now()),
+        },
+      })
+    )
+  );
+  return new Response(body, {
+    status: 200,
+    headers: {
+      "content-type": type,
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-live-cache": "MISS",
+    },
+  });
+}
 }
 
 // ---- Normal pages ----
