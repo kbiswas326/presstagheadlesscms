@@ -24,70 +24,111 @@ const TRACKING = /^(utm_|fbclid$|gclid$|msclkid$|yclid$|twclid$|igshid$|mc_|_ga|
 // ---- Live blog updates: shared 5-second cache ----
 const LIVE_ORIGIN = "https://laudable-integrity-production-2328.up.railway.app/api";
 const LIVE_API = /^\/_live\/posts\/slug\/([A-Za-z0-9._%-]+)$/;
+const LIVE_API_FRESH = 5;    // seconds a live API answer is shared between readers
+const LIVE_API_GRACE = 60;   // if Railway fails, an answer this young may still be served
 
-async function liveApi(slug, ctx) {
-const LIVE_FRESH = 5;    // seconds a live API answer is shared
-const LIVE_GRACE = 60;   // if Railway fails, an answer this young may still be served
-
-async function liveApi(slug, ctx) {
-  const cache = caches.default;
-  const key = new Request("https://sportzpoint.com/_live-cache/" + slug);
-
-  const hit = await cache.match(key);
-  let old = null;
-  if (hit) {
-    const age = (Date.now() - Number(hit.headers.get("x-cached-at") || 0)) / 1000;
-    if (age <= LIVE_FRESH) {
-      const r = new Response(hit.body, hit);
-      r.headers.set("cache-control", "public, max-age=0, must-revalidate");
-      r.headers.set("x-live-cache", "HIT");
-      return r;
-    }
-    if (age <= LIVE_GRACE) old = hit;
-  }
-
-  let res = null;
-  try {
-    res = await fetch(`${LIVE_ORIGIN}/posts/slug/${slug}`, {
-      headers: { "x-tenant-id": "sportzpoint", accept: "application/json" },
-    });
-  } catch {}
-
-  if (!res || res.status !== 200) {
-    if (old) {
-      const r = new Response(old.body, old);
-      r.headers.set("cache-control", "public, max-age=0, must-revalidate");
-      r.headers.set("x-live-cache", "STALE");
-      return r;
-    }
-    if (res) return new Response(res.body, { status: res.status, headers: { "cache-control": "no-store" } });
-    return new Response("Bad gateway", { status: 502, headers: { "cache-control": "no-store" } });
-  }
-
-  const body = await res.arrayBuffer();
-  const type = res.headers.get("content-type") || "application/json";
-  ctx.waitUntil(
-    cache.put(
-      key,
-      new Response(body, {
-        status: 200,
-        headers: {
-          "content-type": type,
-          "cache-control": `public, s-maxage=${LIVE_GRACE + 30}`,
-          "x-cached-at": String(Date.now()),
-        },
-      })
-    )
-  );
-  return new Response(body, {
-    status: 200,
-    headers: {
-      "content-type": type,
-      "cache-control": "public, max-age=0, must-revalidate",
-      "x-live-cache": "MISS",
-    },
+async function fetchLiveOrigin(slug) {
+  return fetch(`${LIVE_ORIGIN}/posts/slug/${slug}`, {
+    headers: { "x-tenant-id": "sportzpoint", accept: "application/json" },
   });
 }
+
+async function liveApi(slug, ctx) {
+  try {
+    const cache = caches.default;
+    const key = new Request("https://sportzpoint.com/_live-cache/" + slug);
+
+    let oldBody = null;
+    let oldType = "application/json";
+    const hit = await cache.match(key);
+    if (hit) {
+      const age = (Date.now() - Number(hit.headers.get("x-cached-at") || 0)) / 1000;
+      if (age <= LIVE_API_GRACE) {
+        oldBody = await hit.arrayBuffer();
+        oldType = hit.headers.get("content-type") || oldType;
+        if (age <= LIVE_API_FRESH) {
+          return new Response(oldBody, {
+            status: 200,
+            headers: {
+              "content-type": oldType,
+              "cache-control": "public, max-age=0, must-revalidate",
+              "x-live-cache": "HIT",
+            },
+          });
+        }
+      }
+    }
+
+    let res = null;
+    try {
+      res = await fetchLiveOrigin(slug);
+    } catch {}
+
+    if (!res || res.status !== 200) {
+      if (oldBody) {
+        return new Response(oldBody, {
+          status: 200,
+          headers: {
+            "content-type": oldType,
+            "cache-control": "public, max-age=0, must-revalidate",
+            "x-live-cache": "STALE",
+          },
+        });
+      }
+      return new Response("Upstream error", {
+        status: res ? res.status : 502,
+        headers: { "cache-control": "no-store" },
+      });
+    }
+
+    const body = await res.arrayBuffer();
+    const type = res.headers.get("content-type") || "application/json";
+    try {
+      ctx.waitUntil(
+        cache.put(
+          key,
+          new Response(body, {
+            status: 200,
+            headers: {
+              "content-type": type,
+              "cache-control": `public, s-maxage=${LIVE_API_GRACE + 30}`,
+              "x-cached-at": String(Date.now()),
+            },
+          })
+        )
+      );
+    } catch {}
+
+    return new Response(body, {
+      status: 200,
+      headers: {
+        "content-type": type,
+        "cache-control": "public, max-age=0, must-revalidate",
+        "x-live-cache": "MISS",
+      },
+    });
+  } catch (e) {
+    // Never crash: fall back to a plain pass-through and report why
+    const msg = String(e && e.message ? e.message : e).replace(/[^\x20-\x7E]/g, "?").slice(0, 150);
+    try {
+      const res = await fetchLiveOrigin(slug);
+      const body = await res.arrayBuffer();
+      return new Response(body, {
+        status: res.status,
+        headers: {
+          "content-type": res.headers.get("content-type") || "application/json",
+          "cache-control": "no-store",
+          "x-live-cache": "ERROR",
+          "x-live-error": msg,
+        },
+      });
+    } catch {
+      return new Response("Bad gateway", {
+        status: 502,
+        headers: { "cache-control": "no-store", "x-live-error": msg },
+      });
+    }
+  }
 }
 
 // ---- Normal pages ----
