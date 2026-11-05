@@ -1,3 +1,4 @@
+///web/src/app/posts/page.js///
 import React from 'react';
 import TemplateListing from '../../components/TemplateListing';
 import { fetchWithTenant } from '../../lib/fetchWithTenant';

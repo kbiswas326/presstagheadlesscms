@@ -272,6 +272,8 @@ export async function generateMetadata({ params }) {
   );
 
   const title = post.seo?.metaTitle || post.title;
+  const liveType = String(post?.type || '').toLowerCase().trim();
+  const isLive = liveType === 'live blog' || liveType === 'live-blog';
   const description =
     post?.seo?.metaDescription ||
     post?.summary ||
@@ -286,6 +288,7 @@ export async function generateMetadata({ params }) {
 
   return {
     metadataBase,
+    other: isLive ? { 'x-live': '1' } : undefined,
     title,
     description,
     alternates: {
