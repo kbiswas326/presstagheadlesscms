@@ -115,7 +115,13 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
 
         const tick = async () => {
             try {
-                const res = await fetchWithTenant(`/posts/slug/${encodeURIComponent(String(slug))}`, { cache: 'no-store' });
+                let res = null;
+                try {
+                    res = await fetch(`/_live/posts/slug/${encodeURIComponent(String(slug))}`, { cache: 'no-store' });
+                } catch {}
+                if (!res || !res.ok) {
+                    res = await fetchWithTenant(`/posts/slug/${encodeURIComponent(String(slug))}`, { cache: 'no-store' });
+                }
                 if (!res.ok) return;
                 const latest = await res.json();
                 if (cancelled || !latest) return;
