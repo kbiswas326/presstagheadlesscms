@@ -83,23 +83,26 @@ async function liveApi(slug, ctx) {
 
     const body = await res.arrayBuffer();
     const type = res.headers.get("content-type") || "application/json";
-    try {
-      ctx.waitUntil(
-        cache.put(
-          key,
-          new Response(body, {
-            status: 200,
-            headers: {
-              "content-type": type,
-              "cache-control": `public, s-maxage=${LIVE_API_GRACE + 30}`,
-              "x-cached-at": String(Date.now()),
-            },
-          })
-        )
-      );
-    } catch {}
 
-    return new Response(body, {
+    // Wait for the save to finish (a background save was not reliable)
+    let putErr = "";
+    try {
+      await cache.put(
+        key,
+        new Response(body, {
+          status: 200,
+          headers: {
+            "content-type": type,
+            "cache-control": `public, s-maxage=${LIVE_API_GRACE + 30}`,
+            "x-cached-at": String(Date.now()),
+          },
+        })
+      );
+    } catch (e) {
+      putErr = String(e && e.message ? e.message : e).replace(/[^\x20-\x7E]/g, "?").slice(0, 120);
+    }
+
+    const out = new Response(body, {
       status: 200,
       headers: {
         "content-type": type,
@@ -107,6 +110,8 @@ async function liveApi(slug, ctx) {
         "x-live-cache": "MISS",
       },
     });
+    if (putErr) out.headers.set("x-live-put-error", putErr);
+    return out;
   } catch (e) {
     // Never crash: fall back to a plain pass-through and report why
     const msg = String(e && e.message ? e.message : e).replace(/[^\x20-\x7E]/g, "?").slice(0, 150);
