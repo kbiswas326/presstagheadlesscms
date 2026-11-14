@@ -1,3 +1,5 @@
+import { fixPublivePath } from './imageHelper';
+
 export function fillTemplate(template, vars = {}) {
   const t = String(template || '');
   if (!t) return '';
@@ -12,7 +14,7 @@ export function resolveSiteAssetUrl(value) {
   const imageValue = value && typeof value === 'object'
     ? value.url || value.src || ''
     : value;
-  const raw = String(imageValue || '').trim();
+  const raw = fixPublivePath(String(imageValue || '').trim());
   if (!raw) return '';
   if (raw.startsWith('http://') || raw.startsWith('https://')) {
     if (raw.startsWith('http://') && !/^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(raw)) {
