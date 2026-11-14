@@ -1,4 +1,15 @@
 // lib/imageHelper.js | Utility functions for handling image URLs and uploads in the Presstag CMS frontend.//
+
+// Old publive paths lost their "media/" folder. Insert it so the image loads again.
+// Paths that already contain "media/" are left alone.
+export function fixPublivePath(url) {
+  if (typeof url !== 'string' || !url.includes('publive')) return url;
+  return url.replace(
+    /(\/sportzpoint\/)(media_files|post_banners|media_library|post_attachments)\//,
+    '$1media/$2/'
+  );
+}
+
 export const getImageUrl = (relativePath) => {
   if (!relativePath) return null;
 
@@ -12,7 +23,7 @@ export const getImageUrl = (relativePath) => {
     relativePath.startsWith('http://') ||
     relativePath.startsWith('https://')
   ) {
-    return relativePath;
+    return fixPublivePath(relativePath);
   }
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
@@ -67,7 +78,6 @@ export async function getFallbackImage() {
   }
 }
 
-// ✅ ADD THIS
 export function resolvePostImage(post, fallbackImage = null) {
   const img =
     post?.featuredImage?.url ||

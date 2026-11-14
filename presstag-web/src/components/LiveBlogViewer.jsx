@@ -10,6 +10,7 @@ import AdSpot from './AdSpot';
 import SocialShareButtons from './SocialShareButtons';
 import ArticleGridCard from './ArticleGridCard';
 import { fetchWithTenant } from '@/lib/fetchWithTenant';
+import { fixPublivePath } from '@/lib/imageHelper';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
@@ -170,7 +171,7 @@ const LiveBlogViewer = ({ post, tagPrefix = 'tag', templateId = 'classic' }) => 
 
         if (url.startsWith('http')) {
             // Fix port compatibility: replace localhost:5000 with localhost:5001
-            return url.replace('localhost:5000', 'localhost:5001');
+            return fixPublivePath(url.replace('localhost:5000', 'localhost:5001'));
         }
         
         // Base URL handling
