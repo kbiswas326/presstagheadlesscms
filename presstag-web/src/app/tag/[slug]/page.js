@@ -128,7 +128,7 @@ export default async function TagPage({ params, searchParams }) {
     getLayoutConfig(),
     getTag(decodedSlug),
   ]);
-  if (!tag) notFound();
+  if (!tag || !tag._id) notFound();
 
   const preferredPrefix = String(config?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
   if (preferredPrefix !== 'tag') {
