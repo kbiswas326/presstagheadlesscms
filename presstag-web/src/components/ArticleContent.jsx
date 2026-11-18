@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import AdSpot from './AdSpot';
 
 const inferImageDimensions = (src) => {
-  const url = String(src || '');
+  const url = String(src || '');ac
   const fitIn = url.match(/fit-in\/(\d+)x(\d+)/i);
   if (fitIn) return { width: fitIn[1], height: fitIn[2] };
 

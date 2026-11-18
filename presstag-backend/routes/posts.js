@@ -864,7 +864,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (role === 'writer' && desiredStatus === 'published') {
       return res.status(403).json({ error: 'Writers cannot publish posts' });
     }
-    const isStatusPublishTransition = prevStatus !== 'published' && desiredStatus === 'published';
     const isExplicitPublishAction =
       desiredStatus === 'published' &&
       notifySubscribers === true &&
@@ -894,7 +893,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
       delete updateBody.editorName;
       delete updateBody.publishedAt;
     }
-    if (isStatusPublishTransition && !updateBody.publishedAt) updateBody.publishedAt = new Date();
     const shouldBumpPublishedAt =
       desiredStatus === 'published' &&
       isExplicitPublishAction;
