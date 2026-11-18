@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import AdSpot from './AdSpot';
 
 const inferImageDimensions = (src) => {
-  const url = String(src || '');ac
+  const url = String(src || '');
   const fitIn = url.match(/fit-in\/(\d+)x(\d+)/i);
   if (fitIn) return { width: fitIn[1], height: fitIn[2] };
 
@@ -48,6 +48,10 @@ const optimizeInlineImages = (html) => {
 
     if (!/\bstyle\s*=\s*["'][^"']*["']/i.test(nextAttrs)) {
       nextAttrs += ' style="height:auto;max-width:100%"';
+    }
+
+        if (!/\bonerror\s*=/i.test(nextAttrs)) {
+      nextAttrs += ` onerror="this.onerror=null;var e=this.closest('figure')||this;e.style.display='none';"`;
     }
 
     return `<img${nextAttrs}>`;
