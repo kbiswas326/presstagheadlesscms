@@ -210,6 +210,34 @@ test('updating a published post without a new publish date preserves its publish
   assert.equal(savedPost.title, 'Updated article');
 });
 
+test('updating a published post with its unchanged publish date and time preserves the exact publishedAt', async () => {
+  const postId = new ObjectId();
+  const publishedAt = new Date('2024-06-15T10:30:45.123Z');
+  let savedPost;
+
+  mockDb.collection = (name) => {
+    if (name !== 'posts') return { findOne: async () => null };
+    return {
+      findOne: async () => ({ _id: postId, status: 'published', publishedAt }),
+      findOneAndUpdate: async (filter, update) => {
+        savedPost = update.$set;
+        return { ...filter, ...savedPost };
+      },
+    };
+  };
+
+  await Post.update(postId.toString(), {
+    status: 'published',
+    title: 'Updated article',
+    publishDate: '2024-06-15',
+    publishTime: '16:00',
+  });
+
+  assert.equal(savedPost.publishedAt, undefined);
+  assert.equal(savedPost.publishDate, '2024-06-15');
+  assert.equal(savedPost.publishTime, '16:00');
+});
+
 test('updating a published post with an edited date and time updates publishedAt accordingly', async () => {
   const postId = new ObjectId();
   let savedPost;

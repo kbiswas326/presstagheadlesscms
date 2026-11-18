@@ -219,9 +219,24 @@ class Post {
 
     if (updateData.publishedAt) {
       updateData.publishedAt = new Date(updateData.publishedAt);
-    } else if (updateData.publishDate && updateData.publishTime) {
-      const dateTimeString = `${updateData.publishDate}T${updateData.publishTime}:00+05:30`;
-      updateData.publishedAt = new Date(dateTimeString);
+    } else if (updateData.publishDate !== undefined || updateData.publishTime !== undefined) {
+      const previousPublishedAt = currentDoc.publishedAt ? new Date(currentDoc.publishedAt) : null;
+      const previousIstParts = previousPublishedAt && !Number.isNaN(previousPublishedAt.getTime())
+        ? new Date(previousPublishedAt.getTime() + (5 * 60 + 30) * 60 * 1000).toISOString()
+        : null;
+      const previousPublishDate = previousIstParts?.slice(0, 10) || currentDoc.publishDate || null;
+      const previousPublishTime = previousIstParts?.slice(11, 16) || currentDoc.publishTime || null;
+      const publishDate = updateData.publishDate || previousPublishDate;
+      const publishTime = updateData.publishTime || previousPublishTime;
+      const publishDateChanged =
+        updateData.publishDate !== undefined && updateData.publishDate !== previousPublishDate;
+      const publishTimeChanged =
+        updateData.publishTime !== undefined && updateData.publishTime !== previousPublishTime;
+
+      if ((publishDateChanged || publishTimeChanged) && publishDate && publishTime) {
+        const dateTimeString = `${publishDate}T${publishTime}:00+05:30`;
+        updateData.publishedAt = new Date(dateTimeString);
+      }
     }
 
     if (updateData.authors !== undefined || updateData.author !== undefined || updateData.primaryAuthor !== undefined) {
