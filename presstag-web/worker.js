@@ -163,9 +163,20 @@ async function fetchAndStore(request, env, ctx, cache, key, pathname) {
 
   const body = await res.arrayBuffer();
   const type = res.headers.get("content-type") || "text/html; charset=utf-8";
+  const html = type.includes("text/html") ? new TextDecoder().decode(body) : "";
+
+  // Missing page that Next.js streamed with status 200: return a real 404, do not store it
+  if (html.includes('data-dgst="NEXT_HTTP_ERROR_FALLBACK;404"')) {
+    ctx.waitUntil(cache.delete(key));
+    const nf = new Response(body, { status: 404, headers: res.headers });
+    nf.headers.delete("content-length");
+    nf.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
+    nf.headers.set("x-edge-cache", "SOFT404-FIXED");
+    return nf;
+  }
 
   // Live page: never store it, and remove any older stored copy
-  if (type.includes("text/html") && new TextDecoder().decode(body).includes(LIVE_MARKER)) {
+  if (html.includes(LIVE_MARKER)) {
     ctx.waitUntil(cache.delete(key));
     const live = new Response(body, res);
     live.headers.delete("content-length");
