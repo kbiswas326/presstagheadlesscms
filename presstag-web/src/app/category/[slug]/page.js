@@ -1,4 +1,4 @@
-///web/src/app/category/[slug]/page.js | This page component renders a list of posts for a given category slug. It fetches the posts from the backend API based on the category slug and supports pagination. The page displays the category title, a grid of article cards, and pagination controls. If no posts are found for the category, it shows a message indicating that there are no posts in that category. The component uses React's async/await syntax to handle data fetching and includes error handling to ensure a smooth user experience even if the API call fails.
+///web/src/app/category/[slug]/page.js | This page component renders a list of posts for a given category slug. It fetches the posts from the backend API based on the category slug and supports pagination. The page displays the category title, a grid of article cards, and pagination controls. If the category does not exist, it returns a 404. The component uses React's async/await syntax to handle data fetching and includes error handling to ensure a smooth user experience even if the API call fails.
 import React from 'react';
 import TemplateListing from '../../../components/TemplateListing';
 import { fetchWithTenant } from '../../../lib/fetchWithTenant';
@@ -17,12 +17,15 @@ async function getLayoutConfig() {
   return null;
 }
 
+// Returns the category, null if it does not exist (backend says 404),
+// or undefined if the lookup failed for another reason (so a temporary error never causes a 404).
 async function getCategory(slug) {
   try {
-    const res = await fetchWithTenant(`/categories/by-slug/${slug}`, { next: { revalidate: 600 } });
+    const res = await fetchWithTenant(`/categories/by-slug/${encodeURIComponent(String(slug))}`, { next: { revalidate: 600 } });
     if (res.ok) return res.json();
+    if (res.status === 404) return null;
   } catch {}
-  return null;
+  return undefined;
 }
 
 async function getCategoryPosts(slug, page = 1) {
@@ -104,13 +107,14 @@ export default async function CategoryPage({ params, searchParams }) {
   if (!slug) {
     return <div className="container mx-auto px-4 py-8">Invalid category</div>;
   }
+
   const [config, postsResult, category] = await Promise.all([
     getLayoutConfig(),
     getCategoryPosts(slug, page),
     getCategory(slug),
   ]);
+  if (category === null) notFound();
   const { articles: posts, totalPages } = postsResult;
-  if (!category && posts.length === 0) notFound();
   const h = await headers();
   const templateOverride = h.get('x-template-id');
   const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);
