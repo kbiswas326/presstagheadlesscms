@@ -5,6 +5,7 @@ import { fetchWithTenant } from '../../../lib/fetchWithTenant';
 import { buildOpenGraphImage, fillTemplate, resolveSiteAssetUrl } from '../../../lib/seo';
 import { resolveTemplateId } from '../../../lib/templates';
 import { headers } from 'next/headers';
+import { notFound } from 'next/navigation';
 
 export const revalidate = 120;
 
@@ -103,12 +104,13 @@ export default async function CategoryPage({ params, searchParams }) {
   if (!slug) {
     return <div className="container mx-auto px-4 py-8">Invalid category</div>;
   }
-
-  const [config, postsResult] = await Promise.all([
+  const [config, postsResult, category] = await Promise.all([
     getLayoutConfig(),
     getCategoryPosts(slug, page),
+    getCategory(slug),
   ]);
   const { articles: posts, totalPages } = postsResult;
+  if (!category && posts.length === 0) notFound();
   const h = await headers();
   const templateOverride = h.get('x-template-id');
   const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);
