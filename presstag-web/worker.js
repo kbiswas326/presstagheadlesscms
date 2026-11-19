@@ -175,6 +175,17 @@ async function fetchAndStore(request, env, ctx, cache, key, pathname) {
     return nf;
   }
 
+    // Redirect that Next.js streamed with status 200: send a real redirect, do not store it
+  const rd = html.match(/data-dgst="NEXT_REDIRECT;[a-z]+;([^;"]+);(30[1-8]);/);
+  if (rd) {
+    ctx.waitUntil(cache.delete(key));
+    const target = new URL(rd[1].replace(/&amp;/g, "&"), request.url).toString();
+    return new Response(null, {
+      status: Number(rd[2]),
+      headers: { Location: target, "Cache-Control": "public, max-age=300", "x-edge-cache": "REDIRECT-FIXED" },
+    });
+  }
+
   // Live page: never store it, and remove any older stored copy
   if (html.includes(LIVE_MARKER)) {
     ctx.waitUntil(cache.delete(key));
