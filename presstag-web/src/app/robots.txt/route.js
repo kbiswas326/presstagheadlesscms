@@ -1,3 +1,4 @@
+///web> src/app/robots.txt/route.js//
 export async function GET(request) {
   const origin = (() => {
     try {
@@ -9,6 +10,12 @@ export async function GET(request) {
   const body = [
     'User-agent: *',
     'Allow: /',
+    'Disallow: /*?s=',
+    'Disallow: /*&s=',
+    'Disallow: /*?arena_mid',
+    'Disallow: /*&arena_mid',
+    'Disallow: /*?startAfter',
+    'Disallow: /_live/',
     '',
     `Sitemap: ${origin}/sitemap.xml`,
     '',
