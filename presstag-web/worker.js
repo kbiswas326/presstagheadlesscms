@@ -253,6 +253,11 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    // One main address: send www to the non-www site
+    if (url.hostname === "www.sportzpoint.com") {
+      return Response.redirect("https://sportzpoint.com" + url.pathname + url.search, 301);
+    }
+
     // Live blog updates API (checked first)
     const liveMatch = url.pathname.match(LIVE_API);
     if (liveMatch && request.method === "GET") return liveApi(liveMatch[1], ctx);

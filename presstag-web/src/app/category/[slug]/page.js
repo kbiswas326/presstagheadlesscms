@@ -53,7 +53,7 @@ async function getCategoryPosts(slug, page = 1) {
     };
   } catch (error) {
     console.error("Error fetching category posts:", error);
-    return { articles: [], totalPages: 1, total: 0 };
+    return { articles: [], totalPages: 0, total: 0 };
   }
 }
 
@@ -115,6 +115,7 @@ export default async function CategoryPage({ params, searchParams }) {
   ]);
   if (category === null) notFound();
   const { articles: posts, totalPages } = postsResult;
+  if (page > 1 && totalPages >= 1 && page > totalPages) notFound();
   const h = await headers();
   const templateOverride = h.get('x-template-id');
   const templateId = resolveTemplateId(templateOverride || config?.branding?.templateId);

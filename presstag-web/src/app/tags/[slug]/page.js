@@ -53,8 +53,10 @@ async function getTagPosts(tagKey, page = 1) {
   }
 }
 
-export async function generateMetadata({ params }) {
+export async function generateMetadata({ params, searchParams }) {
   const resolvedParams = await params;
+  const sp = await searchParams;
+  const pageNum = Number(sp?.page) || 1;
   const slug = resolvedParams?.slug;
   const decodedSlug = (() => {
     const s = String(slug || '').replace(/\+/g, ' ');
@@ -84,6 +86,7 @@ export async function generateMetadata({ params }) {
   return {
     title,
     description,
+    robots: pageNum > 1 ? { index: false, follow: true } : undefined,
     alternates: slug ? { canonical: `/${preferredPrefix}/${slug}` } : undefined,
     openGraph: {
       title,
@@ -134,6 +137,7 @@ export default async function TagPage({ params, searchParams }) {
 
   const tagKey = tag._id ? String(tag._id) : decodedSlug;
   const { articles: posts, totalPages } = await getTagPosts(tagKey, page);
+  if (page > 1 && totalPages >= 1 && page > totalPages) notFound();
 
   const title = decodedSlug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
