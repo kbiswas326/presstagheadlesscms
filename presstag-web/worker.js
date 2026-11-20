@@ -21,6 +21,33 @@ const KEEP = [
 
 const TRACKING = /^(utm_|fbclid$|gclid$|msclkid$|yclid$|twclid$|igshid$|mc_|_ga|ref$|ref_src$)/i;
 
+// Old tag addresses (lowercase, decoded) -> where they should go
+const TAG_REDIRECTS = {
+  "null": "/",
+  "indian-women039s-cricket": "/tags/indian-womens-cricket",
+  "women039s-cricket": "/tags/womens-cricket",
+  "laliga": "/tags/la-liga",
+  "new-castle-united": "/tags/newcastle-united",
+  "ballon-d039or": "/tags/ballon-dor",
+  "women039s-ballon-d039or": "/tags/womens-ballon-dor",
+  "srilanka-cricket": "/tags/sri-lanka-cricket",
+  "indian-men039s-hockey-team": "/tags/indian-mens-hockey-team",
+  "surya-kumar-yadav": "/tags/suryakumar-yadav",
+  "rasmus-hajlund": "/tags/rasmus-hojlund",
+  "icc-u-19-world-cup": "/tags/icc-u19-world-cup",
+  "ipl2021": "/tags/ipl-2021",
+  "icc-u-19-womens-t20-world-cup": "/tags/icc-u19-womens-t20-world-cup",
+  "ole-gunnar-solskjar": "/tags/ole-gunnar-solskjaer",
+  "sacrgio-conceiassapso": "/tags/sergio-conceicao",
+  "barcelona-femena": "/tags/barcelona-femeni",
+  "marc-andrac-ter-stegen": "/tags/marc-andre-ter-stegen",
+  "vaibhav suryavanshi": "/tags/vaibhav-suryavanshi",
+  "english premier league 2025-26": "/tags/english-premier-league-2025-26",
+  "la liga 2025-26": "/tags/la-liga-2025-26",
+  "uefa champions league 2025-26": "/tags/uefa-champions-league-2025-26",
+  "icc womens world cup 2025": "/tags/icc-womens-world-cup-2025",
+};
+
 // ---- Live blog updates: shared 5-second cache ----
 const LIVE_ORIGIN = "https://laudable-integrity-production-2328.up.railway.app/api";
 const LIVE_API = /^\/_live\/posts\/slug\/([A-Za-z0-9._%-]+)$/;
@@ -175,7 +202,7 @@ async function fetchAndStore(request, env, ctx, cache, key, pathname) {
     return nf;
   }
 
-    // Redirect that Next.js streamed with status 200: send a real redirect, do not store it
+  // Redirect that Next.js streamed with status 200: send a real redirect, do not store it
   const rd = html.match(/data-dgst="NEXT_REDIRECT;[a-z]+;([^;"]+);(30[1-8]);/);
   if (rd) {
     ctx.waitUntil(cache.delete(key));
@@ -229,6 +256,15 @@ export default {
     // Live blog updates API (checked first)
     const liveMatch = url.pathname.match(LIVE_API);
     if (liveMatch && request.method === "GET") return liveApi(liveMatch[1], ctx);
+
+    // Old tag addresses: permanent redirect to the new one
+    const tagMatch = url.pathname.match(/^\/tags?\/([^\/]+)\/?$/);
+    if (tagMatch && request.method === "GET") {
+      let tagKey = "";
+      try { tagKey = decodeURIComponent(tagMatch[1]).toLowerCase(); } catch {}
+      const to = tagKey && Object.prototype.hasOwnProperty.call(TAG_REDIRECTS, tagKey) ? TAG_REDIRECTS[tagKey] : "";
+      if (to) return Response.redirect(url.origin + to, 301);
+    }
 
     const cacheable =
       request.method === "GET" &&
