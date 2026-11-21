@@ -71,6 +71,22 @@ export async function generateMetadata({ params, searchParams }) {
     decodedSlug ? getTag(decodedSlug) : null,
   ]);
 
+    let thin = false;
+  if (tag && tag._id) {
+    try {
+      const r = await fetchWithTenant(
+        `/posts?status=published&excludeType=custompage&tag=${encodeURIComponent(String(tag._id))}&limit=5&lite=1`,
+        { next: { revalidate: 600 } }
+      );
+      if (r.ok) {
+        const d = await r.json();
+        const list = Array.isArray(d) ? d : (d.posts || []);
+        const total = d.pagination && d.pagination.total != null ? d.pagination.total : list.length;
+        thin = total < 5;
+      }
+    } catch {}
+  }
+
   const siteTitle = config?.branding?.siteTitle || 'PressTag';
   const preferredPrefix = String(config?.seo?.tagPrefix || 'tag').trim() === 'tags' ? 'tags' : 'tag';
   const tagName = tag?.name || (decodedSlug ? decodedSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'Tag');
@@ -86,7 +102,7 @@ export async function generateMetadata({ params, searchParams }) {
   return {
     title,
     description,
-    robots: pageNum > 1 ? { index: false, follow: true } : undefined,
+    robots: (pageNum > 1 || thin) ? { index: false, follow: true } : undefined,
     alternates: slug ? { canonical: `/${preferredPrefix}/${slug}` } : undefined,
     openGraph: {
       title,
