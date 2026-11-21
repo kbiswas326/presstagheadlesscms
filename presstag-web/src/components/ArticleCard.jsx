@@ -58,7 +58,7 @@ const ArticleCardContent = ({ post }) => {
   );
 };
 
-const ArticleBox = ({ post, onClick }) => {
+const ArticleBox = ({ post, onClick, priority = false }) => {
   const imageUrl = post.image || getImageUrl(post.featuredImage?.url || post.featuredImage || post.banner_image);
   let finalImageSrc = null;
   if (imageUrl) {
@@ -84,6 +84,10 @@ const ArticleBox = ({ post, onClick }) => {
               fill
               className="object-cover object-center"
               quality={75}
+              priority={priority}
+              fetchPriority={priority ? 'high' : undefined}
+              loading={priority ? 'eager' : 'lazy'}
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </figure>
         )}
@@ -104,7 +108,7 @@ const ArticleCard = ({ mainPost, secondaryPost, urlStructure }) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <ArticleBox post={mainPost} onClick={handleClick} />
+      <ArticleBox post={mainPost} onClick={handleClick} priority />
       {secondaryPost && <ArticleBox post={secondaryPost} onClick={handleClick} />}
     </div>
   );

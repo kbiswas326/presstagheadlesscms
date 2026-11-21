@@ -7,7 +7,7 @@ import { getImageUrl } from '@/lib/imageHelper';
 import { buildPostUrl } from '@/lib/urlBuilder';
 import { calculateReadTime } from "../util/readTime";
 
-const ArticleGridCard = ({ post, urlStructure, variant = 'classic' }) => {
+const ArticleGridCard = ({ post, urlStructure, variant = 'classic', priority = false }) => {
   
 
   if (!post) {
@@ -77,8 +77,10 @@ const ArticleGridCard = ({ post, urlStructure, variant = 'classic' }) => {
               fill
               sizes="(max-width: 768px) 85vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
               className={`object-cover object-center ${isNews || isEditorial ? '' : 'transition-transform duration-500 hover:scale-[1.02]'}`}
-              
               quality={75}
+              priority={priority}
+              fetchPriority={priority ? 'high' : undefined}
+              loading={priority ? 'eager' : 'lazy'}
             />
           </figure>
         ) : (

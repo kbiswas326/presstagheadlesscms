@@ -7,14 +7,14 @@ import { notFound, permanentRedirect } from 'next/navigation';
 
 async function getLayoutConfig() {
   try {
-    const res = await fetchWithTenant('/layout-config', { cache: 'no-store' });
+    const res = await fetchWithTenant('/layout-config', { next: { revalidate: 300 } });
     if (res.ok) return res.json();
   } catch {}
   return null;
 }
 
 async function getTag(slug) {
-  const res = await fetchWithTenant(`/tags/by-slug/${encodeURIComponent(String(slug || ''))}`, { cache: 'no-store' });
+  const res = await fetchWithTenant(`/tags/by-slug/${encodeURIComponent(String(slug || ''))}`, { next: { revalidate: 300 } });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to fetch tag (${res.status})`);
   return res.json();
@@ -26,7 +26,7 @@ async function getTagPosts(tagKey, page = 1) {
   try {
     const res = await fetchWithTenant(
         `/posts?status=published&excludeType=custompage&tag=${encodeURIComponent(tagKey)}&page=${page}&limit=${limit}&lite=1`,
-      { cache: 'no-store' }
+      { next: { revalidate: 60 } }
     );
     if (!res.ok) {
       throw new Error('Failed to fetch posts');
@@ -152,6 +152,7 @@ export default async function TagPage({ params, searchParams }) {
   }
 
   const tagKey = tag._id ? String(tag._id) : decodedSlug;
+  const urlStructure = config?.seo?.postUrlStructure || '/{category}/{slug}';
   const { articles: posts, totalPages } = await getTagPosts(tagKey, page);
   if (page > 1 && totalPages >= 1 && page > totalPages) notFound();
 
@@ -169,7 +170,7 @@ export default async function TagPage({ params, searchParams }) {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {posts.map((post, i) => (
-              <ArticleGridCard key={i} post={post} />
+              <ArticleGridCard key={post.slug || post._id || i} post={post} urlStructure={urlStructure} priority={page === 1 && i < 2} />
             ))}
           </div>
 

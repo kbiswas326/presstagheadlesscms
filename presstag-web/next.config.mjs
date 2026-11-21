@@ -2,9 +2,10 @@ import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  productionBrowserSourceMaps: true,
+  productionBrowserSourceMaps: false,
   images: {
-    unoptimized: true,
+    loader: 'custom',
+    loaderFile: './src/lib/cloudflareImageLoader.js',
     remotePatterns: [
       {
         protocol: 'http',

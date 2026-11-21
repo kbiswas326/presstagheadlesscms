@@ -11,9 +11,11 @@ import { buildOpenGraphImage, fillTemplate, resolveSiteAssetUrl } from '@/lib/se
 import { resolveTemplateId } from '@/lib/templates';
 import { headers } from 'next/headers';
 
+export const revalidate = 60;
+
 async function getAuthor(slug) {
     try {
-        const res = await fetchWithTenant(`/users/public/${slug}`, { cache: 'no-store' });
+        const res = await fetchWithTenant(`/users/public/${slug}`, { next: { revalidate: 300 } });
         if (!res.ok) return null;
         return await res.json();
     } catch (error) {
@@ -24,7 +26,7 @@ async function getAuthor(slug) {
 
 async function getLayoutConfig() {
     try {
-        const res = await fetchWithTenant('/layout-config', { cache: 'no-store' });
+        const res = await fetchWithTenant('/layout-config', { next: { revalidate: 300 } });
         if (!res.ok) return null;
         return await res.json();
     } catch {
@@ -36,7 +38,7 @@ async function getAuthorPosts(authorId, page = 1) {
     try {
         const res = await fetchWithTenant(
             `/posts?status=published&excludeType=custompage&author=${authorId}&limit=20&page=${page}&lite=1`,
-            { cache: 'no-store' }
+            { next: { revalidate: 60 } }
         );
         if (!res.ok) throw new Error('Failed to fetch posts');
         const data = await res.json();
@@ -203,14 +205,14 @@ export default async function AuthorPage({ params, searchParams }) {
                         <div className="flex flex-col gap-5">
                             {articles.map((post, i) => (
                                 <div key={post?._id || i} className={`${isBold ? 'border-white/10' : 'border-gray-100'} border-b pb-5 last:border-b-0 last:pb-0`}>
-                                    <HorizontalCard post={post} urlStructure={urlStructure} />
+                                    <HorizontalCard post={post} urlStructure={urlStructure} priority={page === 1 && i === 0} />
                                 </div>
                             ))}
                         </div>
                     ) : (
                         <div className={`grid grid-cols-1 md:grid-cols-2 ${isModern ? 'lg:grid-cols-3' : (isMagazine ? 'lg:grid-cols-3' : 'lg:grid-cols-3')} gap-6`}>
                             {articles.map((post, i) => (
-                                <ArticleGridCard key={post?._id || i} post={post} urlStructure={urlStructure} />
+                                <ArticleGridCard key={post?._id || i} post={post} urlStructure={urlStructure} priority={page === 1 && i < 2} />
                             ))}
                         </div>
                     )

@@ -7,7 +7,7 @@ import Link from "next/link";
 import { getImageUrl, resolvePostImage } from '@/lib/imageHelper';
 import { buildPostUrl } from '@/lib/urlBuilder';
 
-const HorizontalCard = ({ post, urlStructure, variant = 'classic' }) => {
+const HorizontalCard = ({ post, urlStructure, variant = 'classic', priority = false }) => {
 
   if (!post) return null;
 
@@ -69,6 +69,9 @@ const HorizontalCard = ({ post, urlStructure, variant = 'classic' }) => {
                     fill
                     sizes="(max-width: 768px) 33vw, (max-width: 1024px) 33vw, 25vw"
                     className={`object-cover transition-transform duration-300 ${isEditorial ? '' : 'group-hover:scale-105'}`}
+                    priority={priority}
+                    fetchPriority={priority ? 'high' : undefined}
+                    loading={priority ? 'eager' : 'lazy'}
                 />
              ) : (
                 <div className={`absolute inset-0 ${isBold ? 'bg-gray-200' : 'bg-gray-200'}`} />

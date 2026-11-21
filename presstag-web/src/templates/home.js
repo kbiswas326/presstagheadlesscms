@@ -76,7 +76,7 @@ export const renderHomeClassic = ({
                 <ClassicSectionHeading label="Top Stories" />
                 <div className="flex flex-col gap-4 flex-grow">
                   {(Array.isArray(sidePosts) ? sidePosts : []).map((post, i) => (
-                    <HorizontalCard key={postKey(post, i)} post={post} urlStructure={urlStructure} />
+                    <HorizontalCard key={postKey(post, i)} post={post} urlStructure={urlStructure} priority={i === 0} />
                   ))}
                 </div>
               </div>
