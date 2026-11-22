@@ -4,10 +4,13 @@
 // Paths that already contain "media/" are left alone.
 export function fixPublivePath(url) {
   if (typeof url !== 'string' || !url.includes('publive')) return url;
-  return url.replace(
+  let out = url.replace(
     /(\/sportzpoint\/)(media_files|post_banners|media_library|post_attachments)\//,
     '$1media/$2/'
   );
+  out = out.replace('//img-cdn.thepublive.com/', '//img-cdn.publive.online/');
+  out = out.replace('/fit-in/1920x1080/', '/fit-in/1200x675/');
+  return out;
 }
 
 export const getImageUrl = (relativePath) => {
