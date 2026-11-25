@@ -1,4 +1,6 @@
+
 // routes/media.js | Handles media uploads and retrieval for the media library
+
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -8,7 +10,8 @@ const Media = require('../models/Media');
 const authMiddleware = require('../middleware/auth');
 const { requireRole } = require('../middleware/requireRole');
 
-const s3 = new S3Client({
+// Shared R2 client (existing configuration for other tenants)
+const sharedS3 = new S3Client({
   region: 'auto',
   endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {
@@ -17,12 +20,43 @@ const s3 = new S3Client({
   },
 });
 
+// Dedicated SportzPoint R2 client
+const sportzPointS3 = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.SPORTZPOINT_R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.SPORTZPOINT_R2_SECRET_ACCESS_KEY,
+  },
+});
+
+// Resolve storage configuration based on tenant
+const getStorageConfig = (clientId) => {
+  if (clientId === 'sportzpoint') {
+    return {
+      s3: sportzPointS3,
+      bucket: process.env.SPORTZPOINT_R2_BUCKET_NAME,
+      publicUrl: process.env.SPORTZPOINT_R2_PUBLIC_URL,
+      prefix: '',
+    };
+  }
+
+  return {
+    s3: sharedS3,
+    bucket: process.env.R2_BUCKET_NAME,
+    publicUrl: process.env.R2_PUBLIC_URL,
+    prefix: `${clientId}/`,
+  };
+};
+
 const upload = multer({ storage: multer.memoryStorage() });
 
 router.post('/upload', authMiddleware, upload.single('file'), async (req, res) => {
   try {
     const file = req.file;
-    if (!file) return res.status(400).json({ message: 'No file uploaded' });
+    if (!file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
 
     const { altText, title, caption, credits } = req.body;
     const clientId = req.tenantId || req.user?.clientId || 'default';
@@ -33,13 +67,19 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+
     const filename = `${Date.now()}-${baseName}${ext}`;
-    const r2Key = `${clientId}/${filename}`;
+    const storage = getStorageConfig(clientId);
+    const r2Key = `${storage.prefix}${filename}`;
+
+    if (!storage.bucket || !storage.publicUrl) {
+      throw new Error(`R2 storage configuration missing for tenant: ${clientId}`);
+    }
 
     const parallelUpload = new Upload({
-      client: s3,
+      client: storage.s3,
       params: {
-        Bucket: process.env.R2_BUCKET_NAME,
+        Bucket: storage.bucket,
         Key: r2Key,
         Body: file.buffer,
         ContentType: file.mimetype,
@@ -48,7 +88,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
 
     await parallelUpload.done();
 
-    const imageUrl = `${process.env.R2_PUBLIC_URL}/${r2Key}`;
+    const imageUrl = `${storage.publicUrl.replace(/\/$/, '')}/${r2Key}`;
 
     const media = await Media.create({
       filename: r2Key,
@@ -69,7 +109,10 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
 
   } catch (err) {
     console.error('Media upload error:', err);
-    res.status(500).json({ message: 'Media upload failed', error: err.message });
+    res.status(500).json({
+      message: 'Media upload failed',
+      error: err.message,
+    });
   }
 });
 
@@ -88,6 +131,7 @@ router.get('/img', async (req, res) => {
     const skip = (page - 1) * limit;
     const media = await Media.findAll(req.tenantId);
     const paginatedMedia = media.slice(skip, skip + parseInt(limit));
+
     res.json({
       images: paginatedMedia,
       total: media.length,
@@ -104,11 +148,14 @@ router.get('/search', async (req, res) => {
     const { alt = '', page = 1, limit = 12 } = req.query;
     const skip = (page - 1) * limit;
     const media = await Media.findAll(req.tenantId);
+
     const filtered = media.filter(m =>
       (m.altText || '').toLowerCase().includes(alt.toLowerCase()) ||
       (m.filename || '').toLowerCase().includes(alt.toLowerCase())
     );
+
     const paginatedMedia = filtered.slice(skip, skip + parseInt(limit));
+
     res.json({
       images: paginatedMedia,
       total: filtered.length,
@@ -122,18 +169,28 @@ router.get('/search', async (req, res) => {
 
 router.delete('/:id', authMiddleware, requireRole(['admin', 'editor']), async (req, res) => {
   try {
-    const media = await Media.findById(req.params.id, req.tenantId);
-    if (!media) return res.status(404).json({ message: 'Media not found' });
+    const clientId = req.tenantId || req.user?.clientId || 'default';
+    const storage = getStorageConfig(clientId);
 
-    await s3.send(new DeleteObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
+    const media = await Media.findById(req.params.id, req.tenantId);
+    if (!media) {
+      return res.status(404).json({ message: 'Media not found' });
+    }
+
+    await storage.s3.send(new DeleteObjectCommand({
+      Bucket: storage.bucket,
       Key: media.filename,
     }));
 
     await Media.delete(req.params.id, req.tenantId);
     res.json({ success: true, message: 'Media deleted' });
+
   } catch (err) {
-    res.status(500).json({ message: 'Delete failed', error: err.message });
+    console.error('Media delete error:', err);
+    res.status(500).json({
+      message: 'Delete failed',
+      error: err.message,
+    });
   }
 });
 
